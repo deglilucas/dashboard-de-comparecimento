@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard de Comparecimento — Central da Visão</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f8fa;
+  --surface:#ffffff;
+  --surface-2:#f1f4f8;
+  --ink:#0f2b46;
+  --sub:#5b6b7b;
+  --muted:#8b98a6;
+  --line:#e3e8ee;
+  --accent:#1c6dd0;
+  --accent-bg:#e8f1fb;
+  --good:#2e7d5b;
+  --good-bg:#e7f4ec;
+  --warn:#b7791f;
+  --warn-bg:#fbf3e2;
+  --bad:#c0392b;
+  --bad-bg:#fbebe9;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a1420;
+    --surface:#111d2c;
+    --surface-2:#0c1826;
+    --ink:#edf2f7;
+    --sub:#9aacbe;
+    --muted:#63758a;
+    --line:#22334a;
+    --accent:#5b9eef;
+    --accent-bg:rgba(91,158,239,0.14);
+    --good:#52b087;
+    --good-bg:rgba(82,176,135,0.15);
+    --warn:#dba549;
+    --warn-bg:rgba(219,165,73,0.15);
+    --bad:#e2766e;
+    --bad-bg:rgba(226,118,110,0.15);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  line-height:1.5;
+  font-size:16.5px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1160px;margin:0 auto;padding:28px 20px 64px}
+a{color:var(--accent)}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.dot{width:24px;height:24px;border-radius:50%;background:var(--accent);position:relative;flex:0 0 auto}
+.dot::after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:var(--surface);top:8px;left:8px}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:.2px;color:var(--sub)}
+.brand-name b{color:var(--accent);font-weight:700}
+
+h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
+.subtitle{color:var(--sub);font-size:16px;margin-bottom:12px}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.btn-upload,.btn-export{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:650;font-family:inherit;cursor:pointer;white-space:nowrap;border:none}
+.btn-upload{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn-upload:hover{background:var(--surface-2)}
+.btn-export{background:var(--accent);color:#fff}
+.btn-export:hover{filter:brightness(1.08)}
+.btn-export:active{filter:brightness(0.96)}
+.btn-export:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn-upload svg,.btn-export svg{flex:0 0 auto}
+
+.banner{margin:18px 0 0;padding:14px 18px;border-radius:12px;font-size:14.5px;line-height:1.55}
+.banner.info{background:var(--accent-bg);color:var(--ink)}
+.banner.error{background:var(--bad-bg);color:var(--bad)}
+.banner b{font-weight:700}
+
+.empty-state{margin-top:36px;padding:56px 24px;text-align:center;border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface-2)}
+.empty-title{font-size:19px;font-weight:650;margin-bottom:8px}
+.empty-sub{color:var(--sub);font-size:15px;max-width:520px;margin:0 auto}
+.empty-sub b{color:var(--ink)}
+
+.sec-divider{margin:44px 0 16px;padding-top:22px;border-top:1px solid var(--line)}
+.sec-divider:first-of-type{margin-top:8px}
+.sec-title{font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--sub)}
+.sec-sub{font-size:14.5px;color:var(--muted);margin-top:3px}
+
+/* ---- hero / KPI ---- */
+.hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;align-items:stretch;margin-top:24px}
+.hero-card{border:1px solid var(--line);border-radius:var(--radius);padding:22px 22px 20px;background:var(--surface)}
+.hero-card.status-good{background:var(--good-bg);border-color:transparent}
+.hero-card.status-warn{background:var(--warn-bg);border-color:transparent}
+.hero-card.status-bad{background:var(--bad-bg);border-color:transparent}
+.hero-lbl{font-size:14.5px;color:var(--sub);font-weight:600;margin-bottom:8px}
+.hero-num{font-size:60px;font-weight:300;line-height:1;letter-spacing:-.01em}
+.status-good .hero-num{color:var(--good)}
+.status-warn .hero-num{color:var(--warn)}
+.status-bad .hero-num{color:var(--bad)}
+.hero-foot{font-size:14px;color:var(--sub);margin-top:10px}
+.kpi-num{font-size:39px;font-weight:300;color:var(--ink);line-height:1}
+.kpi-lbl{font-size:14.5px;color:var(--sub);font-weight:600;margin-bottom:8px}
+.kpi-foot{font-size:14px;color:var(--muted);margin-top:10px}
+
+/* ---- legend ---- */
+.legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:20px 0 0;padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:14.5px;color:var(--sub)}
+.legend-swatch{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+.legend-swatch.good{background:var(--good)}
+.legend-swatch.warn{background:var(--warn)}
+.legend-swatch.bad{background:var(--bad)}
+.legend-item b{color:var(--ink)}
+.legend-badge{font-size:12.5px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:20px;border:1px solid var(--muted);color:var(--sub)}
+
+/* ---- specialty cards ---- */
+.esp-grid{display:flex;flex-direction:column;gap:16px}
+.esp-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.esp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:18px 20px;border-bottom:1px solid var(--line)}
+.esp-name{font-size:19.5px;font-weight:650}
+.esp-meta{font-size:14px;color:var(--sub);margin-top:4px}
+.esp-avg{display:flex;align-items:center;gap:8px}
+.esp-avg-num{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.esp-avg-lbl{font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+.esp-avg.status-good .esp-avg-num{color:var(--good)}
+.esp-avg.status-warn .esp-avg-num{color:var(--warn)}
+.esp-avg.status-bad .esp-avg-num{color:var(--bad)}
+
+.rows{padding:6px 8px}
+.rk-row{display:grid;grid-template-columns:32px 1fr 82px 74px minmax(150px,230px) 74px;align-items:center;gap:10px;padding:10px 12px;border-left:3px solid transparent;border-radius:8px}
+.rk-line,.rk-stats{display:contents}
+.rk-row.status-good{border-left-color:var(--good)}
+.rk-row.status-warn{border-left-color:var(--warn)}
+.rk-row.status-bad{border-left-color:var(--bad)}
+.rk-row.hi{border-left-width:5px}
+.rk-row.hi.status-good{background:color-mix(in srgb, var(--good-bg) 70%, transparent)}
+.rk-row.hi.status-warn{background:color-mix(in srgb, var(--warn-bg) 70%, transparent)}
+.rk-row.hi.status-bad{background:color-mix(in srgb, var(--bad-bg) 70%, transparent)}
+.rk-row + .rk-row{border-top:1px solid var(--line)}
+.rk{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums;text-align:right}
+.clin{min-width:0;flex:1}
+.clin-name{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clin-loc{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.hi-badge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:1px 6px;border-radius:20px;border:1px solid var(--muted);color:var(--sub);white-space:nowrap}
+.num-col{font-size:14.5px;font-variant-numeric:tabular-nums;color:var(--sub);text-align:right}
+.num-col b{color:var(--ink);font-weight:600}
+.bar-cell{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.bar-track{flex:1;height:16px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.bar-fill{height:100%;border-radius:4px 2px 2px 4px}
+.bar-fill.status-good{background:var(--good)}
+.bar-fill.status-warn{background:var(--warn)}
+.bar-fill.status-bad{background:var(--bad)}
+.pct-val{font-size:15.5px;font-weight:650;font-variant-numeric:tabular-nums;text-align:right}
+.pct-val.status-good{color:var(--good)}
+.pct-val.status-warn{color:var(--warn)}
+.pct-val.status-bad{color:var(--bad)}
+
+.tier-pill{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px}
+.tier-pill.primaria{background:var(--accent-bg);color:var(--accent)}
+.tier-pill.secundaria{background:var(--surface-2);color:var(--sub);border:1px solid var(--line)}
+.tier-pill.terciaria{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tier-pill.outras{background:var(--surface-2);color:var(--muted);border:1px dashed var(--line)}
+
+.foot{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:13px}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr}
+  .rk-row{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:10px 12px}
+  .rk-line{display:flex;align-items:flex-start;gap:8px}
+  .rk-stats{display:flex;align-items:center;gap:10px;width:100%}
+  .rk{padding-top:1px}
+  .num-col{text-align:left;white-space:nowrap}
+  .num-col.faltas{display:none}
+  .pct-val{min-width:52px}
+  .topbar{flex-direction:column}
+  .btn-upload,.btn-export{flex:1;justify-content:center}
+}
+
+@media print{
+  :root{
+    --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f8; --ink:#0f2b46; --sub:#5b6b7b; --muted:#8b98a6;
+    --line:#d7dde4; --accent:#1c6dd0; --accent-bg:#e8f1fb;
+    --good:#2e7d5b; --good-bg:#e7f4ec; --warn:#b7791f; --warn-bg:#fbf3e2; --bad:#c0392b; --bad-bg:#fbebe9;
+  }
+  body{background:#fff}
+  .wrap{max-width:100%;padding:0 6px}
+  .no-print{display:none !important}
+  .esp-card{break-inside:avoid}
+  .sec-divider{break-after:avoid}
+  a{color:var(--ink);text-decoration:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <div class="brand"><span class="dot"></span><span class="brand-name">Central <b>da Visão</b></span></div>
+      <h1>Dashboard de Comparecimento</h1>
+      <div class="subtitle">Consolidado por clínica e especialidade &middot; envie a planilha de agendamentos para gerar o painel</div>
+    </div>
+    <div class="toolbar no-print">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+      <button class="btn-upload" type="button" onclick="document.getElementById('fileInput').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
+        Carregar planilha
+      </button>
+      <button class="btn-export" id="exportBtn" type="button" onclick="exportPdf()" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+        Exportar PDF
+      </button>
+    </div>
+  </div>
+
+  <div id="uploadBanner" class="banner no-print" style="display:none"></div>
+
+  <div id="emptyState" class="empty-state">
+    <div class="empty-title">Nenhuma planilha carregada ainda</div>
+    <div class="empty-sub">Clique em <b>Carregar planilha</b> e envie o arquivo de agendamentos (.xlsx, .xls ou .csv). Funciona tanto com o relatório consolidado por clínica/especialidade quanto com a exportação bruta do Farol/Metabase (uma linha por atendimento, com data e status).</div>
+  </div>
+
+  <div id="dashboardBody" style="display:none">
+    <div class="hero" id="hero"></div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch good"></span><b>&gt; 70%</b>&nbsp;comparecimento bom</div>
+      <div class="legend-item"><span class="legend-swatch warn"></span><b>60% – 69%</b>&nbsp;ponto de atenção</div>
+      <div class="legend-item"><span class="legend-swatch bad"></span><b>&lt; 60%</b>&nbsp;comparecimento ruim</div>
+      <div class="legend-item"><span class="legend-badge">Alto volume</span>&nbsp;mais de 10 agendamentos no período</div>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<script>
+// ---------- regras de especialidade ----------
+const PRETTY = {
+  "CATARATA":"Catarata","REFRATIVA":"Refrativa","BLEFAROPLASTIA":"Blefaroplastia","RETINA":"Retina",
+  "CAPSULOTOMIA":"Capsulotomia","CALÁZIO":"Calázio","PTERIGIO":"Pterígio","CONSULTA OFTALMOLÓGICA":"Consulta oftalmológica",
+  "GLAUCOMA":"Glaucoma","ESTRABISMO":"Estrabismo","CERATOCONE":"Ceratocone","CÓRNEA":"Córnea"
+};
+// especialidades que a planilha traz com nomes diferentes mas que devem contar juntas
+const SPEC_ALIASES = {
+  "CONSULTA REFRATIVA": "REFRATIVA"
+};
+const TIERS = [
+  {key:"primaria", label:"Especialidades primárias", pill:"primaria", specs:["CATARATA","REFRATIVA","BLEFAROPLASTIA","RETINA"]},
+  {key:"secundaria", label:"Especialidades secundárias", pill:"secundaria", specs:["CAPSULOTOMIA","CALÁZIO","PTERIGIO","CONSULTA OFTALMOLÓGICA"]},
+  {key:"terciaria", label:"Especialidades terciárias", pill:"terciaria", specs:["GLAUCOMA","ESTRABISMO","CERATOCONE","CÓRNEA"]},
+];
+const KNOWN_SPECS = new Set(TIERS.flatMap(t => t.specs));
+const HIGH_VOLUME_MIN = 10; // "mais de 10 agendamentos"
+
+// ---------- leitura de planilha: aliases de coluna ----------
+const HEADER_ALIASES = {
+  clinica: ["clinica","clinicas"],
+  especialidade: ["especialidade","especialidades"],
+  agendamentos: ["agendamentos","quantidade de agendamentos","qtd agendamentos","qtd de agendamentos"],
+  faltas: ["quantidade de faltas","faltas","qtd faltas","qtd de faltas"],
+  status: ["status da consulta","agendamento_status","status"],
+  data_consulta: ["data da consulta","agendamento_data","data consulta","data_consulta"]
+};
+
+function stripAccents(s){ return String(s).normalize("NFD").replace(/[̀-ͯ]/g,""); }
+function normKey(s){ return stripAccents(String(s==null?"":s).trim().toLowerCase()); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function buildAliasLookup(){
+  const map = {};
+  for (const canon in HEADER_ALIASES){
+    for (const variant of HEADER_ALIASES[canon]) map[normKey(variant)] = canon;
+  }
+  return map;
+}
+function canonicalizeRow(row, lookup){
+  const out = {};
+  for (const k in row){
+    const canon = lookup[normKey(k)];
+    if (canon && out[canon] === undefined) out[canon] = row[k];
+  }
+  return out;
+}
+function toNum(v){
+  if (typeof v === "number") return v;
+  const n = parseInt(String(v==null?"":v).replace(/[^\d-]/g,""), 10);
+  return isNaN(n) ? 0 : n;
+}
+function classifyStatus(s){
+  const n = normKey(s);
+  if (n.includes("compareceu")) return "compareceu";
+  if (n.includes("faltou")) return "faltou";
+  if (n.includes("aguardando")) return "aguardando";
+  return "outro";
+}
+
+function processRows(jsonRows){
+  const lookup = buildAliasLookup();
+  const canonRows = jsonRows.map(r => canonicalizeRow(r, lookup))
+    .filter(r => String(r.clinica||"").trim() && String(r.especialidade||"").trim());
+  if (!canonRows.length){
+    throw new Error('Não encontrei colunas de "Clínica" e "Especialidade" reconhecíveis na planilha.');
+  }
+  const sample = canonRows[0];
+  const format = (sample.agendamentos !== undefined && sample.faltas !== undefined) ? "aggregated"
+    : (sample.status !== undefined) ? "raw" : null;
+  if (!format){
+    throw new Error('Não identifiquei o formato: preciso de colunas "Agendamentos"/"Quantidade de Faltas" (relatório consolidado) ou "Status da consulta" (exportação por atendimento).');
+  }
+
+  const agg = new Map();
+  function addAgg(c, e, a, f){
+    e = SPEC_ALIASES[e] || e;
+    const key = c + "||" + e;
+    const prev = agg.get(key) || {c, e, a:0, f:0};
+    prev.a += a; prev.f += f;
+    agg.set(key, prev);
+  }
+
+  let pendCount = 0, outroCount = 0;
+  const outroSamples = new Set();
+
+  if (format === "aggregated"){
+    for (const r of canonRows){
+      const c = String(r.clinica).trim();
+      const e = String(r.especialidade).trim().toUpperCase();
+      const a = toNum(r.agendamentos);
+      const f = toNum(r.faltas);
+      if (!c || !e || a <= 0) continue;
+      addAgg(c, e, a, f);
+    }
+  } else {
+    for (const r of canonRows){
+      const c = String(r.clinica).trim();
+      const e = String(r.especialidade).trim().toUpperCase();
+      if (!c || !e) continue;
+      const cls = classifyStatus(r.status);
+      if (cls === "compareceu") addAgg(c, e, 1, 0);
+      else if (cls === "faltou") addAgg(c, e, 1, 1);
+      else if (cls === "aguardando") pendCount++;
+      else { outroCount++; if (r.status) outroSamples.add(String(r.status).trim()); }
+    }
+  }
+
+  return {
+    records: [...agg.values()],
+    format,
+    totalRows: jsonRows.length,
+    pendCount, outroCount,
+    outroSamples: [...outroSamples].slice(0,5)
+  };
+}
+
+// ---------- cálculo e formatação ----------
+function pct(a,f){ return a>0 ? ((a-f)/a)*100 : 0; }
+function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
+function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+function fmtInt(n){ return n.toLocaleString("pt-BR"); }
+function prettyName(spec){ return PRETTY[spec] || (spec.charAt(0)+spec.slice(1).toLowerCase()); }
+function parseClinic(c){
+  const parts = c.split(" - ");
+  return { uf: parts[0]||"", cidade: parts[1]||"", nome: parts.slice(2).join(" - ") || c };
+}
+function groupBySpec(records){
+  const m = new Map();
+  for (const r of records){
+    if (!m.has(r.e)) m.set(r.e, []);
+    m.get(r.e).push(r);
+  }
+  return m;
+}
+function specStats(rows){
+  const a = rows.reduce((s,r)=>s+r.a,0);
+  const f = rows.reduce((s,r)=>s+r.f,0);
+  return { a, f, p: pct(a,f), n: rows.length };
+}
+
+let RECORDS = [];
+let BY_SPEC = new Map();
+
+// ---------- render ----------
+function renderHero(){
+  const grand = specStats(RECORDS);
+  document.getElementById("hero").innerHTML = `
+    <div class="hero-card status-${statusOf(grand.p)}">
+      <div class="hero-lbl">Comparecimento geral</div>
+      <div class="hero-num">${fmtPct(grand.p)}</div>
+      <div class="hero-foot">${fmtInt(grand.a)} agendamentos &middot; ${fmtInt(grand.f)} faltas &middot; ${fmtInt(RECORDS.length)} combinações clínica/especialidade</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Total de agendamentos</div>
+      <div class="kpi-num">${fmtInt(grand.a)}</div>
+      <div class="kpi-foot">Somatório de todas as clínicas e especialidades carregadas</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Total de faltas</div>
+      <div class="kpi-num">${fmtInt(grand.f)}</div>
+      <div class="kpi-foot">${fmtPct(100-grand.p)} de falta sobre o total agendado</div>
+    </div>
+  `;
+}
+
+function rowHtml(r, rank){
+  const p = pct(r.a, r.f);
+  const st = statusOf(p);
+  const hi = r.a > HIGH_VOLUME_MIN;
+  const loc = parseClinic(r.c);
+  return `
+  <div class="rk-row status-${st}${hi ? " hi" : ""}">
+    <div class="rk-line">
+      <div class="rk">${rank}</div>
+      <div class="clin">
+        <div class="clin-name" title="${escapeHtml(r.c)}">${escapeHtml(loc.nome)}</div>
+        <div class="clin-loc">${escapeHtml(loc.cidade)} · ${escapeHtml(loc.uf)}${hi ? '<span class="hi-badge">Alto volume</span>' : ""}</div>
+      </div>
+    </div>
+    <div class="rk-stats">
+      <div class="num-col">${fmtInt(r.a)}<br><span style="font-size:10.5px;color:var(--muted)">agend.</span></div>
+      <div class="num-col faltas">${fmtInt(r.f)}<br><span style="font-size:10.5px;color:var(--muted)">faltas</span></div>
+      <div class="bar-cell">
+        <div class="bar-track"><div class="bar-fill status-${st}" style="width:${Math.max(2,p)}%"></div></div>
+      </div>
+      <div class="pct-val status-${st}">${fmtPct(p)}</div>
+    </div>
+  </div>`;
+}
+
+function cardHtml(spec, tierPill){
+  const rows = (BY_SPEC.get(spec) || []).slice().sort((a,b)=>{
+    const pa = pct(a.a,a.f), pb = pct(b.a,b.f);
+    if (pb !== pa) return pb - pa;
+    return b.a - a.a;
+  });
+  if (!rows.length) return "";
+  const st = specStats(rows);
+  return `
+  <div class="esp-card">
+    <div class="esp-head">
+      <div>
+        <span class="tier-pill ${tierPill}">${tierPill === "outras" ? "Outra" : tierPill.charAt(0).toUpperCase()+tierPill.slice(1)}</span>
+        <div class="esp-name" style="margin-top:6px">${escapeHtml(prettyName(spec))}</div>
+        <div class="esp-meta">${fmtInt(st.n)} clínicas &middot; ${fmtInt(st.a)} agendamentos &middot; ${fmtInt(st.f)} faltas</div>
+      </div>
+      <div class="esp-avg status-${statusOf(st.p)}">
+        <div>
+          <div class="esp-avg-num">${fmtPct(st.p)}</div>
+          <div class="esp-avg-lbl">Comparecimento médio</div>
+        </div>
+      </div>
+    </div>
+    <div class="rows">
+      ${rows.map((r,i)=>rowHtml(r,i+1)).join("")}
+    </div>
+  </div>`;
+}
+
+function tierSectionHtml(tier){
+  const cards = tier.specs.map(spec => cardHtml(spec, tier.pill)).filter(Boolean).join("");
+  if (!cards) return "";
+  const rows = tier.specs.flatMap(s => BY_SPEC.get(s) || []);
+  const st = specStats(rows);
+  return `
+  <div class="sec-divider">
+    <div class="sec-title">${tier.label}</div>
+    <div class="sec-sub">${fmtInt(st.a)} agendamentos &middot; comparecimento médio de ${fmtPct(st.p)} no conjunto</div>
+  </div>
+  <div class="esp-grid">${cards}</div>`;
+}
+
+function renderSections(){
+  const allSpecsFound = [...BY_SPEC.keys()];
+  const outrosSpecs = allSpecsFound.filter(s => !KNOWN_SPECS.has(s)).sort();
+
+  let html = TIERS.map(tierSectionHtml).join("");
+  if (outrosSpecs.length){
+    const cards = outrosSpecs.map(spec => cardHtml(spec, "outras")).filter(Boolean).join("");
+    const rows = outrosSpecs.flatMap(s => BY_SPEC.get(s) || []);
+    const st = specStats(rows);
+    html += `
+    <div class="sec-divider">
+      <div class="sec-title">Outras especialidades</div>
+      <div class="sec-sub">Não fazem parte das categorias primária/secundária/terciária definidas &middot; ${fmtInt(st.a)} agendamentos &middot; comparecimento médio de ${fmtPct(st.p)}</div>
+    </div>
+    <div class="esp-grid">${cards}</div>`;
+  }
+  document.getElementById("sections").innerHTML = html;
+}
+
+function renderFooter(){
+  document.getElementById("foot").innerHTML =
+    `Comparecimento calculado como (agendamentos − faltas) / agendamentos. Cores: &gt;70% bom, 60–69% atenção, &lt;60% ruim. ` +
+    `"Alto volume" marca combinações clínica/especialidade com mais de ${HIGH_VOLUME_MIN} agendamentos no período. ` +
+    `Refrativa e Consulta Refrativa são somadas como a mesma especialidade.`;
+}
+
+function showBanner(kind, html){
+  const el = document.getElementById("uploadBanner");
+  el.className = "banner no-print " + kind;
+  el.innerHTML = html;
+  el.style.display = "";
+}
+function setEmptyState(show){
+  document.getElementById("emptyState").style.display = show ? "" : "none";
+  document.getElementById("dashboardBody").style.display = show ? "none" : "";
+  document.getElementById("exportBtn").disabled = show;
+}
+
+function bannerText(result, fileName){
+  const fmt = result.format === "aggregated" ? "consolidado (por clínica/especialidade)" : "bruto (por atendimento)";
+  let t = `<b>${escapeHtml(fileName)}</b> carregado &middot; formato ${fmt} &middot; ${fmtInt(result.totalRows)} linha(s) lida(s) &middot; ${fmtInt(RECORDS.length)} combinações clínica/especialidade`;
+  if (result.format === "raw"){
+    t += ` &middot; ${fmtInt(result.pendCount)} aguardando confirmação (não entram no cálculo)`;
+    if (result.outroCount){
+      t += ` &middot; ${fmtInt(result.outroCount)} com status não reconhecido`;
+      if (result.outroSamples.length) t += ` ("${result.outroSamples.map(escapeHtml).join('", "')}")`;
+    }
+  }
+  return t;
+}
+
+function onFileLoaded(result, fileName){
+  RECORDS = result.records;
+  BY_SPEC = groupBySpec(RECORDS);
+  if (!RECORDS.length){
+    showBanner("error", `A planilha "${escapeHtml(fileName)}" foi lida, mas nenhuma combinação clínica/especialidade válida foi encontrada.`);
+    setEmptyState(true);
+    return;
+  }
+  renderHero();
+  renderSections();
+  renderFooter();
+  showBanner("info", bannerText(result, fileName));
+  setEmptyState(false);
+}
+
+function handleFile(file){
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (!["xlsx","xls","csv"].includes(ext)){
+    showBanner("error", `Formato ".${escapeHtml(ext)}" não suportado. Envie um arquivo .xlsx, .xls ou .csv.`);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = ext === "csv"
+        ? XLSX.read(e.target.result, {type:"string", raw:true})
+        : XLSX.read(e.target.result, {type:"array", codepage:65001, raw:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      const result = processRows(json);
+      onFileLoaded(result, file.name);
+    } catch(err){
+      showBanner("error", `Não foi possível ler "${escapeHtml(file.name)}": ${escapeHtml(err.message)}`);
+    }
+  };
+  reader.onerror = function(){ showBanner("error", `Erro ao carregar "${escapeHtml(file.name)}".`); };
+  if (ext === "csv") reader.readAsText(file, "UTF-8"); else reader.readAsArrayBuffer(file);
+}
+
+document.getElementById("fileInput").addEventListener("change", function(e){
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (f) handleFile(f);
+});
+
+function exportPdf(){
+  if (!RECORDS.length){ alert("Carregue uma planilha antes de exportar o PDF."); return; }
+  window.print();
+}
+</script>
+</body>
+</html>

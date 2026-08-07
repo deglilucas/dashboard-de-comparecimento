@@ -1,0 +1,7 @@
+# nunca versionar planilha com dado real de paciente/clínica
+*.xlsx
+*.xls
+*.csv
+
+.DS_Store
+Thumbs.db
