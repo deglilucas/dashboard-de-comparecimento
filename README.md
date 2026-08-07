@@ -27,10 +27,13 @@ Nesse formato, cada linha é classificada pelo campo de status (`classifyStatus(
 
 | Status contém | Classificação | Conta em quê |
 |---|---|---|
-| `COMPARECEU` | compareceu | soma 1 agendamento |
-| `FALTOU` | faltou | soma 1 agendamento **e** 1 falta |
+| `NÃO COMPARECEU` | faltou | soma 1 agendamento **e** 1 falta |
+| `FALT` (`FALTOU`, `FALTA`, etc.) | faltou | soma 1 agendamento **e** 1 falta |
 | `AGUARDANDO` (retorno/confirmação) | pendente | **não entra no cálculo** — resultado ainda não é conhecido |
+| `COMPARECEU` | compareceu | soma 1 agendamento |
 | qualquer outro valor | não classificado | **não entra no cálculo** — aparece no aviso de upload para conferência manual |
+
+⚠️ **Ordem importa em `classifyStatus()`**: `NÃO COMPARECEU` contém a palavra "compareceu" como substring, então o teste de negação/falta tem que vir **antes** do teste de "compareceu" — senão todo "não compareceu" é lido como comparecimento (bug real, corrigido em 2026-08 depois que o usuário reportou que o painel não contava falta nenhuma com a exportação `busca-*.csv` do Farol, que usa exatamente esse valor). Não reordenar essas checagens.
 
 ⚠️ **Por que excluir "aguardando"**: contar como falta ou como comparecimento distorceria a taxa real, já que o desfecho desses agendamentos ainda não aconteceu. Se um "outro" status aparecer com frequência (ex.: "REAGENDADO", "CANCELADO PELO PACIENTE"), é sinal de que vale adicionar uma regra nova em `classifyStatus()` — não ignorar silenciosamente.
 
@@ -56,6 +59,10 @@ Botão "Exportar PDF" chama `window.print()` — abre o diálogo de impressão d
 
 - O CSS de impressão (`@media print`) força a paleta clara mesmo se o navegador estiver em modo escuro, e evita que um card de especialidade quebre no meio entre duas páginas (`break-inside: avoid`).
 - O botão fica desabilitado enquanto nenhuma planilha foi carregada (`exportPdf()` bloqueia com aviso).
+
+## Navegação
+
+Botão flutuante "voltar ao topo" (`#backToTop`) aparece depois de 400px de rolagem, some acima disso e fica oculto na impressão/PDF (`.no-print`) — útil porque a lista de Catarata sozinha já passa de 30 clínicas.
 
 ## Estado vazio / avisos de upload
 

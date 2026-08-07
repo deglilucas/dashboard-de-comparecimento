@@ -167,6 +167,10 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 
 .foot{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:13px}
 
+.back-to-top{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s}
+.back-to-top.show{opacity:1;visibility:visible;transform:translateY(0)}
+.back-to-top:hover{filter:brightness(1.08)}
+
 @media (max-width:760px){
   .hero{grid-template-columns:1fr}
   .rk-row{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:10px 12px}
@@ -240,6 +244,10 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
   </div>
 </div>
 
+<button id="backToTop" class="back-to-top no-print" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Voltar ao topo" title="Voltar ao topo">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+</button>
+
 <script>
 // ---------- regras de especialidade ----------
 const PRETTY = {
@@ -295,9 +303,11 @@ function toNum(v){
 }
 function classifyStatus(s){
   const n = normKey(s);
-  if (n.includes("compareceu")) return "compareceu";
-  if (n.includes("faltou")) return "faltou";
+  // checar negação/falta ANTES de "compareceu" — "NÃO COMPARECEU" contém "compareceu" como substring
+  if (n.includes("nao compareceu")) return "faltou";
+  if (n.includes("falt")) return "faltou";
   if (n.includes("aguardando")) return "aguardando";
+  if (n.includes("compareceu")) return "compareceu";
   return "outro";
 }
 
@@ -574,6 +584,11 @@ function exportPdf(){
   if (!RECORDS.length){ alert("Carregue uma planilha antes de exportar o PDF."); return; }
   window.print();
 }
+
+const backToTopBtn = document.getElementById("backToTop");
+window.addEventListener("scroll", function(){
+  backToTopBtn.classList.toggle("show", window.scrollY > 400);
+}, {passive:true});
 </script>
 </body>
 </html>
