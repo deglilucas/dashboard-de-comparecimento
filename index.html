@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard de Comparecimento — Central da Visão</title>
+<title>Painel de CX — Central da Visão</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --bg:#f5f8fa;
@@ -53,8 +54,15 @@ body{
   font-size:16.5px;
   -webkit-font-smoothing:antialiased;
 }
+.hidden{display:none !important}
 .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 64px}
 a{color:var(--accent)}
+
+/* ---- navegação por abas (sem reload de página) ---- */
+.topnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0}
+.tab-btn{font-size:14px;font-weight:600;color:var(--sub);padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);white-space:nowrap;cursor:pointer;font-family:inherit}
+.tab-btn:hover{background:var(--surface-2)}
+.tab-btn.active{background:var(--accent);color:#fff;border-color:transparent}
 
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
@@ -66,7 +74,7 @@ a{color:var(--accent)}
 h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .subtitle{color:var(--sub);font-size:16px;margin-bottom:12px}
 
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;align-items:center}
 .btn-upload,.btn-export{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:650;font-family:inherit;cursor:pointer;white-space:nowrap;border:none}
 .btn-upload{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn-upload:hover{background:var(--surface-2)}
@@ -75,8 +83,13 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .btn-export:active{filter:brightness(0.96)}
 .btn-export:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .btn-upload svg,.btn-export svg{flex:0 0 auto}
+.global-upload-status{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.global-upload-status.pending{color:var(--muted)}
+.global-upload-status.ok{color:var(--good)}
+.global-upload-status.err{color:var(--bad)}
+.dot-ind{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:currentColor}
 
-.banner{margin:18px 0 0;padding:14px 18px;border-radius:12px;font-size:14.5px;line-height:1.55}
+.banner{margin:14px 0 0;padding:14px 18px;border-radius:12px;font-size:14.5px;line-height:1.55}
 .banner.info{background:var(--accent-bg);color:var(--ink)}
 .banner.error{background:var(--bad-bg);color:var(--bad)}
 .banner b{font-weight:700}
@@ -91,21 +104,33 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .sec-title{font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--sub)}
 .sec-sub{font-size:14.5px;color:var(--muted);margin-top:3px}
 
+/* ---- upload cards (planilhas específicas de cada aba) ---- */
+.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:22px}
+.upload-card{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.upload-card-title{font-weight:650;font-size:15.5px}
+.upload-card-sub{font-size:13.5px;color:var(--muted);line-height:1.45}
+.upload-status{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.upload-status.pending{color:var(--muted)}
+.upload-status.ok{color:var(--good)}
+.upload-status.err{color:var(--bad)}
+
 /* ---- hero / KPI ---- */
 .hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;align-items:stretch;margin-top:24px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:22px}
 .hero-card{border:1px solid var(--line);border-radius:var(--radius);padding:22px 22px 20px;background:var(--surface)}
 .hero-card.status-good{background:var(--good-bg);border-color:transparent}
 .hero-card.status-warn{background:var(--warn-bg);border-color:transparent}
 .hero-card.status-bad{background:var(--bad-bg);border-color:transparent}
 .hero-lbl{font-size:14.5px;color:var(--sub);font-weight:600;margin-bottom:8px}
-.hero-num{font-size:60px;font-weight:300;line-height:1;letter-spacing:-.01em}
+.hero-num{font-size:52px;font-weight:300;line-height:1;letter-spacing:-.01em}
 .status-good .hero-num{color:var(--good)}
 .status-warn .hero-num{color:var(--warn)}
 .status-bad .hero-num{color:var(--bad)}
 .hero-foot{font-size:14px;color:var(--sub);margin-top:10px}
-.kpi-num{font-size:39px;font-weight:300;color:var(--ink);line-height:1}
+.kpi-num{font-size:34px;font-weight:300;color:var(--ink);line-height:1}
 .kpi-lbl{font-size:14.5px;color:var(--sub);font-weight:600;margin-bottom:8px}
-.kpi-foot{font-size:14px;color:var(--muted);margin-top:10px}
+.kpi-foot{font-size:13.5px;color:var(--muted);margin-top:10px}
+.kpi-num.dim, .hero-num.dim{color:var(--muted)}
 
 /* ---- legend ---- */
 .legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:20px 0 0;padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
@@ -117,10 +142,11 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .legend-item b{color:var(--ink)}
 .legend-badge{font-size:12.5px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:20px;border:1px solid var(--muted);color:var(--sub)}
 
-/* ---- specialty cards ---- */
+/* ---- specialty cards (aba Comparecimento por clínica) ---- */
 .esp-grid{display:flex;flex-direction:column;gap:16px}
 .esp-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
 .esp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:18px 20px;border-bottom:1px solid var(--line)}
+.esp-head-simple{padding:16px 20px;border-bottom:1px solid var(--line)}
 .esp-name{font-size:19.5px;font-weight:650}
 .esp-meta{font-size:14px;color:var(--sub);margin-top:4px}
 .esp-avg{display:flex;align-items:center;gap:8px}
@@ -165,6 +191,65 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .tier-pill.terciaria{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
 .tier-pill.outras{background:var(--surface-2);color:var(--muted);border:1px dashed var(--line)}
 
+/* ---- chart / mini tabelas (abas Visão geral / Indicações / Mediana) ---- */
+.chart-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:20px 22px;margin-top:16px}
+.chart-wrap{position:relative;height:320px;margin-top:14px}
+.mini-table{width:100%;border-collapse:collapse;margin-top:18px;font-size:14px}
+.mini-table th,.mini-table td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}
+.mini-table th:first-child,.mini-table td:first-child{text-align:left}
+.mini-table th{color:var(--sub);font-weight:650;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+.mini-table td.pct-good{color:var(--good);font-weight:650}
+.mini-table td.pct-warn{color:var(--warn);font-weight:650}
+.mini-table td.pct-bad{color:var(--bad);font-weight:650}
+.mini-table td b{color:var(--accent)}
+
+.empty-mini{padding:30px 20px;text-align:center;color:var(--muted);font-size:14.5px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-2)}
+
+/* ---- heatmap (aba Visão geral) ---- */
+.heat-scroll{overflow-x:auto;margin-top:16px;border:1px solid var(--line);border-radius:12px}
+.heat-table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+.heat-table th,.heat-table td{padding:10px 12px;text-align:center;white-space:nowrap}
+.heat-table thead th{background:var(--surface-2);color:var(--sub);font-weight:650;position:sticky;top:0}
+.heat-table tbody th{text-align:left;color:var(--ink);font-weight:650;background:var(--surface);position:sticky;left:0}
+.heat-table td{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.heat-table tbody tr+tr th, .heat-table tbody tr+tr td{border-top:1px solid var(--line)}
+
+/* ---- tabela de mediana (aba Mediana cirúrgica) ---- */
+.mediana-table{width:100%;border-collapse:collapse;font-size:14px}
+.mediana-table th,.mediana-table td{padding:10px 16px;text-align:right;border-bottom:1px solid var(--line)}
+.mediana-table th:first-child,.mediana-table td:first-child{text-align:left}
+.mediana-table th{color:var(--sub);font-weight:650;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;background:var(--surface-2)}
+.mediana-table tbody tr:last-child td{border-bottom:none}
+.mediana-table td.clin-name{font-weight:600;color:var(--ink)}
+
+/* ---- filtros (aba Mediana cirúrgica) ---- */
+.filter-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.filter-lbl{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:650;color:var(--sub);text-transform:uppercase;letter-spacing:.04em}
+.filter-select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-size:14px;cursor:pointer;min-width:200px}
+.filter-clear{border:none;background:none;color:var(--accent);font-family:inherit;font-size:13.5px;font-weight:650;cursor:pointer;padding:9px 4px}
+.filter-clear:hover{text-decoration:underline}
+.spec-toggle{font-size:13.5px;font-weight:600;color:var(--sub);padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-family:inherit}
+.spec-toggle:hover{background:var(--surface-2)}
+.spec-toggle.active{background:var(--accent);color:#fff;border-color:transparent}
+.filter-hint{font-size:13.5px;color:var(--muted)}
+
+/* ---- recolher/expandir listas de especialidade ---- */
+.collapse-all-bar{display:flex;gap:14px;margin:14px 0 4px}
+.collapse-all-bar button{border:none;background:none;color:var(--accent);font-family:inherit;font-size:13.5px;font-weight:650;cursor:pointer;padding:2px}
+.collapse-all-bar button:hover{text-decoration:underline}
+.collapse-toggle{border:1px solid var(--line);background:var(--surface);color:var(--sub);font-family:inherit;font-size:12.5px;font-weight:650;cursor:pointer;padding:5px 11px;border-radius:20px;white-space:nowrap}
+.collapse-toggle:hover{background:var(--surface-2)}
+
+/* ---- destaques (aba Mediana cirúrgica) ---- */
+.destaque-row{display:flex;align-items:center;gap:14px;padding:12px 6px}
+.destaque-row+.destaque-row{border-top:1px solid var(--line)}
+.destaque-rank{width:28px;height:28px;border-radius:50%;background:var(--good-bg);color:var(--good);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.destaque-info{flex:1;min-width:0}
+.destaque-clin{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.destaque-meta{font-size:13px;color:var(--muted)}
+.destaque-days{font-size:20px;font-weight:600;color:var(--good);white-space:nowrap}
+.destaque-days span{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-left:3px}
+
 .foot{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:13px}
 
 .back-to-top{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s}
@@ -182,6 +267,7 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
   .pct-val{min-width:52px}
   .topbar{flex-direction:column}
   .btn-upload,.btn-export{flex:1;justify-content:center}
+  .mediana-table{font-size:13px}
 }
 
 @media print{
@@ -193,7 +279,9 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
   body{background:#fff}
   .wrap{max-width:100%;padding:0 6px}
   .no-print{display:none !important}
-  .esp-card{break-inside:avoid}
+  /* nunca mostrar prompts de "carregue sua planilha" no PDF exportado — só o que já tem dado */
+  .empty-mini,.empty-state{display:none !important}
+  .esp-card,.chart-card,.upload-card{break-inside:avoid}
   .sec-divider{break-after:avoid}
   a{color:var(--ink);text-decoration:none}
 }
@@ -202,18 +290,20 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 <body>
 
 <div class="wrap">
+  <nav class="topnav no-print">
+    <button id="navVisaoGeral" class="tab-btn active" type="button" onclick="switchTab('visaogeral')">Visão geral &amp; cancelamentos</button>
+    <button id="navComparecimento" class="tab-btn" type="button" onclick="switchTab('comparecimento')">Comparecimento por clínica</button>
+    <button id="navMediana" class="tab-btn" type="button" onclick="switchTab('mediana')">Mediana cirúrgica</button>
+    <button id="navIndicacoes" class="tab-btn" type="button" onclick="switchTab('indicacoes')">Indicações</button>
+  </nav>
+
   <div class="topbar">
     <div>
       <div class="brand"><span class="dot"></span><span class="brand-name">Central <b>da Visão</b></span></div>
-      <h1>Dashboard de Comparecimento</h1>
-      <div class="subtitle">Consolidado por clínica e especialidade &middot; envie a planilha de agendamentos para gerar o painel</div>
+      <h1 id="pageTitle">Visão Geral &amp; Cancelamentos</h1>
+      <div class="subtitle" id="pageSubtitle">Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento</div>
     </div>
     <div class="toolbar no-print">
-      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
-      <button class="btn-upload" type="button" onclick="document.getElementById('fileInput').click()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
-        Carregar planilha
-      </button>
       <button class="btn-export" id="exportBtn" type="button" onclick="exportPdf()" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
         Exportar PDF
@@ -223,24 +313,214 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 
   <div id="uploadBanner" class="banner no-print" style="display:none"></div>
 
-  <div id="emptyState" class="empty-state">
-    <div class="empty-title">Nenhuma planilha carregada ainda</div>
-    <div class="empty-sub">Clique em <b>Carregar planilha</b> e envie o arquivo de agendamentos (.xlsx, .xls ou .csv). Funciona tanto com o relatório consolidado por clínica/especialidade quanto com a exportação bruta do Farol/Metabase (uma linha por atendimento, com data e status).</div>
+  <!-- ================================================================ -->
+  <!-- ABA 1: VISÃO GERAL & CANCELAMENTOS                                -->
+  <!-- ================================================================ -->
+  <div id="tabVisaoGeral">
+    <div class="sec-divider" style="margin-top:8px">
+      <div class="sec-title">Indicadores gerais</div>
+      <div class="sec-sub">Comparecimento (planilha carregada no final desta página) e cancelamentos do período</div>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Comparecimento por tipo de agendamento</div>
+      <div class="sec-sub">Novo, reconquista, reagendamento e consulta de retorno &middot; com consolidado</div>
+    </div>
+    <div id="tipoAgendamentoBlock"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Ranking de comparecimento por especialidade</div>
+      <div class="sec-sub">Catarata, Refrativa, Retina e Blefaroplastia aparecem sempre &middot; outras especialidades entram como filtro, quando existirem na planilha</div>
+    </div>
+    <div class="filter-bar no-print" id="especialidadeFilterChips" style="margin-top:14px"></div>
+    <div id="especialidadeRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este ranking.</div></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Recuperação pós-cancelamento</div>
+      <div class="sec-sub">Evolução mensal de cancelamentos, reagendamentos e conversões</div>
+    </div>
+    <div id="recuperacaoBlock"><div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento abaixo para ver esta tabela.</div></div>
+
+    <div class="foot">Comparecimento = (comparecimentos) / (comparecimentos + faltas), aguardando e status não reconhecidos ficam fora do cálculo. Cancelado pela clínica = motivo "SOLICITAÇÃO DA CLÍNICA"; todos os demais motivos (incluindo erro de cadastro e não informado) contam como cancelado pelo paciente.</div>
+
+    <div class="sec-divider no-print">
+      <div class="sec-title">Carregar planilhas</div>
+    </div>
+    <div class="upload-grid no-print">
+      <div class="upload-card">
+        <div class="upload-card-title">Planilha de comparecimento</div>
+        <div class="upload-card-sub">Exportação por atendimento (Farol/Metabase) — alimenta esta aba, Comparecimento por clínica e Indicações.</div>
+        <input type="file" id="fileComparecimentoTabVisaoGeral" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileComparecimentoTabVisaoGeral').click()">Carregar planilha</button>
+        <div class="global-upload-status pending" id="statusComparecimentoTabVisaoGeral"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+      <div class="upload-card">
+        <div class="upload-card-title">Planilha de cancelamentos por motivo</div>
+        <div class="upload-card-sub">Colunas: clinica, especialidade, motivo_cancelamento, Record Count.</div>
+        <input type="file" id="fileCancelamentos" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileCancelamentos').click()">Carregar planilha</button>
+        <div class="upload-status pending" id="statusCancelamentos"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+      <div class="upload-card">
+        <div class="upload-card-title">Recuperação pós-cancelamento</div>
+        <div class="upload-card-sub">Evolução mensal: total de cancelamentos, perdidos, reagendados e convertidos.</div>
+        <input type="file" id="fileRecuperacao" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileRecuperacao').click()">Carregar planilha</button>
+        <div class="upload-status pending" id="statusRecuperacao"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+    </div>
   </div>
 
-  <div id="dashboardBody" style="display:none">
-    <div class="hero" id="hero"></div>
-
-    <div class="legend">
-      <div class="legend-item"><span class="legend-swatch good"></span><b>&gt; 70%</b>&nbsp;comparecimento bom</div>
-      <div class="legend-item"><span class="legend-swatch warn"></span><b>60% – 69%</b>&nbsp;ponto de atenção</div>
-      <div class="legend-item"><span class="legend-swatch bad"></span><b>&lt; 60%</b>&nbsp;comparecimento ruim</div>
-      <div class="legend-item"><span class="legend-badge">Alto volume</span>&nbsp;mais de 10 agendamentos no período</div>
+  <!-- ================================================================ -->
+  <!-- ABA 2: COMPARECIMENTO POR CLÍNICA / ESPECIALIDADE                 -->
+  <!-- ================================================================ -->
+  <div id="tabComparecimento" class="hidden">
+    <div id="emptyStateComparecimento" class="empty-state">
+      <div class="empty-title">Nenhuma planilha carregada ainda</div>
+      <div class="empty-sub">Clique em <b>Carregar planilha</b> no final desta página. Funciona tanto com o relatório consolidado por clínica/especialidade quanto com a exportação bruta do Farol/Metabase (uma linha por atendimento, com data e status).</div>
     </div>
 
-    <div id="sections"></div>
+    <div id="dashboardBodyComparecimento" class="hidden">
+      <div class="hero" id="hero"></div>
 
-    <div class="foot" id="foot"></div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-swatch good"></span><b>&gt; 70%</b>&nbsp;comparecimento bom</div>
+        <div class="legend-item"><span class="legend-swatch warn"></span><b>60% – 69%</b>&nbsp;ponto de atenção</div>
+        <div class="legend-item"><span class="legend-swatch bad"></span><b>&lt; 60%</b>&nbsp;comparecimento ruim</div>
+        <div class="legend-item"><span class="legend-badge">Alto volume</span>&nbsp;mais de 10 agendamentos no período</div>
+      </div>
+
+      <div class="collapse-all-bar no-print">
+        <button type="button" onclick="setAllSpecsCollapsed(true)">Recolher todas as listas</button>
+        <button type="button" onclick="setAllSpecsCollapsed(false)">Expandir todas</button>
+      </div>
+
+      <div id="sections"></div>
+
+      <div class="foot" id="footComparecimento"></div>
+    </div>
+
+    <div class="sec-divider no-print">
+      <div class="sec-title">Carregar planilha</div>
+    </div>
+    <div class="upload-grid no-print">
+      <div class="upload-card">
+        <div class="upload-card-title">Planilha de comparecimento</div>
+        <div class="upload-card-sub">Exportação por atendimento (Farol/Metabase) — alimenta esta aba, Visão geral e Indicações.</div>
+        <input type="file" id="fileComparecimentoTabComparecimento" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileComparecimentoTabComparecimento').click()">Carregar planilha</button>
+        <div class="global-upload-status pending" id="statusComparecimentoTabComparecimento"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- ABA 3: MEDIANA CIRÚRGICA                                          -->
+  <!-- ================================================================ -->
+  <div id="tabMediana" class="hidden">
+    <div id="emptyStateMediana" class="empty-mini" style="margin-top:8px">Carregue a planilha de mediana cirúrgica no final desta página para ver os gráficos.</div>
+
+    <div id="dashboardBodyMediana" class="hidden">
+      <div class="filter-bar no-print">
+        <label class="filter-lbl">Especialidade
+          <select id="medianaFilterEspecialidade" class="filter-select"><option value="">Todas</option></select>
+        </label>
+        <label class="filter-lbl">Clínica
+          <select id="medianaFilterClinica" class="filter-select"><option value="">Todas</option></select>
+        </label>
+        <button type="button" class="filter-clear" id="medianaFilterClear" onclick="clearMedianaFilters()">Limpar filtros</button>
+      </div>
+
+      <div class="sec-divider" style="margin-top:24px">
+        <div class="sec-title">Destaques — menor tempo para operar</div>
+        <div class="sec-sub">Combinações clínica/especialidade com o menor tempo entre consulta e 1ª cirurgia no trimestre vigente</div>
+      </div>
+      <div class="chart-card" id="destaquesBlock"></div>
+
+      <div class="sec-divider">
+        <div class="sec-title">Mediana geral por trimestre</div>
+        <div class="sec-sub">Mediana dos valores carregados em cada trimestre</div>
+      </div>
+      <div class="chart-card"><div class="chart-wrap" style="height:300px"><canvas id="overallCanvas"></canvas></div></div>
+
+      <div class="sec-divider">
+        <div class="sec-title">Detalhamento por especialidade</div>
+        <div class="sec-sub">Clínicas ordenadas da mais rápida para a mais lenta no trimestre atual &middot; verde = dentro da meta, amarelo = intermediário, vermelho = crítico</div>
+      </div>
+      <div class="collapse-all-bar no-print">
+        <button type="button" onclick="setAllMedianaSpecsCollapsed(true)">Recolher todas as listas</button>
+        <button type="button" onclick="setAllMedianaSpecsCollapsed(false)">Expandir todas</button>
+      </div>
+      <div class="esp-grid" id="espGrid"></div>
+
+      <div class="foot">Mediana = valor já calculado na planilha de origem (dias entre a consulta e a realização da 1ª cirurgia). "Mediana geral" e "Destaques" recalculam a partir dos valores de todas as combinações clínica/especialidade carregadas — não são ponderados por volume. Meta de dias por especialidade reaproveitada do painel de Jornada Cirúrgica.</div>
+    </div>
+
+    <div class="sec-divider no-print">
+      <div class="sec-title">Carregar planilha</div>
+    </div>
+    <div class="upload-grid no-print">
+      <div class="upload-card">
+        <div class="upload-card-title">Planilha de mediana cirúrgica</div>
+        <div class="upload-card-sub">Colunas: nome_clinica, especialidade, trimestre (ex.: "T1, 2026") e dias_consulta_1cirurgia já calculados.</div>
+        <input type="file" id="fileMediana" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileMediana').click()">Carregar planilha</button>
+        <div class="upload-status pending" id="statusMediana"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- ABA 4: INDICAÇÕES                                                 -->
+  <!-- ================================================================ -->
+  <div id="tabIndicacoes" class="hidden">
+    <div class="sec-divider" style="margin-top:8px">
+      <div class="sec-title">Comparecimento por origem (campanha)</div>
+      <div class="sec-sub">De onde vieram os pacientes que compareceram, no período da planilha de comparecimento carregada no final desta página</div>
+    </div>
+    <div id="campanhaBlock"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Evolução mensal — indicação em consultas</div>
+      <div class="sec-sub">% de comparecimentos que vieram de indicação, mês a mês</div>
+    </div>
+    <div id="indConsultasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo.</div></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Evolução mensal — indicação em cirurgias</div>
+      <div class="sec-sub">% de 1ªs cirurgias que vieram de indicação, mês a mês</div>
+    </div>
+    <div id="indCirurgiasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em cirurgias abaixo.</div></div>
+
+    <div class="foot">"Indicação" reúne as campanhas "INDICAÇÃO" e "INDICAÇÃO - CARTÃO DE DESCONTO". As duas séries de evolução mensal já vêm calculadas na planilha de origem — este painel só exibe.</div>
+
+    <div class="sec-divider no-print">
+      <div class="sec-title">Carregar planilhas</div>
+    </div>
+    <div class="upload-grid no-print">
+      <div class="upload-card">
+        <div class="upload-card-title">Planilha de comparecimento</div>
+        <div class="upload-card-sub">Exportação por atendimento (Farol/Metabase) — alimenta esta aba, Visão geral e Comparecimento por clínica.</div>
+        <input type="file" id="fileComparecimentoTabIndicacoes" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileComparecimentoTabIndicacoes').click()">Carregar planilha</button>
+        <div class="global-upload-status pending" id="statusComparecimentoTabIndicacoes"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+      <div class="upload-card">
+        <div class="upload-card-title">Evolução — indicação em consultas</div>
+        <div class="upload-card-sub">Série temporal: % e nº de consultas com comparecimento vindas de indicação, por mês.</div>
+        <input type="file" id="fileIndConsultas" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileIndConsultas').click()">Carregar planilha</button>
+        <div class="upload-status pending" id="statusIndConsultas"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+      <div class="upload-card">
+        <div class="upload-card-title">Evolução — indicação em cirurgias</div>
+        <div class="upload-card-sub">Série temporal: % e nº de 1ªs cirurgias vindas de indicação, por mês.</div>
+        <input type="file" id="fileIndCirurgias" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn-upload" type="button" onclick="document.getElementById('fileIndCirurgias').click()">Carregar planilha</button>
+        <div class="upload-status pending" id="statusIndCirurgias"><span class="dot-ind"></span>Nenhuma planilha carregada</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -249,42 +529,32 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 </button>
 
 <script>
-// ---------- regras de especialidade ----------
-const PRETTY = {
-  "CATARATA":"Catarata","REFRATIVA":"Refrativa","BLEFAROPLASTIA":"Blefaroplastia","RETINA":"Retina",
-  "CAPSULOTOMIA":"Capsulotomia","CALÁZIO":"Calázio","PTERIGIO":"Pterígio","CONSULTA OFTALMOLÓGICA":"Consulta oftalmológica",
-  "GLAUCOMA":"Glaucoma","ESTRABISMO":"Estrabismo","CERATOCONE":"Ceratocone","CÓRNEA":"Córnea"
-};
-// especialidades que a planilha traz com nomes diferentes mas que devem contar juntas
-const SPEC_ALIASES = {
-  "CONSULTA REFRATIVA": "REFRATIVA"
-};
-const TIERS = [
-  {key:"primaria", label:"Especialidades primárias", pill:"primaria", specs:["CATARATA","REFRATIVA","BLEFAROPLASTIA","RETINA"]},
-  {key:"secundaria", label:"Especialidades secundárias", pill:"secundaria", specs:["CAPSULOTOMIA","CALÁZIO","PTERIGIO","CONSULTA OFTALMOLÓGICA"]},
-  {key:"terciaria", label:"Especialidades terciárias", pill:"terciaria", specs:["GLAUCOMA","ESTRABISMO","CERATOCONE","CÓRNEA"]},
-];
-const KNOWN_SPECS = new Set(TIERS.flatMap(t => t.specs));
-const HIGH_VOLUME_MIN = 10; // "mais de 10 agendamentos"
-
-// ---------- leitura de planilha: aliases de coluna ----------
-const HEADER_ALIASES = {
-  clinica: ["clinica","clinicas"],
-  especialidade: ["especialidade","especialidades"],
-  agendamentos: ["agendamentos","quantidade de agendamentos","qtd agendamentos","qtd de agendamentos"],
-  faltas: ["quantidade de faltas","faltas","qtd faltas","qtd de faltas"],
-  status: ["status da consulta","agendamento_status","status"],
-  data_consulta: ["data da consulta","agendamento_data","data consulta","data_consulta"]
-};
-
+/* =========================================================================
+   UTILIDADES COMPARTILHADAS ENTRE TODAS AS ABAS
+   ========================================================================= */
 function stripAccents(s){ return String(s).normalize("NFD").replace(/[̀-ͯ]/g,""); }
 function normKey(s){ return stripAccents(String(s==null?"":s).trim().toLowerCase()); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-function buildAliasLookup(){
+function toNum(v){
+  if (typeof v === "number") return v;
+  const s = String(v==null?"":v).trim().replace(/\./g,"").replace(",",".");
+  const n = parseFloat(s.replace(/[^\d.-]/g,""));
+  return isNaN(n) ? 0 : n;
+}
+function fmtInt(n){ return Math.round(n).toLocaleString("pt-BR"); }
+function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR"); }
+function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
+function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function median(arr){
+  const s = arr.slice().sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length%2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+function buildLookup(aliasMap){
   const map = {};
-  for (const canon in HEADER_ALIASES){
-    for (const variant of HEADER_ALIASES[canon]) map[normKey(variant)] = canon;
+  for (const canon in aliasMap){
+    for (const variant of aliasMap[canon]) map[normKey(variant)] = canon;
   }
   return map;
 }
@@ -296,11 +566,6 @@ function canonicalizeRow(row, lookup){
   }
   return out;
 }
-function toNum(v){
-  if (typeof v === "number") return v;
-  const n = parseInt(String(v==null?"":v).replace(/[^\d-]/g,""), 10);
-  return isNaN(n) ? 0 : n;
-}
 function classifyStatus(s){
   const n = normKey(s);
   // checar negação/falta ANTES de "compareceu" — "NÃO COMPARECEU" contém "compareceu" como substring
@@ -310,69 +575,186 @@ function classifyStatus(s){
   if (n.includes("compareceu")) return "compareceu";
   return "outro";
 }
-
-function processRows(jsonRows){
-  const lookup = buildAliasLookup();
-  const canonRows = jsonRows.map(r => canonicalizeRow(r, lookup))
-    .filter(r => String(r.clinica||"").trim() && String(r.especialidade||"").trim());
-  if (!canonRows.length){
-    throw new Error('Não encontrei colunas de "Clínica" e "Especialidade" reconhecíveis na planilha.');
+function isIndicacao(campanha){
+  const n = normKey(campanha);
+  return n.includes("indicacao");
+}
+function readSpreadsheet(file, onRows, onError){
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (!["xlsx","xls","csv"].includes(ext)){
+    onError(`Formato ".${escapeHtml(ext)}" não suportado. Envie um arquivo .xlsx, .xls ou .csv.`);
+    return;
   }
-  const sample = canonRows[0];
-  const format = (sample.agendamentos !== undefined && sample.faltas !== undefined) ? "aggregated"
-    : (sample.status !== undefined) ? "raw" : null;
-  if (!format){
-    throw new Error('Não identifiquei o formato: preciso de colunas "Agendamentos"/"Quantidade de Faltas" (relatório consolidado) ou "Status da consulta" (exportação por atendimento).');
-  }
-
-  const agg = new Map();
-  function addAgg(c, e, a, f){
-    e = SPEC_ALIASES[e] || e;
-    const key = c + "||" + e;
-    const prev = agg.get(key) || {c, e, a:0, f:0};
-    prev.a += a; prev.f += f;
-    agg.set(key, prev);
-  }
-
-  let pendCount = 0, outroCount = 0;
-  const outroSamples = new Set();
-
-  if (format === "aggregated"){
-    for (const r of canonRows){
-      const c = String(r.clinica).trim();
-      const e = String(r.especialidade).trim().toUpperCase();
-      const a = toNum(r.agendamentos);
-      const f = toNum(r.faltas);
-      if (!c || !e || a <= 0) continue;
-      addAgg(c, e, a, f);
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = ext === "csv"
+        ? XLSX.read(e.target.result, {type:"string", raw:true})
+        : XLSX.read(e.target.result, {type:"array", codepage:65001, raw:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      onRows(json);
+    } catch(err){
+      onError(`Não foi possível ler "${escapeHtml(file.name)}": ${escapeHtml(err.message)}`);
     }
-  } else {
-    for (const r of canonRows){
-      const c = String(r.clinica).trim();
-      const e = String(r.especialidade).trim().toUpperCase();
-      if (!c || !e) continue;
-      const cls = classifyStatus(r.status);
-      if (cls === "compareceu") addAgg(c, e, 1, 0);
-      else if (cls === "faltou") addAgg(c, e, 1, 1);
-      else if (cls === "aguardando") pendCount++;
-      else { outroCount++; if (r.status) outroSamples.add(String(r.status).trim()); }
-    }
-  }
-
-  return {
-    records: [...agg.values()],
-    format,
-    totalRows: jsonRows.length,
-    pendCount, outroCount,
-    outroSamples: [...outroSamples].slice(0,5)
   };
+  reader.onerror = function(){ onError(`Erro ao carregar "${escapeHtml(file.name)}".`); };
+  if (ext === "csv") reader.readAsText(file, "UTF-8"); else reader.readAsArrayBuffer(file);
+}
+function showBanner(kind, html){
+  const el = document.getElementById("uploadBanner");
+  el.className = "banner no-print " + kind;
+  el.innerHTML = html;
+  el.style.display = "";
+}
+function setUploadStatus(id, kind, text){
+  const el = document.getElementById(id);
+  el.className = (id.startsWith("statusComparecimentoTab") ? "global-upload-status " : "upload-status ") + kind;
+  el.innerHTML = `<span class="dot-ind"></span>${escapeHtml(text)}`;
 }
 
-// ---------- cálculo e formatação ----------
+/* =========================================================================
+   NAVEGAÇÃO POR ABAS
+   ========================================================================= */
+const TAB_META = {
+  comparecimento: {title:"Dashboard de Comparecimento", subtitle:"Consolidado por clínica e especialidade"},
+  visaogeral: {title:"Visão Geral & Cancelamentos", subtitle:"Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento"},
+  indicacoes: {title:"Indicações", subtitle:"De onde vêm os pacientes que compareceram e operaram"},
+  mediana: {title:"Mediana Cirúrgica", subtitle:"Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre"}
+};
+function switchTab(tab){
+  document.getElementById("tabComparecimento").classList.toggle("hidden", tab !== "comparecimento");
+  document.getElementById("tabVisaoGeral").classList.toggle("hidden", tab !== "visaogeral");
+  document.getElementById("tabIndicacoes").classList.toggle("hidden", tab !== "indicacoes");
+  document.getElementById("tabMediana").classList.toggle("hidden", tab !== "mediana");
+  document.getElementById("navComparecimento").classList.toggle("active", tab === "comparecimento");
+  document.getElementById("navVisaoGeral").classList.toggle("active", tab === "visaogeral");
+  document.getElementById("navIndicacoes").classList.toggle("active", tab === "indicacoes");
+  document.getElementById("navMediana").classList.toggle("active", tab === "mediana");
+  document.getElementById("pageTitle").textContent = TAB_META[tab].title;
+  document.getElementById("pageSubtitle").textContent = TAB_META[tab].subtitle;
+  window.scrollTo({top:0});
+}
+function exportPdf(){ window.print(); }
+function updateExportAvailability(){
+  const hasAny = (CLINICA_RECORDS.length>0) || !!comparecimentoData || !!cancelamentoData || !!recuperacaoRows
+    || !!especialidadeData || !!campanhaData || !!indConsultasRows || !!indCirurgiasRows || (MEDIANA_RECORDS.length>0);
+  document.getElementById("exportBtn").disabled = !hasAny;
+}
+
+/* =========================================================================
+   PLANILHA COMPARTILHADA DE COMPARECIMENTO
+   Alimenta as abas: Comparecimento por clínica, Visão geral (tipo de
+   agendamento) e Indicações (campanha) — uma leitura só, três usos.
+   ========================================================================= */
+const HEADER_ALIASES_COMPARECIMENTO = {
+  clinica: ["clinica","clinicas"],
+  especialidade: ["especialidade","especialidades"],
+  agendamentos: ["agendamentos","quantidade de agendamentos","qtd agendamentos","qtd de agendamentos"],
+  faltas: ["quantidade de faltas","faltas","qtd faltas","qtd de faltas"],
+  status: ["status da consulta","agendamento_status","status"],
+  data_consulta: ["data da consulta","agendamento_data","data consulta","data_consulta"],
+  tipo_agendamento: ["tipo de agendamento","tipo_agendamento","tipo agendamento"],
+  campanha: ["campanha","campanha de origem","origem"]
+};
+
+let COMPARECIMENTO_ROWS = null; // linhas canonicalizadas, sem filtro — cada aba filtra o que precisa
+// upload da planilha de comparecimento duplicado no final de 3 abas (Visão geral,
+// Comparecimento por clínica, Indicações) — todos chamam o mesmo handler e atualizam
+// os 3 indicadores de status juntos, já que é a mesma base de dados compartilhada.
+const COMPARECIMENTO_INPUT_IDS = ["fileComparecimentoTabVisaoGeral","fileComparecimentoTabComparecimento","fileComparecimentoTabIndicacoes"];
+const COMPARECIMENTO_STATUS_IDS = ["statusComparecimentoTabVisaoGeral","statusComparecimentoTabComparecimento","statusComparecimentoTabIndicacoes"];
+COMPARECIMENTO_INPUT_IDS.forEach(id => {
+  document.getElementById(id).addEventListener("change", function(e){
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (f) handleComparecimentoFile(f);
+  });
+});
+function setComparecimentoUploadStatus(kind, text){
+  COMPARECIMENTO_STATUS_IDS.forEach(id => setUploadStatus(id, kind, text));
+}
+
+function handleComparecimentoFile(file){
+  setComparecimentoUploadStatus("pending",`Lendo "${file.name}"...`);
+  readSpreadsheet(file, function(json){
+    const lookup = buildLookup(HEADER_ALIASES_COMPARECIMENTO);
+    const canonRows = json.map(r => canonicalizeRow(r, lookup));
+    COMPARECIMENTO_ROWS = canonRows;
+
+    const summaryParts = [];
+    let anyOk = false;
+
+    // --- aba 1: comparecimento por clínica/especialidade ---
+    try {
+      const result = aggregateClinicaEspecialidade(canonRows);
+      onClinicaEspecialidadeLoaded(result);
+      summaryParts.push(`${fmtInt(CLINICA_RECORDS.length)} combinações clínica/especialidade`);
+      anyOk = true;
+    } catch(err){
+      setEmptyStateComparecimento(true);
+      summaryParts.push(`comparecimento por clínica indisponível (${err.message})`);
+    }
+
+    // --- aba 2: comparecimento por tipo de agendamento ---
+    const tipoResult = aggregateTipoAgendamento(canonRows);
+    comparecimentoData = tipoResult.totalRows ? tipoResult : null;
+    renderKpis();
+    renderTipoAgendamento();
+    if (tipoResult.totalRows){
+      summaryParts.push(`${fmtInt(tipoResult.compareceu)} compareceram / ${fmtInt(tipoResult.faltou)} faltaram / ${fmtInt(tipoResult.aguardando)} aguardando`);
+      anyOk = true;
+    }
+
+    // --- aba 2: ranking de comparecimento por especialidade ---
+    especialidadeExtraSelected = new Set();
+    const espResult = aggregateEspecialidade(canonRows);
+    especialidadeData = espResult.totalRows ? espResult.map : null;
+    renderEspecialidadeRanking();
+    if (espResult.totalRows) anyOk = true;
+
+    // --- aba 3: comparecimento por campanha/origem ---
+    const campResult = aggregateCampanha(canonRows);
+    campanhaData = campResult.totalRows ? {map:campResult.map, totalComp:campResult.totalComp} : null;
+    renderCampanha();
+    if (campResult.totalRows){
+      summaryParts.push(`${fmtInt(campResult.totalComp)} comparecimentos classificados por origem`);
+      anyOk = true;
+    }
+
+    if (!anyOk){
+      setComparecimentoUploadStatus("err","Nenhum dado reconhecido nesta planilha.");
+      showBanner("error", `A planilha "${escapeHtml(file.name)}" foi lida, mas nenhuma coluna esperada (Clínica/Especialidade, Status da consulta) foi reconhecida.`);
+      return;
+    }
+    setComparecimentoUploadStatus("ok",`"${file.name}" carregado · ${fmtInt(canonRows.length)} linhas`);
+    showBanner("info", `<b>${escapeHtml(file.name)}</b> carregado &middot; ${fmtInt(canonRows.length)} linha(s) &middot; ${summaryParts.join(" &middot; ")}.`);
+    updateExportAvailability();
+  }, function(msg){
+    setComparecimentoUploadStatus("err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
+}
+
+/* =========================================================================
+   ABA 1 — COMPARECIMENTO POR CLÍNICA / ESPECIALIDADE
+   ========================================================================= */
+const PRETTY = {
+  "CATARATA":"Catarata","REFRATIVA":"Refrativa","BLEFAROPLASTIA":"Blefaroplastia","RETINA":"Retina",
+  "CAPSULOTOMIA":"Capsulotomia","CALÁZIO":"Calázio","PTERIGIO":"Pterígio","CONSULTA OFTALMOLÓGICA":"Consulta oftalmológica",
+  "GLAUCOMA":"Glaucoma","ESTRABISMO":"Estrabismo","CERATOCONE":"Ceratocone","CÓRNEA":"Córnea"
+};
+// especialidades que a planilha traz com nomes diferentes mas que devem contar juntas
+const SPEC_ALIASES = { "CONSULTA REFRATIVA": "REFRATIVA" };
+const TIERS = [
+  {key:"primaria", label:"Especialidades primárias", pill:"primaria", specs:["CATARATA","REFRATIVA","BLEFAROPLASTIA","RETINA"]},
+  {key:"secundaria", label:"Especialidades secundárias", pill:"secundaria", specs:["CAPSULOTOMIA","CALÁZIO","PTERIGIO","CONSULTA OFTALMOLÓGICA"]},
+  {key:"terciaria", label:"Especialidades terciárias", pill:"terciaria", specs:["GLAUCOMA","ESTRABISMO","CERATOCONE","CÓRNEA"]},
+];
+const KNOWN_SPECS = new Set(TIERS.flatMap(t => t.specs));
+const HIGH_VOLUME_MIN = 10; // "mais de 10 agendamentos"
+
 function pct(a,f){ return a>0 ? ((a-f)/a)*100 : 0; }
-function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
-function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
-function fmtInt(n){ return n.toLocaleString("pt-BR"); }
 function prettyName(spec){ return PRETTY[spec] || (spec.charAt(0)+spec.slice(1).toLowerCase()); }
 function parseClinic(c){
   const parts = c.split(" - ");
@@ -392,17 +774,71 @@ function specStats(rows){
   return { a, f, p: pct(a,f), n: rows.length };
 }
 
-let RECORDS = [];
-let BY_SPEC = new Map();
+let CLINICA_RECORDS = [];
+let CLINICA_BY_SPEC = new Map();
 
-// ---------- render ----------
+// recebe linhas já canonicalizadas (a canonicalização acontece uma vez em handleComparecimentoFile)
+function aggregateClinicaEspecialidade(canonRows){
+  const rows = canonRows.filter(r => String(r.clinica||"").trim() && String(r.especialidade||"").trim());
+  if (!rows.length){
+    throw new Error('sem colunas de "Clínica" e "Especialidade" reconhecíveis');
+  }
+  const sample = rows[0];
+  const format = (sample.agendamentos !== undefined && sample.faltas !== undefined) ? "aggregated"
+    : (sample.status !== undefined) ? "raw" : null;
+  if (!format){
+    throw new Error('formato não identificado');
+  }
+
+  const agg = new Map();
+  function addAgg(c, e, a, f){
+    e = SPEC_ALIASES[e] || e;
+    const key = c + "||" + e;
+    const prev = agg.get(key) || {c, e, a:0, f:0};
+    prev.a += a; prev.f += f;
+    agg.set(key, prev);
+  }
+
+  let pendCount = 0, outroCount = 0;
+  const outroSamples = new Set();
+
+  if (format === "aggregated"){
+    for (const r of rows){
+      const c = String(r.clinica).trim();
+      const e = String(r.especialidade).trim().toUpperCase();
+      const a = toNum(r.agendamentos);
+      const f = toNum(r.faltas);
+      if (!c || !e || a <= 0) continue;
+      addAgg(c, e, a, f);
+    }
+  } else {
+    for (const r of rows){
+      const c = String(r.clinica).trim();
+      const e = String(r.especialidade).trim().toUpperCase();
+      if (!c || !e) continue;
+      const cls = classifyStatus(r.status);
+      if (cls === "compareceu") addAgg(c, e, 1, 0);
+      else if (cls === "faltou") addAgg(c, e, 1, 1);
+      else if (cls === "aguardando") pendCount++;
+      else { outroCount++; if (r.status) outroSamples.add(String(r.status).trim()); }
+    }
+  }
+
+  return {
+    records: [...agg.values()],
+    format,
+    pendCount, outroCount,
+    outroSamples: [...outroSamples].slice(0,5)
+  };
+}
+
 function renderHero(){
-  const grand = specStats(RECORDS);
+  const grand = specStats(CLINICA_RECORDS);
   document.getElementById("hero").innerHTML = `
     <div class="hero-card status-${statusOf(grand.p)}">
       <div class="hero-lbl">Comparecimento geral</div>
       <div class="hero-num">${fmtPct(grand.p)}</div>
-      <div class="hero-foot">${fmtInt(grand.a)} agendamentos &middot; ${fmtInt(grand.f)} faltas &middot; ${fmtInt(RECORDS.length)} combinações clínica/especialidade</div>
+      <div class="hero-foot">${fmtInt(grand.a)} agendamentos &middot; ${fmtInt(grand.f)} faltas &middot; ${fmtInt(CLINICA_RECORDS.length)} combinações clínica/especialidade</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Total de agendamentos</div>
@@ -416,7 +852,6 @@ function renderHero(){
     </div>
   `;
 }
-
 function rowHtml(r, rank){
   const p = pct(r.a, r.f);
   const st = statusOf(p);
@@ -441,15 +876,25 @@ function rowHtml(r, rank){
     </div>
   </div>`;
 }
-
+let collapsedSpecsComparecimento = new Set();
+function toggleSpecCollapse(spec){
+  if (collapsedSpecsComparecimento.has(spec)) collapsedSpecsComparecimento.delete(spec);
+  else collapsedSpecsComparecimento.add(spec);
+  renderSections();
+}
+function setAllSpecsCollapsed(collapsed){
+  collapsedSpecsComparecimento = collapsed ? new Set(CLINICA_BY_SPEC.keys()) : new Set();
+  renderSections();
+}
 function cardHtml(spec, tierPill){
-  const rows = (BY_SPEC.get(spec) || []).slice().sort((a,b)=>{
+  const rows = (CLINICA_BY_SPEC.get(spec) || []).slice().sort((a,b)=>{
     const pa = pct(a.a,a.f), pb = pct(b.a,b.f);
     if (pb !== pa) return pb - pa;
     return b.a - a.a;
   });
   if (!rows.length) return "";
   const st = specStats(rows);
+  const collapsed = collapsedSpecsComparecimento.has(spec);
   return `
   <div class="esp-card">
     <div class="esp-head">
@@ -458,23 +903,25 @@ function cardHtml(spec, tierPill){
         <div class="esp-name" style="margin-top:6px">${escapeHtml(prettyName(spec))}</div>
         <div class="esp-meta">${fmtInt(st.n)} clínicas &middot; ${fmtInt(st.a)} agendamentos &middot; ${fmtInt(st.f)} faltas</div>
       </div>
-      <div class="esp-avg status-${statusOf(st.p)}">
-        <div>
-          <div class="esp-avg-num">${fmtPct(st.p)}</div>
-          <div class="esp-avg-lbl">Comparecimento médio</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="esp-avg status-${statusOf(st.p)}">
+          <div>
+            <div class="esp-avg-num">${fmtPct(st.p)}</div>
+            <div class="esp-avg-lbl">Comparecimento médio</div>
+          </div>
         </div>
+        <button type="button" class="collapse-toggle no-print" onclick="toggleSpecCollapse(${escapeHtml(JSON.stringify(spec))})">${collapsed?"▸ Expandir":"▾ Recolher"}</button>
       </div>
     </div>
-    <div class="rows">
+    <div class="rows${collapsed?" hidden":""}">
       ${rows.map((r,i)=>rowHtml(r,i+1)).join("")}
     </div>
   </div>`;
 }
-
 function tierSectionHtml(tier){
   const cards = tier.specs.map(spec => cardHtml(spec, tier.pill)).filter(Boolean).join("");
   if (!cards) return "";
-  const rows = tier.specs.flatMap(s => BY_SPEC.get(s) || []);
+  const rows = tier.specs.flatMap(s => CLINICA_BY_SPEC.get(s) || []);
   const st = specStats(rows);
   return `
   <div class="sec-divider">
@@ -483,15 +930,14 @@ function tierSectionHtml(tier){
   </div>
   <div class="esp-grid">${cards}</div>`;
 }
-
 function renderSections(){
-  const allSpecsFound = [...BY_SPEC.keys()];
+  const allSpecsFound = [...CLINICA_BY_SPEC.keys()];
   const outrosSpecs = allSpecsFound.filter(s => !KNOWN_SPECS.has(s)).sort();
 
   let html = TIERS.map(tierSectionHtml).join("");
   if (outrosSpecs.length){
     const cards = outrosSpecs.map(spec => cardHtml(spec, "outras")).filter(Boolean).join("");
-    const rows = outrosSpecs.flatMap(s => BY_SPEC.get(s) || []);
+    const rows = outrosSpecs.flatMap(s => CLINICA_BY_SPEC.get(s) || []);
     const st = specStats(rows);
     html += `
     <div class="sec-divider">
@@ -502,88 +948,748 @@ function renderSections(){
   }
   document.getElementById("sections").innerHTML = html;
 }
-
-function renderFooter(){
-  document.getElementById("foot").innerHTML =
+function renderFooterComparecimento(){
+  document.getElementById("footComparecimento").innerHTML =
     `Comparecimento calculado como (agendamentos − faltas) / agendamentos. Cores: &gt;70% bom, 60–69% atenção, &lt;60% ruim. ` +
     `"Alto volume" marca combinações clínica/especialidade com mais de ${HIGH_VOLUME_MIN} agendamentos no período. ` +
     `Refrativa e Consulta Refrativa são somadas como a mesma especialidade.`;
 }
-
-function showBanner(kind, html){
-  const el = document.getElementById("uploadBanner");
-  el.className = "banner no-print " + kind;
-  el.innerHTML = html;
-  el.style.display = "";
+function setEmptyStateComparecimento(show){
+  document.getElementById("emptyStateComparecimento").classList.toggle("hidden", !show);
+  document.getElementById("dashboardBodyComparecimento").classList.toggle("hidden", show);
 }
-function setEmptyState(show){
-  document.getElementById("emptyState").style.display = show ? "" : "none";
-  document.getElementById("dashboardBody").style.display = show ? "none" : "";
-  document.getElementById("exportBtn").disabled = show;
-}
-
-function bannerText(result, fileName){
-  const fmt = result.format === "aggregated" ? "consolidado (por clínica/especialidade)" : "bruto (por atendimento)";
-  let t = `<b>${escapeHtml(fileName)}</b> carregado &middot; formato ${fmt} &middot; ${fmtInt(result.totalRows)} linha(s) lida(s) &middot; ${fmtInt(RECORDS.length)} combinações clínica/especialidade`;
-  if (result.format === "raw"){
-    t += ` &middot; ${fmtInt(result.pendCount)} aguardando confirmação (não entram no cálculo)`;
-    if (result.outroCount){
-      t += ` &middot; ${fmtInt(result.outroCount)} com status não reconhecido`;
-      if (result.outroSamples.length) t += ` ("${result.outroSamples.map(escapeHtml).join('", "')}")`;
-    }
-  }
-  return t;
-}
-
-function onFileLoaded(result, fileName){
-  RECORDS = result.records;
-  BY_SPEC = groupBySpec(RECORDS);
-  if (!RECORDS.length){
-    showBanner("error", `A planilha "${escapeHtml(fileName)}" foi lida, mas nenhuma combinação clínica/especialidade válida foi encontrada.`);
-    setEmptyState(true);
-    return;
+function onClinicaEspecialidadeLoaded(result){
+  CLINICA_RECORDS = result.records;
+  CLINICA_BY_SPEC = groupBySpec(CLINICA_RECORDS);
+  if (!CLINICA_RECORDS.length){
+    setEmptyStateComparecimento(true);
+    throw new Error("nenhuma combinação clínica/especialidade válida encontrada");
   }
   renderHero();
   renderSections();
-  renderFooter();
-  showBanner("info", bannerText(result, fileName));
-  setEmptyState(false);
+  renderFooterComparecimento();
+  setEmptyStateComparecimento(false);
 }
 
-function handleFile(file){
-  const ext = (file.name.split(".").pop() || "").toLowerCase();
-  if (!["xlsx","xls","csv"].includes(ext)){
-    showBanner("error", `Formato ".${escapeHtml(ext)}" não suportado. Envie um arquivo .xlsx, .xls ou .csv.`);
+/* =========================================================================
+   ABA 2 — VISÃO GERAL & CANCELAMENTOS
+   ========================================================================= */
+let comparecimentoData = null; // {compareceu, faltou, aguardando, outro, byTipo}
+let cancelamentoData = null;   // {total, paciente, clinica}
+let recuperacaoRows = null;    // array de linhas mensais
+let especialidadeData = null;  // Map especialidade -> {compareceu, faltou, aguardando}
+let especialidadeExtraSelected = new Set(); // especialidades fora do filtro padrão, escolhidas pelo usuário
+const DEFAULT_RANKING_SPECS = TIERS[0].specs; // Catarata, Refrativa, Blefaroplastia, Retina — sempre aparecem
+
+const HEADER_ALIASES_CANCEL = {
+  clinica: ["clinica","clinicas"],
+  especialidade: ["especialidade","especialidades"],
+  motivo: ["motivo_cancelamento","motivo do cancelamento","motivo cancelamento","motivo"],
+  qtd: ["record count","quantidade","qtd","contagem","total"]
+};
+const HEADER_ALIASES_RECUP = {
+  mes: ["data","ano/mes","mes","periodo"],
+  total: ["total de cancelamentos"],
+  perdidos: ["cancelamentos perdidos"],
+  com_reagendamento: ["cancelamentos com reagendamento"],
+  convertidos: ["reagendamentos convertidos"],
+  nao_convertidos: ["reagendamentos nao convertidos","cancelamentos que nao geraram novo status de agendamento","reagendamentos não convertidos"],
+  pct_perdidos: ["% de cancelamentos perdidos"],
+  pct_conversao: ["% de conversao em reagendamentos","% de conversao em reagendamento"],
+  pct_sem_conversao: ["% sem conversao em reagendamentos","% sem conversao em reagendamento"]
+};
+
+function aggregateTipoAgendamento(canonRows){
+  const rows = canonRows.filter(r => r.status !== undefined);
+  const byTipo = new Map();
+  let compareceu=0, faltou=0, aguardando=0, outro=0;
+  for (const r of rows){
+    const cls = classifyStatus(r.status);
+    const tipo = String(r.tipo_agendamento||"NÃO INFORMADO").trim().toUpperCase() || "NÃO INFORMADO";
+    if (!byTipo.has(tipo)) byTipo.set(tipo, {compareceu:0, faltou:0, aguardando:0});
+    const t = byTipo.get(tipo);
+    if (cls === "compareceu"){ compareceu++; t.compareceu++; }
+    else if (cls === "faltou"){ faltou++; t.faltou++; }
+    else if (cls === "aguardando"){ aguardando++; t.aguardando++; }
+    else outro++;
+  }
+  return {compareceu, faltou, aguardando, outro, byTipo, totalRows: rows.length};
+}
+
+function aggregateEspecialidade(canonRows){
+  const rows = canonRows.filter(r => r.status !== undefined && String(r.especialidade||"").trim());
+  const map = new Map();
+  for (const r of rows){
+    let e = String(r.especialidade).trim().toUpperCase();
+    e = SPEC_ALIASES[e] || e;
+    if (!map.has(e)) map.set(e, {compareceu:0, faltou:0, aguardando:0});
+    const cls = classifyStatus(r.status);
+    const t = map.get(e);
+    if (cls === "compareceu") t.compareceu++;
+    else if (cls === "faltou") t.faltou++;
+    else if (cls === "aguardando") t.aguardando++;
+  }
+  return {map, totalRows: rows.length};
+}
+function toggleEspecialidadeExtra(spec){
+  if (especialidadeExtraSelected.has(spec)) especialidadeExtraSelected.delete(spec);
+  else especialidadeExtraSelected.add(spec);
+  renderEspecialidadeRanking();
+}
+function renderEspecialidadeRanking(){
+  const block = document.getElementById("especialidadeRankingBlock");
+  const chips = document.getElementById("especialidadeFilterChips");
+  if (!especialidadeData || !especialidadeData.size){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este ranking.</div>';
+    chips.innerHTML = "";
     return;
   }
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try {
-      const wb = ext === "csv"
-        ? XLSX.read(e.target.result, {type:"string", raw:true})
-        : XLSX.read(e.target.result, {type:"array", codepage:65001, raw:true});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
-      const result = processRows(json);
-      onFileLoaded(result, file.name);
-    } catch(err){
-      showBanner("error", `Não foi possível ler "${escapeHtml(file.name)}": ${escapeHtml(err.message)}`);
-    }
-  };
-  reader.onerror = function(){ showBanner("error", `Erro ao carregar "${escapeHtml(file.name)}".`); };
-  if (ext === "csv") reader.readAsText(file, "UTF-8"); else reader.readAsArrayBuffer(file);
+  const allSpecs = [...especialidadeData.keys()];
+  const extraSpecs = allSpecs.filter(s => !DEFAULT_RANKING_SPECS.includes(s)).sort();
+
+  chips.innerHTML = extraSpecs.length
+    ? extraSpecs.map(s => `<button type="button" class="spec-toggle${especialidadeExtraSelected.has(s)?" active":""}" onclick="toggleEspecialidadeExtra(${escapeHtml(JSON.stringify(s))})">${escapeHtml(prettyName(s))}</button>`).join("")
+    : '<span class="filter-hint">Nenhuma outra especialidade encontrada nesta planilha além das 4 padrão.</span>';
+
+  const specsToShow = DEFAULT_RANKING_SPECS.filter(s=>especialidadeData.has(s))
+    .concat(extraSpecs.filter(s=>especialidadeExtraSelected.has(s)));
+  const rows = specsToShow.map(s => {
+    const d = especialidadeData.get(s);
+    const denom = d.compareceu + d.faltou;
+    const p = denom>0 ? (d.compareceu/denom)*100 : 0;
+    return {spec:s, ...d, denom, p};
+  }).sort((a,b)=>b.p-a.p);
+
+  let tbl = `<table class="mini-table"><tr><th>Especialidade</th><th>Agendamentos</th><th>Faltas</th><th>Aguardando</th><th>% Comparecimento</th></tr>`;
+  for (const r of rows){
+    const st = statusOf(r.p);
+    tbl += `<tr><td>${escapeHtml(prettyName(r.spec))}</td><td>${fmtInt(r.denom)}</td><td>${fmtInt(r.faltou)}</td><td>${fmtInt(r.aguardando)}</td><td class="pct-${st}">${r.denom>0?fmtPct(r.p):"—"}</td></tr>`;
+  }
+  tbl += `</table>`;
+  block.innerHTML = tbl;
 }
 
-document.getElementById("fileInput").addEventListener("change", function(e){
+document.getElementById("fileCancelamentos").addEventListener("change", function(e){
   const f = e.target.files && e.target.files[0];
   e.target.value = "";
-  if (f) handleFile(f);
+  if (!f) return;
+  setUploadStatus("statusCancelamentos","pending",`Lendo "${f.name}"...`);
+  readSpreadsheet(f, function(json){
+    const lookup = buildLookup(HEADER_ALIASES_CANCEL);
+    const rows = json.map(r => canonicalizeRow(r, lookup)).filter(r => r.motivo !== undefined);
+    if (!rows.length){
+      setUploadStatus("statusCancelamentos","err","Não encontrei a coluna \"motivo_cancelamento\".");
+      showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem uma coluna de motivo de cancelamento reconhecível.`);
+      return;
+    }
+    let total=0, clinica=0, paciente=0;
+    for (const r of rows){
+      const qtd = toNum(r.qtd) || 1;
+      const motivo = normKey(r.motivo);
+      total += qtd;
+      if (motivo.includes("solicitacao da clinica")) clinica += qtd;
+      else paciente += qtd;
+    }
+    cancelamentoData = {total, clinica, paciente};
+    setUploadStatus("statusCancelamentos","ok",`"${f.name}" carregado · ${fmtInt(total)} cancelamentos`);
+    showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(total)} cancelamentos no período &middot; ${fmtInt(paciente)} pelo paciente &middot; ${fmtInt(clinica)} pela clínica.`);
+    renderKpis();
+    updateExportAvailability();
+  }, function(msg){
+    setUploadStatus("statusCancelamentos","err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
 });
 
-function exportPdf(){
-  if (!RECORDS.length){ alert("Carregue uma planilha antes de exportar o PDF."); return; }
-  window.print();
+document.getElementById("fileRecuperacao").addEventListener("change", function(e){
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  setUploadStatus("statusRecuperacao","pending",`Lendo "${f.name}"...`);
+  readSpreadsheet(f, function(json){
+    const lookup = buildLookup(HEADER_ALIASES_RECUP);
+    const rows = json.map(r => canonicalizeRow(r, lookup)).filter(r => r.mes !== undefined && r.total !== undefined);
+    if (!rows.length){
+      setUploadStatus("statusRecuperacao","err","Não reconheci as colunas esperadas.");
+      showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem as colunas esperadas (Data, Total de Cancelamentos, ...).`);
+      return;
+    }
+    recuperacaoRows = rows;
+    setUploadStatus("statusRecuperacao","ok",`"${f.name}" carregado · ${rows.length} meses`);
+    showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
+    renderRecuperacao();
+    updateExportAvailability();
+  }, function(msg){
+    setUploadStatus("statusRecuperacao","err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
+});
+
+function renderKpis(){
+  const grid = document.getElementById("kpiGrid");
+  const hasComp = !!comparecimentoData;
+  const hasCancel = !!cancelamentoData;
+  let pComp = 0, denom = 0;
+  if (hasComp){
+    denom = comparecimentoData.compareceu + comparecimentoData.faltou;
+    pComp = denom>0 ? (comparecimentoData.compareceu/denom)*100 : 0;
+  }
+  grid.innerHTML = `
+    <div class="hero-card ${hasComp?("status-"+statusOf(pComp)):""}">
+      <div class="hero-lbl">% Comparecimento</div>
+      <div class="hero-num ${hasComp?"":"dim"}">${hasComp?fmtPct(pComp):"—"}</div>
+      <div class="hero-foot">${hasComp?`${fmtInt(comparecimentoData.compareceu)} de ${fmtInt(denom)} agendamentos com desfecho`:"Carregue a planilha de comparecimento no final da página"}</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Faltas</div>
+      <div class="kpi-num ${hasComp?"":"dim"}">${hasComp?fmtInt(comparecimentoData.faltou):"—"}</div>
+      <div class="kpi-foot">${hasComp?`${fmtPct(100-pComp)} de falta sobre o total com desfecho`:"—"}</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Aguardando confirmação</div>
+      <div class="kpi-num ${hasComp?"":"dim"}">${hasComp?fmtInt(comparecimentoData.aguardando):"—"}</div>
+      <div class="kpi-foot">${hasComp?"Desfecho ainda não definido — fora do cálculo de %":"—"}</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Total de cancelamentos</div>
+      <div class="kpi-num ${hasCancel?"":"dim"}">${hasCancel?fmtInt(cancelamentoData.total):"—"}</div>
+      <div class="kpi-foot">${hasCancel?"No período da planilha de cancelamentos":"Carregue a planilha de cancelamentos"}</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Cancelado pelo paciente</div>
+      <div class="kpi-num ${hasCancel?"":"dim"}">${hasCancel?fmtInt(cancelamentoData.paciente):"—"}</div>
+      <div class="kpi-foot">${hasCancel?fmtPct(cancelamentoData.total>0?(cancelamentoData.paciente/cancelamentoData.total)*100:0)+" do total de cancelamentos":"—"}</div>
+    </div>
+    <div class="hero-card">
+      <div class="kpi-lbl">Cancelado pela clínica</div>
+      <div class="kpi-num ${hasCancel?"":"dim"}">${hasCancel?fmtInt(cancelamentoData.clinica):"—"}</div>
+      <div class="kpi-foot">${hasCancel?fmtPct(cancelamentoData.total>0?(cancelamentoData.clinica/cancelamentoData.total)*100:0)+" do total &middot; motivo \"solicitação da clínica\"":"—"}</div>
+    </div>
+  `;
 }
+
+let tipoChart = null;
+function renderTipoAgendamento(){
+  const block = document.getElementById("tipoAgendamentoBlock");
+  if (!comparecimentoData || !comparecimentoData.byTipo.size){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div>';
+    return;
+  }
+  const ORDER = ["NOVO","RECONQUISTA","REAGENDAMENTO","CONSULTA DE RETORNO"];
+  const tipos = [...comparecimentoData.byTipo.keys()].sort((a,b)=>{
+    const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+    if (ia===-1 && ib===-1) return a.localeCompare(b);
+    if (ia===-1) return 1;
+    if (ib===-1) return -1;
+    return ia-ib;
+  });
+  const labels = [...tipos.map(t=>t.charAt(0)+t.slice(1).toLowerCase()), "Consolidado"];
+  const compArr = tipos.map(t=>comparecimentoData.byTipo.get(t).compareceu);
+  const faltArr = tipos.map(t=>comparecimentoData.byTipo.get(t).faltou);
+  const agArr = tipos.map(t=>comparecimentoData.byTipo.get(t).aguardando);
+  compArr.push(compArr.reduce((s,v)=>s+v,0));
+  faltArr.push(faltArr.reduce((s,v)=>s+v,0));
+  agArr.push(agArr.reduce((s,v)=>s+v,0));
+
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="tipoCanvas"></canvas></div><table class="mini-table" id="tipoTable"></table></div>`;
+
+  const good = cssVar("--good"), bad = cssVar("--bad"), warn = cssVar("--warn"), ink = cssVar("--ink"), line = cssVar("--line");
+  const ctx = document.getElementById("tipoCanvas").getContext("2d");
+  if (tipoChart) tipoChart.destroy();
+  tipoChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {label:"Compareceu", data:compArr, backgroundColor:good, stack:"s"},
+        {label:"Faltou", data:faltArr, backgroundColor:bad, stack:"s"},
+        {label:"Aguardando", data:agArr, backgroundColor:warn, stack:"s"}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales: {
+        x:{ stacked:true, ticks:{color:ink}, grid:{color:line} },
+        y:{ stacked:true, beginAtZero:true, ticks:{color:ink}, grid:{color:line} }
+      },
+      plugins:{ legend:{ position:"top", labels:{color:ink} } }
+    }
+  });
+
+  const tbl = document.getElementById("tipoTable");
+  let rowsHtml = `<tr><th>Tipo de agendamento</th><th>Agendamentos</th><th>Faltas</th><th>Aguardando</th><th>% Comparecimento</th></tr>`;
+  for (let i=0;i<labels.length;i++){
+    const c = compArr[i], f = faltArr[i], a = agArr[i];
+    const denom = c+f;
+    const p = denom>0 ? (c/denom)*100 : 0;
+    const st = statusOf(p);
+    rowsHtml += `<tr><td>${i===labels.length-1?`<b>${escapeHtml(labels[i])}</b>`:escapeHtml(labels[i])}</td><td>${fmtInt(c+f)}</td><td>${fmtInt(f)}</td><td>${fmtInt(a)}</td><td class="pct-${st}">${denom>0?fmtPct(p):"—"}</td></tr>`;
+  }
+  tbl.innerHTML = rowsHtml;
+}
+
+function heatBg(hueVar, t){
+  const p = Math.round(12 + Math.max(0,Math.min(1,t))*68);
+  return `background:color-mix(in srgb, var(${hueVar}) ${p}%, var(--surface))`;
+}
+function renderRecuperacao(){
+  const block = document.getElementById("recuperacaoBlock");
+  if (!recuperacaoRows || !recuperacaoRows.length){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento abaixo para ver esta tabela.</div>';
+    return;
+  }
+  const rows = recuperacaoRows;
+  const METRICS = [
+    {key:"total", label:"Total de Cancelamentos", hue:"--warn", pct:false},
+    {key:"perdidos", label:"Cancelamentos Perdidos", hue:"--bad", pct:false},
+    {key:"com_reagendamento", label:"Cancelamentos com Reagendamento", hue:"--warn", pct:false},
+    {key:"convertidos", label:"Reagendamentos Convertidos", hue:"--good", pct:false},
+    {key:"nao_convertidos", label:"Reagendamentos não Convertidos", hue:"--bad", pct:false},
+    {key:"pct_perdidos", label:"% de Cancelamentos Perdidos", hue:"--bad", pct:true},
+    {key:"pct_conversao", label:"% de Conversão em Reagendamentos", hue:"--good", pct:true},
+    {key:"pct_sem_conversao", label:"% sem Conversão em Reagendamentos", hue:"--bad", pct:true}
+  ];
+  let html = `<div class="heat-scroll"><table class="heat-table"><thead><tr><th>Métrica</th>`;
+  for (const r of rows) html += `<th>${escapeHtml(String(r.mes))}</th>`;
+  html += `</tr></thead><tbody>`;
+  for (const m of METRICS){
+    const vals = rows.map(r => toNum(r[m.key]) * (m.pct ? 100 : 1));
+    const min = Math.min(...vals), max = Math.max(...vals);
+    html += `<tr><th>${escapeHtml(m.label)}</th>`;
+    for (const v of vals){
+      const t = max>min ? (v-min)/(max-min) : 0.5;
+      const disp = m.pct ? fmtPct(v) : fmtInt(v);
+      html += `<td style="${heatBg(m.hue,t)}">${disp}</td>`;
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table></div>`;
+  block.innerHTML = html;
+}
+
+/* =========================================================================
+   ABA 3 — INDICAÇÕES
+   ========================================================================= */
+let campanhaData = null;   // {map: campanha->comparecimentos, totalComp}
+let indConsultasRows = null;
+let indCirurgiasRows = null;
+let campanhaChart = null, consultasChart = null, cirurgiasChart = null;
+
+const HEADER_ALIASES_TEMPORAL_CONSULTAS = {
+  mes: ["ano/mes","mes","periodo","data"],
+  pct: ["% indicacao","%indicacao","percentual"],
+  qtd: ["indicacoes","quantidade"]
+};
+const HEADER_ALIASES_TEMPORAL_CIRURGIAS = {
+  mes: ["data_cirurgia (ano e mes)","ano/mes","mes","periodo","data"],
+  pct: ["% 1ª cirurgias por indicacao","%1ª cirurgias por indicacao","% 1a cirurgias por indicacao","percentual"],
+  qtd: ["1ª cirurgias por indicacao","1a cirurgias por indicacao","quantidade"]
+};
+
+function aggregateCampanha(canonRows){
+  const rows = canonRows.filter(r => r.status !== undefined);
+  const map = new Map();
+  let totalComp = 0;
+  for (const r of rows){
+    if (classifyStatus(r.status) !== "compareceu") continue;
+    totalComp++;
+    const camp = String(r.campanha||"").trim().toUpperCase() || "NÃO INFORMADO";
+    map.set(camp, (map.get(camp)||0) + 1);
+  }
+  return {map, totalComp, totalRows: rows.length};
+}
+
+function makeTemporalHandler(inputId, statusId, aliasMap, storeSetter, onDone){
+  document.getElementById(inputId).addEventListener("change", function(e){
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    setUploadStatus(statusId,"pending",`Lendo "${f.name}"...`);
+    readSpreadsheet(f, function(json){
+      const lookup = buildLookup(aliasMap);
+      const rows = json.map(r => canonicalizeRow(r, lookup)).filter(r => r.mes !== undefined && (r.pct !== undefined || r.qtd !== undefined));
+      if (!rows.length){
+        setUploadStatus(statusId,"err","Não reconheci as colunas esperadas.");
+        showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem as colunas esperadas (mês, % indicação, indicações).`);
+        return;
+      }
+      storeSetter(rows);
+      setUploadStatus(statusId,"ok",`"${f.name}" carregado · ${rows.length} meses`);
+      showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
+      onDone();
+      updateExportAvailability();
+    }, function(msg){
+      setUploadStatus(statusId,"err","Erro ao ler a planilha.");
+      showBanner("error", msg);
+    });
+  });
+}
+makeTemporalHandler("fileIndConsultas","statusIndConsultas",HEADER_ALIASES_TEMPORAL_CONSULTAS, rows => indConsultasRows = rows,
+  () => renderTemporal(indConsultasRows, "indConsultasBlock", "consultasCanvas", "consultasTable", c=>consultasChart=c, ()=>consultasChart, "Indicações (consultas)"));
+makeTemporalHandler("fileIndCirurgias","statusIndCirurgias",HEADER_ALIASES_TEMPORAL_CIRURGIAS, rows => indCirurgiasRows = rows,
+  () => renderTemporal(indCirurgiasRows, "indCirurgiasBlock", "cirurgiasCanvas", "cirurgiasTable", c=>cirurgiasChart=c, ()=>cirurgiasChart, "1ªs cirurgias por indicação"));
+
+function renderCampanha(){
+  const block = document.getElementById("campanhaBlock");
+  if (!campanhaData || !campanhaData.map.size){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div>';
+    return;
+  }
+  const entries = [...campanhaData.map.entries()].sort((a,b)=>b[1]-a[1]);
+  const indTotal = entries.filter(([k])=>isIndicacao(k)).reduce((s,[,v])=>s+v,0);
+  const pctInd = campanhaData.totalComp>0 ? (indTotal/campanhaData.totalComp)*100 : 0;
+  const isNaoInformado = k => normKey(k) === "nao informado";
+  const hasNaoInformado = entries.some(([k])=>isNaoInformado(k));
+
+  block.innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:6px">
+      <div class="hero-card status-good">
+        <div class="hero-lbl">% de comparecimentos por indicação</div>
+        <div class="hero-num">${fmtPct(pctInd)}</div>
+        <div class="hero-foot">${fmtInt(indTotal)} de ${fmtInt(campanhaData.totalComp)} comparecimentos vieram de indicação</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap"><canvas id="campanhaCanvas"></canvas></div>
+      <table class="mini-table" id="campanhaTable"></table>
+      ${hasNaoInformado ? '<div style="margin-top:12px;font-size:13px;color:var(--bad)">⚠️ "Não informado" indica que a equipe não preencheu o campo Campanha no agendamento — vale reforçar o preenchimento.</div>' : ""}
+    </div>
+  `;
+  const ink = cssVar("--ink"), line = cssVar("--line"), accent = cssVar("--accent"), good = cssVar("--good"), bad = cssVar("--bad");
+  const ctx = document.getElementById("campanhaCanvas").getContext("2d");
+  if (campanhaChart) campanhaChart.destroy();
+  campanhaChart = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: entries.map(([k])=>k.charAt(0)+k.slice(1).toLowerCase()),
+      datasets:[{ label:"Comparecimentos", data: entries.map(([,v])=>v), backgroundColor: entries.map(([k])=>isNaoInformado(k)?bad:(isIndicacao(k)?good:accent)) }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:"y",
+      scales:{ x:{ beginAtZero:true, ticks:{color:ink}, grid:{color:line} }, y:{ ticks:{color:ink}, grid:{display:false} } },
+      plugins:{ legend:{ display:false } }
+    }
+  });
+  let tbl = `<tr><th>Origem</th><th>Comparecimentos</th><th>% do total</th></tr>`;
+  for (const [k,v] of entries){
+    const p = campanhaData.totalComp>0 ? (v/campanhaData.totalComp)*100 : 0;
+    const naoInformado = isNaoInformado(k);
+    tbl += `<tr${naoInformado?' style="background:var(--bad-bg)"':""}><td${naoInformado?' style="color:var(--bad);font-weight:650"':""}>${escapeHtml(k.charAt(0)+k.slice(1).toLowerCase())}${isIndicacao(k)?" <b>★</b>":""}${naoInformado?" ⚠️":""}</td><td${naoInformado?' style="color:var(--bad);font-weight:650"':""}>${fmtInt(v)}</td><td${naoInformado?' style="color:var(--bad);font-weight:650"':""}>${fmtPct(p)}</td></tr>`;
+  }
+  document.getElementById("campanhaTable").innerHTML = tbl;
+}
+
+function renderTemporal(rows, blockId, canvasId, tableId, chartVarSetter, chartVarGetter, qtdLabel){
+  const block = document.getElementById(blockId);
+  if (!rows || !rows.length) return;
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div><table class="mini-table" id="${tableId}"></table></div>`;
+  const ink = cssVar("--ink"), line = cssVar("--line"), accent = cssVar("--accent"), accentBg = cssVar("--accent-bg"), sub = cssVar("--sub");
+  const labels = rows.map(r=>String(r.mes));
+  const pcts = rows.map(r=>toNum(r.pct)*100);
+  const qtds = rows.map(r=>toNum(r.qtd));
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  const prev = chartVarGetter();
+  if (prev) prev.destroy();
+  // combo: colunas com o número bruto (nº de indicações) + linha de tendência com o %
+  const chart = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        { type:"bar", label:qtdLabel, data:qtds, backgroundColor:accentBg, borderColor:accent, borderWidth:1, borderRadius:4, yAxisID:"yQtd", order:2 },
+        { type:"line", label:"% de indicação", data:pcts, borderColor:accent, backgroundColor:accent, tension:.25, fill:false, pointRadius:3, yAxisID:"yPct", order:1 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{ ticks:{color:ink}, grid:{color:line} },
+        yQtd:{ position:"left", beginAtZero:true, ticks:{color:ink}, grid:{color:line}, title:{display:true,text:qtdLabel,color:sub} },
+        yPct:{ position:"right", beginAtZero:true, ticks:{color:ink, callback:v=>fmtPct(v)}, grid:{drawOnChartArea:false}, title:{display:true,text:"% de indicação",color:sub} }
+      },
+      plugins:{
+        legend:{ labels:{color:ink} },
+        tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.dataset.yAxisID==="yPct" ? fmtPct(ctx.parsed.y) : fmtInt(ctx.parsed.y)}` } }
+      }
+    }
+  });
+  chartVarSetter(chart);
+  let tbl = `<tr><th>Mês</th><th>${escapeHtml(qtdLabel)}</th><th>% de indicação</th></tr>`;
+  for (let i=0;i<rows.length;i++) tbl += `<tr><td>${escapeHtml(labels[i])}</td><td>${fmtInt(qtds[i])}</td><td><b>${fmtPct(pcts[i])}</b></td></tr>`;
+  document.getElementById(tableId).innerHTML = tbl;
+}
+
+/* =========================================================================
+   ABA 4 — MEDIANA CIRÚRGICA
+   ========================================================================= */
+const HEADER_ALIASES_MEDIANA = {
+  clinica: ["nome_clinica","clinica","clinicas"],
+  especialidade: ["especialidade","especialidades"],
+  trimestre: ["data_cirurgia (data)","trimestre","data_cirurgia"],
+  dias: ["dias_consulta_1cirurgia","dias","mediana"]
+};
+// Metas de dias (consulta → 1ª cirurgia) reaproveitadas do painel "dashboard de pós
+// consulta e NPS" (SPECIALTY_RULES/SLA_PADRAO) a pedido do usuário — mesma régua já
+// usada e validada nesse outro painel, em vez de inventar um novo número. Especialidades
+// terciárias (Glaucoma, Estrabismo, Ceratocone, Córnea) não têm meta definida lá — por
+// isso ficam sem cor aqui também.
+const SLA_PADRAO_MEDIANA = { excelenteMax: 14, metaMax: 21, criticoMin: 41 };
+const SLA_BLEFAROPLASTIA_MEDIANA = { excelenteMax: 29, metaMax: 39, criticoMin: 66 };
+function getMedianaSLA(especialidade){
+  if (TIERS[2].specs.includes(especialidade)) return null;
+  if (especialidade === "BLEFAROPLASTIA") return SLA_BLEFAROPLASTIA_MEDIANA;
+  return SLA_PADRAO_MEDIANA;
+}
+function classifyMedianaSLA(dias, especialidade){
+  const sla = getMedianaSLA(especialidade);
+  if (!sla) return null;
+  if (dias <= sla.excelenteMax) return { tier:"good", emoji:"⭐", label:"melhor que o esperado" };
+  if (dias <= sla.metaMax) return { tier:"good", emoji:"", label:"dentro da meta" };
+  if (dias < sla.criticoMin) return { tier:"warn", emoji:"", label:"intermediário" };
+  return { tier:"bad", emoji:"⚠️", label:"crítico" };
+}
+function trimestreKey(t){
+  const m = String(t).match(/T?\s*(\d)\D+(\d{4})/i);
+  if (!m) return {sort: 0, label: String(t)};
+  const q = parseInt(m[1],10), y = parseInt(m[2],10);
+  return {sort: y*4+q, label: `T${q}, ${y}`};
+}
+
+let MEDIANA_RECORDS = [];
+let overallChart = null;
+
+function processMedianaRows(json){
+  const lookup = buildLookup(HEADER_ALIASES_MEDIANA);
+  const rows = json.map(r => canonicalizeRow(r, lookup))
+    .filter(r => String(r.clinica||"").trim() && String(r.especialidade||"").trim() && r.trimestre !== undefined);
+  if (!rows.length){
+    throw new Error('Não encontrei colunas de "nome_clinica", "especialidade", trimestre e "dias_consulta_1cirurgia" reconhecíveis.');
+  }
+  return rows.map(r => {
+    const tk = trimestreKey(r.trimestre);
+    return { clinica: String(r.clinica).trim(), especialidade: String(r.especialidade).trim().toUpperCase(), tSort: tk.sort, tLabel: tk.label, dias: toNum(r.dias) };
+  });
+}
+function setEmptyStateMediana(show){
+  document.getElementById("emptyStateMediana").classList.toggle("hidden", !show);
+  document.getElementById("dashboardBodyMediana").classList.toggle("hidden", show);
+}
+
+let medianaFilterEspecialidade = "";
+let medianaFilterClinica = "";
+function getFilteredMedianaRecords(){
+  return MEDIANA_RECORDS.filter(r =>
+    (!medianaFilterEspecialidade || r.especialidade === medianaFilterEspecialidade) &&
+    (!medianaFilterClinica || r.clinica === medianaFilterClinica)
+  );
+}
+function populateMedianaFilters(){
+  const specs = [...new Set(MEDIANA_RECORDS.map(r=>r.especialidade))].sort();
+  const clinicas = [...new Set(MEDIANA_RECORDS.map(r=>r.clinica))].sort();
+  const selEsp = document.getElementById("medianaFilterEspecialidade");
+  const selCli = document.getElementById("medianaFilterClinica");
+  selEsp.innerHTML = '<option value="">Todas</option>' + specs.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(prettyName(s))}</option>`).join("");
+  selCli.innerHTML = '<option value="">Todas</option>' + clinicas.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  selEsp.value = medianaFilterEspecialidade;
+  selCli.value = medianaFilterClinica;
+}
+function clearMedianaFilters(){
+  medianaFilterEspecialidade = "";
+  medianaFilterClinica = "";
+  document.getElementById("medianaFilterEspecialidade").value = "";
+  document.getElementById("medianaFilterClinica").value = "";
+  renderMedianaAll();
+}
+document.getElementById("medianaFilterEspecialidade").addEventListener("change", function(e){
+  medianaFilterEspecialidade = e.target.value;
+  renderMedianaAll();
+});
+document.getElementById("medianaFilterClinica").addEventListener("change", function(e){
+  medianaFilterClinica = e.target.value;
+  renderMedianaAll();
+});
+function renderMedianaAll(){
+  renderDestaques();
+  renderOverall();
+  renderEspecialidadesMediana();
+}
+function renderDestaques(){
+  const block = document.getElementById("destaquesBlock");
+  const records = getFilteredMedianaRecords();
+  if (!records.length){
+    block.innerHTML = '<div class="empty-mini">Nenhum dado para os filtros selecionados.</div>';
+    return;
+  }
+  // destaques usam só o trimestre mais recente/vigente — não a média histórica
+  const trimestreAtual = Math.max(...records.map(r=>r.tSort));
+  const byCombo = new Map();
+  for (const r of records){
+    if (r.tSort !== trimestreAtual) continue;
+    byCombo.set(r.clinica + "||" + r.especialidade, {clinica:r.clinica, especialidade:r.especialidade, dias:r.dias, tLabel:r.tLabel});
+  }
+  const combos = [...byCombo.values()].sort((a,b)=>a.dias-b.dias).slice(0,5);
+  if (!combos.length){
+    block.innerHTML = '<div class="empty-mini">Nenhum dado no trimestre mais recente para os filtros selecionados.</div>';
+    return;
+  }
+  const header = `<div class="sec-sub" style="margin-bottom:10px">Trimestre vigente: <b>${escapeHtml(combos[0].tLabel)}</b></div>`;
+  block.innerHTML = header + combos.map((c,i) => {
+    const loc = parseClinic(c.clinica);
+    const sla = classifyMedianaSLA(c.dias, c.especialidade);
+    return `<div class="destaque-row">
+      <div class="destaque-rank">${i+1}</div>
+      <div class="destaque-info">
+        <div class="destaque-clin" title="${escapeHtml(c.clinica)}">${sla&&sla.emoji?sla.emoji+" ":""}${escapeHtml(loc.nome)}</div>
+        <div class="destaque-meta">${escapeHtml(loc.cidade)} · ${escapeHtml(loc.uf)} · ${escapeHtml(prettyName(c.especialidade))}</div>
+      </div>
+      <div class="destaque-days" style="color:var(--${sla?sla.tier:"ink"})">${fmtDias(c.dias)}<span>dias</span></div>
+    </div>`;
+  }).join("");
+}
+function renderOverall(){
+  const byTri = new Map();
+  for (const r of getFilteredMedianaRecords()){
+    if (!byTri.has(r.tSort)) byTri.set(r.tSort, {label:r.tLabel, vals:[]});
+    byTri.get(r.tSort).vals.push(r.dias);
+  }
+  const sorted = [...byTri.entries()].sort((a,b)=>a[0]-b[0]);
+  const labels = sorted.map(([,v])=>v.label);
+  const medians = sorted.map(([,v])=>median(v.vals));
+  const ink = cssVar("--ink"), line = cssVar("--line"), accent = cssVar("--accent");
+  const ctx = document.getElementById("overallCanvas").getContext("2d");
+  if (overallChart) overallChart.destroy();
+  overallChart = new Chart(ctx, {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"Mediana geral (dias)", data:medians, backgroundColor:accent }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ ticks:{color:ink}, grid:{color:line} }, y:{ beginAtZero:true, ticks:{color:ink}, grid:{color:line} } },
+      plugins:{ legend:{ labels:{color:ink} } }
+    }
+  });
+}
+let collapsedSpecsMediana = new Set();
+function toggleMedianaSpecCollapse(spec){
+  if (collapsedSpecsMediana.has(spec)) collapsedSpecsMediana.delete(spec);
+  else collapsedSpecsMediana.add(spec);
+  renderEspecialidadesMediana();
+}
+function setAllMedianaSpecsCollapsed(collapsed){
+  const specs = new Set(getFilteredMedianaRecords().map(r=>r.especialidade));
+  collapsedSpecsMediana = collapsed ? specs : new Set();
+  renderEspecialidadesMediana();
+}
+function renderEspecialidadesMediana(){
+  const records = getFilteredMedianaRecords();
+  const bySpec = new Map();
+  for (const r of records){
+    if (!bySpec.has(r.especialidade)) bySpec.set(r.especialidade, []);
+    bySpec.get(r.especialidade).push(r);
+  }
+  const specs = [...bySpec.keys()].sort();
+  const trimestres = [...new Set(records.map(r=>r.tSort))].sort((a,b)=>a-b).map(s => records.find(r=>r.tSort===s).tLabel);
+  const trimestreAtual = trimestres[trimestres.length-1];
+
+  let html = "";
+  for (const spec of specs){
+    const rows = bySpec.get(spec);
+    const byClinic = new Map();
+    for (const r of rows){
+      if (!byClinic.has(r.clinica)) byClinic.set(r.clinica, {});
+      byClinic.get(r.clinica)[r.tLabel] = r.dias;
+    }
+    // ordenado pelo valor do trimestre atual (menor tempo primeiro); sem valor nesse trimestre vai para o final
+    const clinicEntries = [...byClinic.entries()].map(([clinica, vals]) => ({clinica, vals})).sort((a,b)=>{
+      const va = a.vals[trimestreAtual], vb = b.vals[trimestreAtual];
+      if (va===undefined && vb===undefined) return 0;
+      if (va===undefined) return 1;
+      if (vb===undefined) return -1;
+      return va-vb;
+    });
+
+    const medianaGeral = median(rows.map(r=>r.dias));
+    const slaGeral = classifyMedianaSLA(medianaGeral, spec);
+    const specLabel = spec.charAt(0)+spec.slice(1).toLowerCase();
+    const collapsed = collapsedSpecsMediana.has(spec);
+    html += `
+    <div class="esp-card">
+      <div class="esp-head" style="border-bottom:${collapsed?"none":"1px solid var(--line)"}">
+        <div>
+          <div class="esp-name">${escapeHtml(specLabel)}</div>
+          <div class="esp-meta">${fmtInt(clinicEntries.length)} clínicas</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="esp-avg${slaGeral?" status-"+slaGeral.tier:""}">
+            <div>
+              <div class="esp-avg-num">${slaGeral&&slaGeral.emoji?slaGeral.emoji+" ":""}${fmtDias(medianaGeral)}</div>
+              <div class="esp-avg-lbl" title="Mediana somando todas as clínicas desta especialidade">Mediana geral (dias)</div>
+            </div>
+          </div>
+          <button type="button" class="collapse-toggle no-print" onclick="toggleMedianaSpecCollapse(${escapeHtml(JSON.stringify(spec))})">${collapsed?"▸ Expandir":"▾ Recolher"}</button>
+        </div>
+      </div>
+      <div class="${collapsed?"hidden":""}">
+      <table class="mediana-table">
+        <thead><tr><th>Clínica</th>${trimestres.map(t=>`<th>${escapeHtml(t)}${t===trimestreAtual?" (atual)":""}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${clinicEntries.map(ce => {
+            const atual = ce.vals[trimestreAtual];
+            const sla = atual!==undefined ? classifyMedianaSLA(atual, spec) : null;
+            const bg = sla ? `var(--${sla.tier}-bg)` : "transparent";
+            return `<tr style="background:${bg}"><td class="clin-name">${sla&&sla.emoji?sla.emoji+" ":""}${escapeHtml(ce.clinica)}</td>${trimestres.map(t => `<td>${ce.vals[t]!==undefined ? fmtDias(ce.vals[t])+" dias" : "—"}</td>`).join("")}</tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+  document.getElementById("espGrid").innerHTML = html || '<div class="empty-mini">Nenhum dado válido encontrado.</div>';
+}
+function onMedianaLoaded(rows, fileName){
+  MEDIANA_RECORDS = rows;
+  if (!MEDIANA_RECORDS.length){
+    showBanner("error", `A planilha "${escapeHtml(fileName)}" foi lida, mas nenhuma combinação válida foi encontrada.`);
+    setEmptyStateMediana(true);
+    return;
+  }
+  medianaFilterEspecialidade = "";
+  medianaFilterClinica = "";
+  populateMedianaFilters();
+  renderMedianaAll();
+  const specs = new Set(MEDIANA_RECORDS.map(r=>r.especialidade)).size;
+  const clinicas = new Set(MEDIANA_RECORDS.map(r=>r.clinica)).size;
+  setUploadStatus("statusMediana","ok",`"${fileName}" carregado · ${MEDIANA_RECORDS.length} linhas`);
+  showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(MEDIANA_RECORDS.length)} linha(s) &middot; ${fmtInt(clinicas)} clínicas &middot; ${fmtInt(specs)} especialidades.`);
+  setEmptyStateMediana(false);
+  updateExportAvailability();
+}
+document.getElementById("fileMediana").addEventListener("change", function(e){
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  setUploadStatus("statusMediana","pending",`Lendo "${f.name}"...`);
+  readSpreadsheet(f, function(json){
+    try {
+      const rows = processMedianaRows(json);
+      onMedianaLoaded(rows, f.name);
+    } catch(err){
+      setUploadStatus("statusMediana","err","Erro ao processar a planilha.");
+      showBanner("error", `Não foi possível processar "${escapeHtml(f.name)}": ${escapeHtml(err.message)}`);
+    }
+  }, function(msg){
+    setUploadStatus("statusMediana","err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
+});
+
+/* =========================================================================
+   INICIALIZAÇÃO
+   ========================================================================= */
+renderKpis();
+renderTipoAgendamento();
+renderEspecialidadeRanking();
+renderRecuperacao();
+renderCampanha();
 
 const backToTopBtn = document.getElementById("backToTop");
 window.addEventListener("scroll", function(){
