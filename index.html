@@ -537,9 +537,31 @@ function normKey(s){ return stripAccents(String(s==null?"":s).trim().toLowerCase
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function toNum(v){
   if (typeof v === "number") return v;
-  const s = String(v==null?"":v).trim().replace(/\./g,"").replace(",",".");
+  let s = String(v==null?"":v).trim();
+  if (!s) return 0;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot){
+    // os dois aparecem: o que aparece por último é o separador decimal, o outro é milhar
+    // ("1.234,56" formato BR vs "1,234.56" formato EN/US)
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g,"").replace(",",".");
+    else s = s.replace(/,/g,"");
+  } else if (hasComma){
+    // só vírgula: é o separador decimal (planilha/CSV em formato BR, ex. "40,5")
+    s = s.replace(",",".");
+  }
+  // só ponto, ou nenhum separador: já está no formato que parseFloat espera
   const n = parseFloat(s.replace(/[^\d.-]/g,""));
   return isNaN(n) ? 0 : n;
+}
+function toPctValue(v){
+  // aceita tanto fração (0.6295 — formato bruto de célula percentual num .xlsx)
+  // quanto percentual já formatado com "%" (ex.: "62,95%" — comum quando a
+  // planilha é exportada/salva como .csv). Sem checar o "%", um valor que já
+  // veio em escala 0-100 era multiplicado por 100 de novo.
+  if (typeof v === "number") return v*100;
+  const s = String(v==null?"":v).trim();
+  return s.includes("%") ? toNum(s) : toNum(s)*100;
 }
 function fmtInt(n){ return Math.round(n).toLocaleString("pt-BR"); }
 function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR"); }
@@ -579,6 +601,20 @@ function isIndicacao(campanha){
   const n = normKey(campanha);
   return n.includes("indicacao");
 }
+function detectCsvDelimiter(text){
+  // Excel em locale BR usa vírgula como separador decimal, então exporta CSV com
+  // ";" entre colunas (senão toda coluna numérica quebraria no meio). Sem isso o
+  // SheetJS assume "," como separador de campo (padrão da lib) e cada vírgula
+  // decimal dentro de uma célula vira uma coluna nova — resultado: colunas
+  // deslocadas e números concatenados (ex.: "40,5" virando "405").
+  const firstLines = text.split(/\r?\n/).slice(0,3).join("\n");
+  const commas = (firstLines.match(/,/g)||[]).length;
+  const semicolons = (firstLines.match(/;/g)||[]).length;
+  const tabs = (firstLines.match(/\t/g)||[]).length;
+  if (tabs > commas && tabs > semicolons) return "\t";
+  if (semicolons > commas) return ";";
+  return ",";
+}
 function readSpreadsheet(file, onRows, onError){
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   if (!["xlsx","xls","csv"].includes(ext)){
@@ -589,7 +625,7 @@ function readSpreadsheet(file, onRows, onError){
   reader.onload = function(e){
     try {
       const wb = ext === "csv"
-        ? XLSX.read(e.target.result, {type:"string", raw:true})
+        ? XLSX.read(e.target.result, {type:"string", raw:true, FS: detectCsvDelimiter(e.target.result)})
         : XLSX.read(e.target.result, {type:"array", codepage:65001, raw:true});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
@@ -1253,7 +1289,7 @@ function renderRecuperacao(){
   for (const r of rows) html += `<th>${escapeHtml(String(r.mes))}</th>`;
   html += `</tr></thead><tbody>`;
   for (const m of METRICS){
-    const vals = rows.map(r => toNum(r[m.key]) * (m.pct ? 100 : 1));
+    const vals = rows.map(r => m.pct ? toPctValue(r[m.key]) : toNum(r[m.key]));
     const min = Math.min(...vals), max = Math.max(...vals);
     html += `<tr><th>${escapeHtml(m.label)}</th>`;
     for (const v of vals){
@@ -1385,7 +1421,7 @@ function renderTemporal(rows, blockId, canvasId, tableId, chartVarSetter, chartV
   block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div><table class="mini-table" id="${tableId}"></table></div>`;
   const ink = cssVar("--ink"), line = cssVar("--line"), accent = cssVar("--accent"), accentBg = cssVar("--accent-bg"), sub = cssVar("--sub");
   const labels = rows.map(r=>String(r.mes));
-  const pcts = rows.map(r=>toNum(r.pct)*100);
+  const pcts = rows.map(r=>toPctValue(r.pct));
   const qtds = rows.map(r=>toNum(r.qtd));
   const ctx = document.getElementById(canvasId).getContext("2d");
   const prev = chartVarGetter();
