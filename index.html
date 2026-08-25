@@ -342,6 +342,18 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
     </div>
     <div id="recuperacaoBlock"><div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento abaixo para ver esta tabela.</div></div>
 
+    <div class="sec-divider">
+      <div class="sec-title">Cancelamentos por motivo</div>
+      <div class="sec-sub">Distribuição dos cancelamentos do período, por motivo informado na planilha de cancelamentos</div>
+    </div>
+    <div id="cancelMotivoBlock"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este gráfico.</div></div>
+
+    <div class="sec-divider">
+      <div class="sec-title">Clínicas com mais cancelamentos</div>
+      <div class="sec-sub">Top 5 clínicas por especialidade, no período da planilha de cancelamentos</div>
+    </div>
+    <div id="cancelRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este ranking.</div></div>
+
     <div class="foot">Comparecimento = (comparecimentos) / (comparecimentos + faltas), aguardando e status não reconhecidos ficam fora do cálculo. Cancelado pela clínica = motivo "SOLICITAÇÃO DA CLÍNICA"; todos os demais motivos (incluindo erro de cadastro e não informado) contam como cancelado pelo paciente.</div>
 
     <div class="sec-divider no-print">
@@ -1119,17 +1131,32 @@ document.getElementById("fileCancelamentos").addEventListener("change", function
       return;
     }
     let total=0, clinica=0, paciente=0;
+    const byMotivo = new Map();
+    const byEspClinica = new Map(); // especialidade -> Map(clinica -> qtd)
     for (const r of rows){
       const qtd = toNum(r.qtd) || 1;
       const motivo = normKey(r.motivo);
       total += qtd;
       if (motivo.includes("solicitacao da clinica")) clinica += qtd;
       else paciente += qtd;
+
+      const motivoLabel = String(r.motivo||"NÃO INFORMADO").trim().toUpperCase() || "NÃO INFORMADO";
+      byMotivo.set(motivoLabel, (byMotivo.get(motivoLabel)||0) + qtd);
+
+      const cli = String(r.clinica||"").trim();
+      if (cli){
+        const esp = String(r.especialidade||"NÃO INFORMADA").trim().toUpperCase() || "NÃO INFORMADA";
+        if (!byEspClinica.has(esp)) byEspClinica.set(esp, new Map());
+        const m = byEspClinica.get(esp);
+        m.set(cli, (m.get(cli)||0) + qtd);
+      }
     }
-    cancelamentoData = {total, clinica, paciente};
+    cancelamentoData = {total, clinica, paciente, byMotivo, byEspClinica};
     setUploadStatus("statusCancelamentos","ok",`"${f.name}" carregado · ${fmtInt(total)} cancelamentos`);
     showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(total)} cancelamentos no período &middot; ${fmtInt(paciente)} pelo paciente &middot; ${fmtInt(clinica)} pela clínica.`);
     renderKpis();
+    renderCancelamentoMotivo();
+    renderCancelamentoRanking();
     updateExportAvailability();
   }, function(msg){
     setUploadStatus("statusCancelamentos","err","Erro ao ler a planilha.");
@@ -1202,6 +1229,154 @@ function renderKpis(){
       <div class="kpi-foot">${hasCancel?fmtPct(cancelamentoData.total>0?(cancelamentoData.clinica/cancelamentoData.total)*100:0)+" do total &middot; motivo \"solicitação da clínica\"":"—"}</div>
     </div>
   `;
+}
+
+// desenha linhas indicativas (com "cotovelo") ligando cada fatia da pizza ao seu
+// rótulo de porcentagem, do lado de fora do gráfico — mesmo dado já exibido na
+// tabela abaixo, só que direto no gráfico. Fatias muito pequenas (<2%) não
+// recebem linha própria para não sobrepor texto; o valor continua na tabela.
+const pieLeaderLabelsPlugin = {
+  id: "pieLeaderLabels",
+  afterDraw(chart){
+    if (chart.config.type !== "pie" && chart.config.type !== "doughnut") return;
+    const meta = chart.getDatasetMeta(0);
+    const dataset = chart.data.datasets[0];
+    const total = dataset.data.reduce((s,v)=>s+v,0);
+    if (total <= 0) return;
+    const ctx = chart.ctx;
+    const lineColor = cssVar("--muted");
+    const textColor = cssVar("--ink");
+    ctx.save();
+    ctx.font = "600 12.5px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Helvetica,Arial,sans-serif";
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = lineColor;
+    ctx.fillStyle = textColor;
+    meta.data.forEach((arc,i)=>{
+      const val = dataset.data[i];
+      const pct = (val/total)*100;
+      if (!val || pct < 2) return;
+      const cx = arc.x, cy = arc.y, r = arc.outerRadius;
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      const outerX = cx + cos*r, outerY = cy + sin*r;
+      const bendX = cx + cos*(r+16), bendY = cy + sin*(r+16);
+      const isRight = cos >= 0;
+      const labelX = bendX + (isRight ? 16 : -16);
+
+      ctx.beginPath();
+      ctx.moveTo(outerX, outerY);
+      ctx.lineTo(bendX, bendY);
+      ctx.lineTo(labelX, bendY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(outerX, outerY, 2, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.textBaseline = "middle";
+      ctx.textAlign = isRight ? "left" : "right";
+      ctx.fillText(fmtPct(pct), labelX + (isRight?4:-4), bendY);
+    });
+    ctx.restore();
+  }
+};
+
+let cancelMotivoChart = null;
+function renderCancelamentoMotivo(){
+  const block = document.getElementById("cancelMotivoBlock");
+  if (!cancelamentoData || !cancelamentoData.byMotivo || !cancelamentoData.byMotivo.size){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este gráfico.</div>';
+    return;
+  }
+  const entries = [...cancelamentoData.byMotivo.entries()].sort((a,b)=>b[1]-a[1]);
+  const total = cancelamentoData.total;
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap" style="height:380px"><canvas id="cancelMotivoCanvas"></canvas></div><table class="mini-table" id="cancelMotivoTable"></table></div>`;
+
+  const paletteVars = ["--accent","--bad","--warn","--good","--muted","--sub"];
+  const palette = paletteVars.map(cssVar);
+  const ink = cssVar("--ink");
+  const ctx = document.getElementById("cancelMotivoCanvas").getContext("2d");
+  if (cancelMotivoChart) cancelMotivoChart.destroy();
+  cancelMotivoChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: entries.map(([k])=>k.charAt(0)+k.slice(1).toLowerCase()),
+      datasets: [{ data: entries.map(([,v])=>v), backgroundColor: entries.map((_,i)=>palette[i % palette.length]) }]
+    },
+    plugins: [pieLeaderLabelsPlugin],
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      layout: { padding: { top:28, bottom:28, left:60, right:60 } },
+      plugins: { legend: { position:"right", labels:{color:ink} } }
+    }
+  });
+
+  let tbl = `<tr><th>Motivo</th><th>Cancelamentos</th><th>% do total</th></tr>`;
+  for (const [k,v] of entries){
+    const p = total>0 ? (v/total)*100 : 0;
+    tbl += `<tr><td>${escapeHtml(k.charAt(0)+k.slice(1).toLowerCase())}</td><td>${fmtInt(v)}</td><td>${fmtPct(p)}</td></tr>`;
+  }
+  document.getElementById("cancelMotivoTable").innerHTML = tbl;
+}
+
+function cancelRankingCardHtml(spec, tierPill){
+  const m = cancelamentoData.byEspClinica.get(spec);
+  if (!m || !m.size) return "";
+  const top5 = [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const totalSpec = [...m.values()].reduce((s,v)=>s+v,0);
+  return `
+  <div class="esp-card">
+    <div class="esp-head-simple">
+      <span class="tier-pill ${tierPill}">${tierPill === "outras" ? "Outra" : tierPill.charAt(0).toUpperCase()+tierPill.slice(1)}</span>
+      <div class="esp-name" style="margin-top:6px">${escapeHtml(prettyName(spec))}</div>
+      <div class="esp-meta">${fmtInt(totalSpec)} cancelamentos no total &middot; top ${fmtInt(top5.length)} clínicas</div>
+    </div>
+    <div class="rows">
+      ${top5.map(([cli,qtd],i) => {
+        const loc = parseClinic(cli);
+        return `<div class="destaque-row">
+          <div class="destaque-rank" style="background:var(--bad-bg);color:var(--bad)">${i+1}</div>
+          <div class="destaque-info">
+            <div class="destaque-clin" title="${escapeHtml(cli)}">${escapeHtml(loc.nome)}</div>
+            <div class="destaque-meta">${escapeHtml(loc.cidade)} &middot; ${escapeHtml(loc.uf)}</div>
+          </div>
+          <div class="destaque-days" style="color:var(--bad)">${fmtInt(qtd)}<span>cancel.</span></div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+function cancelRankingTierSectionHtml(tier){
+  const cards = tier.specs.map(spec => cancelRankingCardHtml(spec, tier.pill)).filter(Boolean).join("");
+  if (!cards) return "";
+  return `
+  <div class="sec-divider">
+    <div class="sec-title">${tier.label}</div>
+  </div>
+  <div class="esp-grid">${cards}</div>`;
+}
+function renderCancelamentoRanking(){
+  const block = document.getElementById("cancelRankingBlock");
+  if (!cancelamentoData || !cancelamentoData.byEspClinica || !cancelamentoData.byEspClinica.size){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este ranking.</div>';
+    return;
+  }
+  // mesma ordenação primária/secundária/terciária/outras usada na aba "Comparecimento por clínica"
+  const allSpecsFound = [...cancelamentoData.byEspClinica.keys()];
+  const outrosSpecs = allSpecsFound.filter(s => !KNOWN_SPECS.has(s)).sort();
+
+  let html = TIERS.map(cancelRankingTierSectionHtml).join("");
+  if (outrosSpecs.length){
+    const cards = outrosSpecs.map(spec => cancelRankingCardHtml(spec, "outras")).filter(Boolean).join("");
+    if (cards){
+      html += `
+      <div class="sec-divider">
+        <div class="sec-title">Outras especialidades</div>
+      </div>
+      <div class="esp-grid">${cards}</div>`;
+    }
+  }
+  block.innerHTML = html || '<div class="empty-mini">Nenhum dado válido encontrado.</div>';
 }
 
 let tipoChart = null;
@@ -1725,6 +1900,8 @@ renderKpis();
 renderTipoAgendamento();
 renderEspecialidadeRanking();
 renderRecuperacao();
+renderCancelamentoMotivo();
+renderCancelamentoRanking();
 renderCampanha();
 
 const backToTopBtn = document.getElementById("backToTop");
