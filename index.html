@@ -157,7 +157,7 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .esp-avg.status-bad .esp-avg-num{color:var(--bad)}
 
 .rows{padding:6px 8px}
-.rk-row{display:grid;grid-template-columns:32px 1fr 82px 74px minmax(150px,230px) 74px;align-items:center;gap:10px;padding:10px 12px;border-left:3px solid transparent;border-radius:8px}
+.rk-row{display:grid;grid-template-columns:32px 1fr 82px 90px minmax(150px,230px) 84px;align-items:center;gap:10px;padding:10px 12px;border-left:3px solid transparent;border-radius:8px}
 .rk-line,.rk-stats{display:contents}
 .rk-row.status-good{border-left-color:var(--good)}
 .rk-row.status-warn{border-left-color:var(--warn)}
@@ -184,6 +184,18 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .pct-val.status-good{color:var(--good)}
 .pct-val.status-warn{color:var(--warn)}
 .pct-val.status-bad{color:var(--bad)}
+
+/* ---- variação do comparecimento conforme o desfecho dos "aguardando retorno" ----
+   letra pequena, mas destacada (fundo + borda + cores boa/ruim), sempre logo
+   abaixo do número de comparecimento a que se refere. */
+.var-line{margin-top:8px;font-size:11.5px;line-height:1.5;color:var(--sub);display:inline-block;
+  padding:5px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
+.var-line .var-cap{color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;display:block;margin-bottom:2px}
+.var-up{color:var(--good);font-weight:750;font-variant-numeric:tabular-nums}
+.var-down{color:var(--bad);font-weight:750;font-variant-numeric:tabular-nums}
+.var-mini{display:block;margin-top:4px;font-size:11px;font-weight:750;line-height:1.4;
+  font-variant-numeric:tabular-nums;color:var(--sub);white-space:nowrap}
+.mini-table td .var-mini{font-weight:750}
 
 .tier-pill{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px}
 .tier-pill.primaria{background:var(--accent-bg);color:var(--accent)}
@@ -354,7 +366,7 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
     </div>
     <div id="cancelRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este ranking.</div></div>
 
-    <div class="foot">Comparecimento = (comparecimentos) / (comparecimentos + faltas), aguardando e status não reconhecidos ficam fora do cálculo. Cancelado pela clínica = motivo "SOLICITAÇÃO DA CLÍNICA"; todos os demais motivos (incluindo erro de cadastro e não informado) contam como cancelado pelo paciente.</div>
+    <div class="foot">Comparecimento = (comparecimentos) / (comparecimentos + faltas), aguardando e status não reconhecidos ficam fora do cálculo. A linha pequena embaixo de cada % mostra os dois cenários extremos para quem está aguardando retorno: <span class="var-up">▲</span> todos comparecendo e <span class="var-down">▼</span> todos faltando — nesses cenários o aguardando entra no denominador. Cancelado pela clínica = motivo "SOLICITAÇÃO DA CLÍNICA"; todos os demais motivos (incluindo erro de cadastro e não informado) contam como cancelado pelo paciente.</div>
 
     <div class="sec-divider no-print">
       <div class="sec-title">Carregar planilhas</div>
@@ -579,6 +591,47 @@ function fmtInt(n){ return Math.round(n).toLocaleString("pt-BR"); }
 function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR"); }
 function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
 function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
+
+/* ---- cenários dos "aguardando retorno" -------------------------------------
+   O % de comparecimento oficial só olha quem já tem desfecho (compareceu +
+   faltou). Quem está "aguardando confirmação/retorno" fica fora da conta, então
+   o número pode ainda subir ou cair quando esses casos fecharem. Estas funções
+   calculam os dois extremos e o texto pequeno que aparece embaixo de cada %:
+     best  = todos os aguardando compareceram
+     worst = todos os aguardando faltaram                                      */
+function compScenarios(comp, falt, ag){
+  comp = Math.max(0, comp||0); falt = Math.max(0, falt||0); ag = Math.max(0, ag||0);
+  const denom = comp + falt;        // agendamentos com desfecho conhecido
+  const total = denom + ag;         // agendamentos incluindo os pendentes
+  const base = denom>0 ? (comp/denom)*100 : 0;
+  return {
+    comp, falt, ag, denom, total, base,
+    best:  total>0 ? ((comp+ag)/total)*100 : base,
+    worst: total>0 ? (comp/total)*100 : base
+  };
+}
+function varTitle(s){
+  return `${fmtPct(s.base)} sobre ${fmtInt(s.denom)} agendamentos com desfecho: `
+    + `${fmtInt(s.comp)} compareceram, ${fmtInt(s.falt)} faltaram e ${fmtInt(s.ag)} aguardam retorno. `
+    + `Se todos os ${fmtInt(s.ag)} comparecerem, sobe para ${fmtPct(s.best)} sobre ${fmtInt(s.total)}; `
+    + `se todos faltarem, cai para ${fmtPct(s.worst)}.`;
+}
+// versão completa (cards grandes / cabeçalhos de seção)
+function varLineHtml(s){
+  if (!s || !s.ag) return "";
+  return `<div class="var-line" title="${escapeHtml(varTitle(s))}">`
+    + `<span class="var-cap">${fmtInt(s.ag)} aguardando retorno · cenários</span>`
+    + `todos comparecendo sobe para <span class="var-up">${fmtPct(s.best)}</span>`
+    + ` &middot; todos faltando cai para <span class="var-down">${fmtPct(s.worst)}</span>`
+    + `</div>`;
+}
+// versão compacta (linhas de ranking e células de tabela)
+function varMiniHtml(s){
+  if (!s || !s.ag) return "";
+  return `<span class="var-mini" title="${escapeHtml(varTitle(s))}">`
+    + `<span class="var-up">&#9650; ${fmtPct(s.best)}</span><br>`
+    + `<span class="var-down">&#9660; ${fmtPct(s.worst)}</span></span>`;
+}
 function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 function median(arr){
   const s = arr.slice().sort((a,b)=>a-b);
@@ -819,7 +872,8 @@ function groupBySpec(records){
 function specStats(rows){
   const a = rows.reduce((s,r)=>s+r.a,0);
   const f = rows.reduce((s,r)=>s+r.f,0);
-  return { a, f, p: pct(a,f), n: rows.length };
+  const ag = rows.reduce((s,r)=>s+(r.ag||0),0);
+  return { a, f, ag, p: pct(a,f), n: rows.length, sc: compScenarios(a-f, f, ag) };
 }
 
 let CLINICA_RECORDS = [];
@@ -839,11 +893,13 @@ function aggregateClinicaEspecialidade(canonRows){
   }
 
   const agg = new Map();
-  function addAgg(c, e, a, f){
+  // "ag" = agendamentos aguardando retorno: não entram em "a" (denominador do %),
+  // mas ficam guardados por clínica/especialidade para calcular os cenários.
+  function addAgg(c, e, a, f, ag){
     e = SPEC_ALIASES[e] || e;
     const key = c + "||" + e;
-    const prev = agg.get(key) || {c, e, a:0, f:0};
-    prev.a += a; prev.f += f;
+    const prev = agg.get(key) || {c, e, a:0, f:0, ag:0};
+    prev.a += a; prev.f += f; prev.ag += (ag||0);
     agg.set(key, prev);
   }
 
@@ -851,13 +907,15 @@ function aggregateClinicaEspecialidade(canonRows){
   const outroSamples = new Set();
 
   if (format === "aggregated"){
+    // a exportação agregada só traz agendamentos e faltas — sem coluna de
+    // "aguardando", então os cenários de variação não aparecem neste formato.
     for (const r of rows){
       const c = String(r.clinica).trim();
       const e = String(r.especialidade).trim().toUpperCase();
       const a = toNum(r.agendamentos);
       const f = toNum(r.faltas);
       if (!c || !e || a <= 0) continue;
-      addAgg(c, e, a, f);
+      addAgg(c, e, a, f, 0);
     }
   } else {
     for (const r of rows){
@@ -865,9 +923,9 @@ function aggregateClinicaEspecialidade(canonRows){
       const e = String(r.especialidade).trim().toUpperCase();
       if (!c || !e) continue;
       const cls = classifyStatus(r.status);
-      if (cls === "compareceu") addAgg(c, e, 1, 0);
-      else if (cls === "faltou") addAgg(c, e, 1, 1);
-      else if (cls === "aguardando") pendCount++;
+      if (cls === "compareceu") addAgg(c, e, 1, 0, 0);
+      else if (cls === "faltou") addAgg(c, e, 1, 1, 0);
+      else if (cls === "aguardando"){ addAgg(c, e, 0, 0, 1); pendCount++; }
       else { outroCount++; if (r.status) outroSamples.add(String(r.status).trim()); }
     }
   }
@@ -882,27 +940,30 @@ function aggregateClinicaEspecialidade(canonRows){
 
 function renderHero(){
   const grand = specStats(CLINICA_RECORDS);
+  const combos = CLINICA_RECORDS.filter(r=>r.a>0).length;
   document.getElementById("hero").innerHTML = `
     <div class="hero-card status-${statusOf(grand.p)}">
       <div class="hero-lbl">Comparecimento geral</div>
       <div class="hero-num">${fmtPct(grand.p)}</div>
-      <div class="hero-foot">${fmtInt(grand.a)} agendamentos &middot; ${fmtInt(grand.f)} faltas &middot; ${fmtInt(CLINICA_RECORDS.length)} combinações clínica/especialidade</div>
+      ${varLineHtml(grand.sc)}
+      <div class="hero-foot">${fmtInt(grand.a)} agendamentos com desfecho &middot; ${fmtInt(grand.f)} faltas${grand.ag?` &middot; ${fmtInt(grand.ag)} aguardando retorno`:""} &middot; ${fmtInt(combos)} combinações clínica/especialidade</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Total de agendamentos</div>
       <div class="kpi-num">${fmtInt(grand.a)}</div>
-      <div class="kpi-foot">Somatório de todas as clínicas e especialidades carregadas</div>
+      <div class="kpi-foot">${grand.ag?`Com desfecho conhecido &middot; ${fmtInt(grand.ag)} aguardando retorno ainda fora do cálculo (${fmtInt(grand.sc.total)} no total)`:"Somatório de todas as clínicas e especialidades carregadas"}</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Total de faltas</div>
       <div class="kpi-num">${fmtInt(grand.f)}</div>
-      <div class="kpi-foot">${fmtPct(100-grand.p)} de falta sobre o total agendado</div>
+      <div class="kpi-foot">${fmtPct(100-grand.p)} de falta sobre o total com desfecho</div>
     </div>
   `;
 }
 function rowHtml(r, rank){
   const p = pct(r.a, r.f);
   const st = statusOf(p);
+  const sc = compScenarios(r.a - r.f, r.f, r.ag||0);
   const hi = r.a > HIGH_VOLUME_MIN;
   const loc = parseClinic(r.c);
   return `
@@ -916,11 +977,11 @@ function rowHtml(r, rank){
     </div>
     <div class="rk-stats">
       <div class="num-col">${fmtInt(r.a)}<br><span style="font-size:10.5px;color:var(--muted)">agend.</span></div>
-      <div class="num-col faltas">${fmtInt(r.f)}<br><span style="font-size:10.5px;color:var(--muted)">faltas</span></div>
+      <div class="num-col faltas">${fmtInt(r.f)}<br><span style="font-size:10.5px;color:var(--muted)">faltas${sc.ag?` · ${fmtInt(sc.ag)} aguard.`:""}</span></div>
       <div class="bar-cell">
         <div class="bar-track"><div class="bar-fill status-${st}" style="width:${Math.max(2,p)}%"></div></div>
       </div>
-      <div class="pct-val status-${st}">${fmtPct(p)}</div>
+      <div class="pct-val status-${st}">${fmtPct(p)}${varMiniHtml(sc)}</div>
     </div>
   </div>`;
 }
@@ -935,13 +996,16 @@ function setAllSpecsCollapsed(collapsed){
   renderSections();
 }
 function cardHtml(spec, tierPill){
-  const rows = (CLINICA_BY_SPEC.get(spec) || []).slice().sort((a,b)=>{
+  const all = CLINICA_BY_SPEC.get(spec) || [];
+  // combinações que só têm agendamentos aguardando retorno não têm % para
+  // ranquear — ficam fora da lista, mas seguem contando nos totais do card.
+  const rows = all.filter(r=>r.a>0).sort((a,b)=>{
     const pa = pct(a.a,a.f), pb = pct(b.a,b.f);
     if (pb !== pa) return pb - pa;
     return b.a - a.a;
   });
   if (!rows.length) return "";
-  const st = specStats(rows);
+  const st = specStats(all);
   const collapsed = collapsedSpecsComparecimento.has(spec);
   return `
   <div class="esp-card">
@@ -949,13 +1013,14 @@ function cardHtml(spec, tierPill){
       <div>
         <span class="tier-pill ${tierPill}">${tierPill === "outras" ? "Outra" : tierPill.charAt(0).toUpperCase()+tierPill.slice(1)}</span>
         <div class="esp-name" style="margin-top:6px">${escapeHtml(prettyName(spec))}</div>
-        <div class="esp-meta">${fmtInt(st.n)} clínicas &middot; ${fmtInt(st.a)} agendamentos &middot; ${fmtInt(st.f)} faltas</div>
+        <div class="esp-meta">${fmtInt(rows.length)} clínicas &middot; ${fmtInt(st.a)} agendamentos &middot; ${fmtInt(st.f)} faltas${st.ag?` &middot; ${fmtInt(st.ag)} aguardando retorno`:""}</div>
       </div>
       <div style="display:flex;align-items:center;gap:14px">
         <div class="esp-avg status-${statusOf(st.p)}">
           <div>
             <div class="esp-avg-num">${fmtPct(st.p)}</div>
             <div class="esp-avg-lbl">Comparecimento médio</div>
+            ${varLineHtml(st.sc)}
           </div>
         </div>
         <button type="button" class="collapse-toggle no-print" onclick="toggleSpecCollapse(${escapeHtml(JSON.stringify(spec))})">${collapsed?"▸ Expandir":"▾ Recolher"}</button>
@@ -975,6 +1040,7 @@ function tierSectionHtml(tier){
   <div class="sec-divider">
     <div class="sec-title">${tier.label}</div>
     <div class="sec-sub">${fmtInt(st.a)} agendamentos &middot; comparecimento médio de ${fmtPct(st.p)} no conjunto</div>
+    ${varLineHtml(st.sc)}
   </div>
   <div class="esp-grid">${cards}</div>`;
 }
@@ -991,6 +1057,7 @@ function renderSections(){
     <div class="sec-divider">
       <div class="sec-title">Outras especialidades</div>
       <div class="sec-sub">Não fazem parte das categorias primária/secundária/terciária definidas &middot; ${fmtInt(st.a)} agendamentos &middot; comparecimento médio de ${fmtPct(st.p)}</div>
+      ${varLineHtml(st.sc)}
     </div>
     <div class="esp-grid">${cards}</div>`;
   }
@@ -999,6 +1066,7 @@ function renderSections(){
 function renderFooterComparecimento(){
   document.getElementById("footComparecimento").innerHTML =
     `Comparecimento calculado como (agendamentos − faltas) / agendamentos. Cores: &gt;70% bom, 60–69% atenção, &lt;60% ruim. ` +
+    `A linha pequena embaixo de cada % traz os cenários dos agendamentos aguardando retorno: <span class="var-up">▲</span> se todos comparecerem e <span class="var-down">▼</span> se todos faltarem (aí eles entram no denominador). Só aparece na exportação por atendimento, que traz o status linha a linha. ` +
     `"Alto volume" marca combinações clínica/especialidade com mais de ${HIGH_VOLUME_MIN} agendamentos no período. ` +
     `Refrativa e Consulta Refrativa são somadas como a mesma especialidade.`;
 }
@@ -1105,13 +1173,13 @@ function renderEspecialidadeRanking(){
     const d = especialidadeData.get(s);
     const denom = d.compareceu + d.faltou;
     const p = denom>0 ? (d.compareceu/denom)*100 : 0;
-    return {spec:s, ...d, denom, p};
+    return {spec:s, ...d, denom, p, sc: compScenarios(d.compareceu, d.faltou, d.aguardando)};
   }).sort((a,b)=>b.p-a.p);
 
   let tbl = `<table class="mini-table"><tr><th>Especialidade</th><th>Agendamentos</th><th>Faltas</th><th>Aguardando</th><th>% Comparecimento</th></tr>`;
   for (const r of rows){
     const st = statusOf(r.p);
-    tbl += `<tr><td>${escapeHtml(prettyName(r.spec))}</td><td>${fmtInt(r.denom)}</td><td>${fmtInt(r.faltou)}</td><td>${fmtInt(r.aguardando)}</td><td class="pct-${st}">${r.denom>0?fmtPct(r.p):"—"}</td></tr>`;
+    tbl += `<tr><td>${escapeHtml(prettyName(r.spec))}</td><td>${fmtInt(r.denom)}</td><td>${fmtInt(r.faltou)}</td><td>${fmtInt(r.aguardando)}</td><td class="pct-${st}">${r.denom>0?fmtPct(r.p):"—"}${varMiniHtml(r.sc)}</td></tr>`;
   }
   tbl += `</table>`;
   block.innerHTML = tbl;
@@ -1192,16 +1260,18 @@ function renderKpis(){
   const grid = document.getElementById("kpiGrid");
   const hasComp = !!comparecimentoData;
   const hasCancel = !!cancelamentoData;
-  let pComp = 0, denom = 0;
+  let pComp = 0, denom = 0, scComp = null;
   if (hasComp){
     denom = comparecimentoData.compareceu + comparecimentoData.faltou;
     pComp = denom>0 ? (comparecimentoData.compareceu/denom)*100 : 0;
+    scComp = compScenarios(comparecimentoData.compareceu, comparecimentoData.faltou, comparecimentoData.aguardando);
   }
   grid.innerHTML = `
     <div class="hero-card ${hasComp?("status-"+statusOf(pComp)):""}">
       <div class="hero-lbl">% Comparecimento</div>
       <div class="hero-num ${hasComp?"":"dim"}">${hasComp?fmtPct(pComp):"—"}</div>
-      <div class="hero-foot">${hasComp?`${fmtInt(comparecimentoData.compareceu)} de ${fmtInt(denom)} agendamentos com desfecho`:"Carregue a planilha de comparecimento no final da página"}</div>
+      ${hasComp?varLineHtml(scComp):""}
+      <div class="hero-foot">${hasComp?`${fmtInt(comparecimentoData.compareceu)} de ${fmtInt(denom)} agendamentos com desfecho${scComp.ag?` &middot; ${fmtInt(scComp.ag)} aguardando retorno (${fmtInt(scComp.total)} no total)`:""}`:"Carregue a planilha de comparecimento no final da página"}</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Faltas</div>
@@ -1211,7 +1281,7 @@ function renderKpis(){
     <div class="hero-card">
       <div class="kpi-lbl">Aguardando confirmação</div>
       <div class="kpi-num ${hasComp?"":"dim"}">${hasComp?fmtInt(comparecimentoData.aguardando):"—"}</div>
-      <div class="kpi-foot">${hasComp?"Desfecho ainda não definido — fora do cálculo de %":"—"}</div>
+      <div class="kpi-foot">${hasComp?(scComp.ag?`Desfecho ainda não definido — fora do cálculo de %. Movem o comparecimento entre <span class="var-down">${fmtPct(scComp.worst)}</span> e <span class="var-up">${fmtPct(scComp.best)}</span>`:"Desfecho ainda não definido — fora do cálculo de %"):"—"}</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Total de cancelamentos</div>
@@ -1434,7 +1504,8 @@ function renderTipoAgendamento(){
     const denom = c+f;
     const p = denom>0 ? (c/denom)*100 : 0;
     const st = statusOf(p);
-    rowsHtml += `<tr><td>${i===labels.length-1?`<b>${escapeHtml(labels[i])}</b>`:escapeHtml(labels[i])}</td><td>${fmtInt(c+f)}</td><td>${fmtInt(f)}</td><td>${fmtInt(a)}</td><td class="pct-${st}">${denom>0?fmtPct(p):"—"}</td></tr>`;
+    const sc = compScenarios(c, f, a);
+    rowsHtml += `<tr><td>${i===labels.length-1?`<b>${escapeHtml(labels[i])}</b>`:escapeHtml(labels[i])}</td><td>${fmtInt(c+f)}</td><td>${fmtInt(f)}</td><td>${fmtInt(a)}</td><td class="pct-${st}">${denom>0?fmtPct(p):"—"}${varMiniHtml(sc)}</td></tr>`;
   }
   tbl.innerHTML = rowsHtml;
 }
