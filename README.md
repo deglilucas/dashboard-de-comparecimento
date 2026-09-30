@@ -58,10 +58,11 @@ Cada linha é classificada pelo campo de status (`classifyStatus()`, case/acento
 ## Regras de negócio importantes (não óbvias pelo código)
 
 ### Comparecimento por clínica (e Visão geral / Indicações, que reaproveitam a mesma base)
-- **Fórmula de comparecimento**: `(agendamentos − faltas) / agendamentos`. "Agendamentos" aqui = compareceram + faltaram (pendentes e não-classificados ficam fora do denominador).
+- **Vocabulário**: o painel fala em **consultas** (já aconteceram), não "agendamentos". **Consultas = compareceram + faltaram + aguardando retorno**. Cada linha de clínica mostra "N consultas — X compareceram · Y faltaram · Z aguardando retorno".
+- **Fórmula de comparecimento**: `compareceram / (compareceram + faltaram)`. Aguardando retorno e status não-classificados ficam fora do denominador do % (os cenários ▲▼ mostram o efeito dos aguardando).
 - **Cores** (`statusOf()`): comparecimento **≥ 70%** = bom (verde); **60–69%** = ponto de atenção (amarelo); **< 60%** = ruim (vermelho). Mesma régua usada no ranking de comparecimento por especialidade da aba Visão geral.
-- **Destaque "Alto volume"** (`HIGH_VOLUME_MIN = 10`): toda combinação clínica/especialidade com **mais de 10** agendamentos no período recebe uma borda mais grossa e um selo "Alto volume" — independente da cor/status.
-- **Especialidades primárias/secundárias/terciárias** (`TIERS`): Primárias = Catarata, Refrativa, Blefaroplastia, Retina; Secundárias = Capsulotomia, Calázio, Pterígio, Consulta Oftalmológica; Terciárias = Glaucoma, Estrabismo, Ceratocone, Córnea. Especialidade fora dessas listas cai num bloco "Outras especialidades" — nunca é descartada silenciosamente.
+- **Destaque "Alto volume"** (`HIGH_VOLUME_MIN = 10`): toda combinação clínica/especialidade com **10 ou mais consultas** (a soma dos três: compareceram + faltaram + aguardando retorno, não só comparecimento) no período recebe uma borda mais grossa e um selo "Alto volume" — independente da cor/status. Regra confirmada com o usuário em 2026-09 (antes era "mais de 10" só sobre compareceram + faltaram).
+- **Especialidades primárias/secundárias/terciárias** (`TIERS`): Primárias = Catarata, **Catarata - mobilização saúde ocular**, Refrativa, Blefaroplastia, Retina ("mobilização" é especialidade própria, NÃO soma em Catarata; `normSpecName()` reconhece variações de grafia/acento); Secundárias = Capsulotomia, Calázio, Pterígio, Consulta Oftalmológica; Terciárias = Glaucoma, Estrabismo, Ceratocone, Córnea. Especialidade fora dessas listas cai num bloco "Outras especialidades" — nunca é descartada silenciosamente.
 - **`SPEC_ALIASES`**: "Refrativa" e "Consulta Refrativa" contam como a mesma especialidade (somadas antes de qualquer cálculo). Novo caso parecido → confirmar com o usuário antes de adicionar ao alias, não presumir.
 - **Ranking de comparecimento por especialidade (aba Visão geral)**: Catarata, Refrativa, Retina e Blefaroplastia (as "primárias") **sempre aparecem**; qualquer outra especialidade encontrada na planilha vira um filtro opcional (`spec-toggle`) para adicionar ao ranking, em vez de já vir junto — pedido explícito do usuário para manter o ranking padrão enxuto.
 - **Cancelado pelo paciente vs. pela clínica**: só o motivo `SOLICITAÇÃO DA CLÍNICA` conta como cancelado pela clínica; **todos os demais motivos** (erro de cadastro, não informado, reagendamento, etc.) contam como cancelado pelo paciente — regra confirmada com o usuário em 2026-08, não uma suposição.
@@ -73,23 +74,34 @@ Cada linha é classificada pelo campo de status (`classifyStatus()`, case/acento
 - **"Trimestre atual/vigente"** = o trimestre mais recente presente na planilha carregada (maior `tSort`), não o trimestre corrente do calendário. Os **destaques** e a **ordenação da lista de clínicas por especialidade** usam o valor desse trimestre — não a média histórica — porque o pedido foi ver o desempenho mais recente, não uma média que mistura trimestres antigos com o atual.
 - **"Mediana geral"** ao lado do nome de cada especialidade = mediana de todos os valores (todas as clínicas, todos os trimestres carregados) daquela especialidade — não é ponderada por volume.
 - Filtros de Especialidade/Clínica (populados dinamicamente pela planilha carregada) afetam destaques, gráfico geral e detalhamento por especialidade ao mesmo tempo.
+- **Mesma regra de negócio das outras abas**: o detalhamento por especialidade é agrupado em primárias / secundárias / terciárias / outras (`TIERS`), na mesma ordem da aba Comparecimento por clínica.
 
 ### Indicações
 - "Indicação" (KPI e evolução) reúne as campanhas `INDICAÇÃO` e `INDICAÇÃO - CARTÃO DE DESCONTO`.
 - Os dois gráficos de evolução mensal (indicação em consultas / em cirurgias) são combos coluna + linha: colunas = número bruto no eixo esquerdo, linha = % de indicação no eixo direito — os dois números já vêm prontos na planilha de origem, o painel só exibe.
+- Tooltip em modo `index`: passar o mouse em qualquer ponto do mês (coluna ou área acima dela) já mostra o **% e a quantidade** daquele mês, sem precisar acertar a linha de tendência.
+- A tabela de dados abaixo de cada gráfico da aba (origem, consultas, cirurgias) fica **recolhida por padrão** ("Ver tabela de dados"); no PDF de uma aba sai como está na tela, no relatório completo sai sempre expandida.
 
 ### Geral
+- **Filtros sempre de múltipla seleção**: qualquer filtro novo deve usar `createMultiSelect()` (dropdown com caixas de marcação e busca); nada marcado = todas. O dashboard inteiro acompanha o filtro, e o PDF traz um aviso "Filtros aplicados" quando há filtro ativo. (Os botões-chip de especialidades extras na Visão geral já eram multi-seleção.)
 - **Percentuais**: sempre 1 casa decimal, formatação `pt-BR` (`fmtPct()`) — usado tanto nas tabelas quanto nos eixos/tooltips dos gráficos, para não ter números com casas decimais demais num eixo.
 - **Listas de clínica recolhíveis**: cada card de especialidade (Comparecimento por clínica e Mediana) tem um botão de recolher/expandir individual, mais um "recolher todas / expandir todas" por aba. Estado de recolhido é mantido em memória (`collapsedSpecsComparecimento`/`collapsedSpecsMediana`) e reaplicado a cada re-render — não persiste entre uploads novos.
   - ⚠️ **Não usar `JSON.stringify(valor)` cru dentro de um atributo `onclick="..."` com aspas duplas** — o valor serializado também vem entre aspas duplas e fecha o atributo antes da hora, quebrando o HTML silenciosamente (só falha no clique real, não em teste que chama a função direto). Sempre envolver com `escapeHtml(JSON.stringify(valor))`. Bug real, já corrigido — não reintroduzir.
 
 ## Exportação em PDF
 
-Botão "Exportar PDF" (no topo, ao lado do título) chama `window.print()` — abre o diálogo de impressão do navegador, e o usuário escolhe "Salvar como PDF" como destino. Não usa nenhuma biblioteca (jsPDF etc.) de propósito.
+Dois botões no topo, ao lado do título — ambos usam `window.print()` (o usuário escolhe "Salvar como PDF" como destino; nenhuma biblioteca tipo jsPDF, de propósito):
+
+- **Exportar esta aba**: imprime só a aba aberta, como está na tela.
+- **Exportar relatório completo** (`exportAllPdf()`): todas as abas que já têm dado, de uma vez. `prepareExportAll()` mostra as abas, expande listas/tabelas recolhidas, esconde seções vazias e redimensiona os gráficos; `endExportAll()` (no `afterprint`) devolve a tela ao estado anterior. Cada aba e cada seção começam numa página nova.
+- **Slide de síntese** (`buildSummaryHtml()`): última página do relatório completo, um slide 16:9 com 4 colunas (uma por aba) × 3 blocos: Destaques / Pontos de atenção / Pontos negativos, máx. 3 frases por bloco, calculadas dos dados carregados (`summaryVisaoGeral/Comparecimento/Mediana/Indicacoes`). Usa as mesmas réguas do painel (verde ≥70%, amarelo 60–69%, vermelho <60%; SLA de mediana no trimestre mais recente). Aba sem planilha não gera coluna. Visual segue o **Design System da Central da Visão** (zip enviado pelo usuário em 2026-09): cabeçalho com gradiente azul→ciano e logo oficial branco (`assets/logo-horizontal-white.png`, embutido em base64 em `SUM_LOGO` para manter o arquivo único), navy `#203B5A`, cartões de 16px com sombra navy-alpha, tons semânticos de sucesso/atenção/perigo, fonte Figtree (substituta da Alte Haas Grotesk, ainda sem arquivos licenciados). Regras da marca a manter: sem emoji nem símbolos como ícone, sentence case, laranja `#F9623E` só para CTA (nunca para "ruim"). Só o slide de síntese usa esse visual; o resto do painel mantém a paleta própria dele. Botão **Exportar só a síntese** gera apenas essa página. Qualquer critério de "destaque/atenção/negativo" novo deve ser confirmado com o usuário.
+- **Formato**: página 16:9 paisagem (`@page`, 13,33×7,5 pol = slide do PowerPoint) para o PDF já servir de apresentação. Usar sempre `@media screen` (não só `max-width`) nas regras de celular: a largura de uma página impressa ativava o layout mobile e escondia colunas.
+- **Tabelas não quebram**: linhas (`.rk-row`, `tr`, `.destaque-row`) têm `break-inside:avoid`, cabeçalhos de tabela repetem em cada página, e `print-color-adjust:exact` mantém barras/heatmap coloridos. Altura dos gráficos no relatório completo é definida FORA do `@media print` (o Chart.js mede o contêiner na tela; senão o canvas invade a tabela abaixo).
+- Testado gerando o PDF com Edge headless (`--print-to-pdf`) a partir de dados sintéticos e olhando cada página — refazer esse teste ao mexer no CSS de impressão.
 
 - Todos os botões de "Carregar planilha" ficam no **final** de cada aba (não no topo) — pedido explícito para não aparecerem numa apresentação/print da parte de cima da página.
 - O CSS de impressão (`@media print`) esconde tudo com `.no-print` (incluindo os cards de upload), força a paleta clara mesmo em modo escuro, evita quebra de card no meio de duas páginas, e **esconde qualquer aviso de "carregue sua planilha" ainda vazio** (`.empty-mini`, `.empty-state`) — o PDF exportado só deve mostrar o que já tem dado carregado.
-- O botão fica desabilitado enquanto nenhuma planilha de nenhuma aba foi carregada (`updateExportAvailability()`).
+- Os botões ficam desabilitados enquanto nenhuma planilha de nenhuma aba foi carregada (`updateExportAvailability()`).
 
 ## Navegação
 
