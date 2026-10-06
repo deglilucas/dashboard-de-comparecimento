@@ -622,6 +622,12 @@ body.export-all .chart-wrap{height:240px !important}
   <div id="tabIndicacoes" class="hidden">
     <div class="export-tab-title">Indicações<small>De onde vêm os pacientes que compareceram e operaram</small></div>
     <div class="sec-divider" style="margin-top:8px">
+      <div class="sec-title">Indicação nos últimos 3 meses</div>
+      <div class="sec-sub">Média mensal de indicação em consultas nos 3 últimos meses da planilha, comparada com os 3 meses anteriores</div>
+    </div>
+    <div id="indKpiBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo para ver este indicador.</div></div>
+
+    <div class="sec-divider">
       <div class="sec-title">Comparecimento por origem (campanha)</div>
       <div class="sec-sub">De onde vieram os pacientes que compareceram, no período da planilha de comparecimento carregada no final desta página</div>
     </div>
@@ -1053,10 +1059,15 @@ function summaryMediana(){
 }
 function summaryIndicacoes(){
   const o = {g:[],w:[],b:[]};
+  const tri = indicacaoTrimestres(indConsultasRows);
+  if (tri){
+    const d = tri.prev ? tri.cur.p - tri.prev.p : null;
+    const msg = `Indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
+    (d === null || Math.abs(d) <= 0.05 ? o.w : (d > 0 ? o.g : o.b)).push(msg);
+  }
   if (campanhaData){
     const entries = [...campanhaData.map.entries()], tot = campanhaData.totalComp;
     const ind = entries.filter(([k])=>isIndicacao(k)).reduce((s,[,v])=>s+v,0);
-    if (tot>0) o.g.push(`${fmtPct(ind/tot*100)} dos comparecimentos vieram de indicação (${fmtInt(ind)} de ${fmtInt(tot)})`);
     const ni = entries.find(([k])=>normKey(k)==="nao informado");
     if (ni && tot>0){
       const s = ni[1]/tot*100;
@@ -1074,7 +1085,6 @@ function summaryIndicacoes(){
     const low = vals.reduce((a,b)=>b.p<a.p?b:a);
     if (low !== last && low.p < last.p*0.6) o.w.push(`${nome}: menor mês foi ${low.m} (${fmtPct(low.p)})`);
   };
-  serie(indConsultasRows, "Indicação em consultas");
   serie(indCirurgiasRows, "Indicação em 1ªs cirurgias");
   return o;
 }
@@ -2054,7 +2064,7 @@ function makeTemporalHandler(inputId, statusId, aliasMap, storeSetter, onDone){
   });
 }
 makeTemporalHandler("fileIndConsultas","statusIndConsultas",HEADER_ALIASES_TEMPORAL_CONSULTAS, rows => indConsultasRows = rows,
-  () => renderTemporal(indConsultasRows, "indConsultasBlock", "consultasCanvas", "consultasTable", c=>consultasChart=c, ()=>consultasChart, "Indicações (consultas)"));
+  () => { renderTemporal(indConsultasRows, "indConsultasBlock", "consultasCanvas", "consultasTable", c=>consultasChart=c, ()=>consultasChart, "Indicações (consultas)"); renderIndKpi(); });
 makeTemporalHandler("fileIndCirurgias","statusIndCirurgias",HEADER_ALIASES_TEMPORAL_CIRURGIAS, rows => indCirurgiasRows = rows,
   () => renderTemporal(indCirurgiasRows, "indCirurgiasBlock", "cirurgiasCanvas", "cirurgiasTable", c=>cirurgiasChart=c, ()=>cirurgiasChart, "1ªs cirurgias por indicação"));
 
@@ -2070,6 +2080,63 @@ function toggleDataTable(tableId, btn){
   btn.setAttribute("aria-expanded", String(open));
 }
 
+/* ---- indicação: últimos 3 meses vs. 3 meses anteriores ------------------------
+   Base = série mensal "indicação em consultas" (% já calculado por mês na planilha).
+   "Atual" = média simples do % dos 3 últimos meses da planilha (o mês mais recente
+   presente, não o do calendário); "anterior" = média dos 3 meses imediatamente antes
+   — se a planilha tiver menos que 3 meses nesse período, usa os que existirem. */
+const MESES_ABREV = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+function monthIndex(label){
+  const s = normKey(String(label));
+  let m = s.match(/(\d{4})\D+(\d{1,2})\b/);                 // 2026/10, 2026-10, 2026-10-01
+  if (m && +m[2] >= 1 && +m[2] <= 12) return (+m[1])*12 + (+m[2]-1);
+  m = s.match(/\b(\d{1,2})\D+(\d{4})/);                     // 10/2026
+  if (m && +m[1] >= 1 && +m[1] <= 12) return (+m[2])*12 + (+m[1]-1);
+  m = s.match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\D*(\d{4})/); // out. de 2026
+  if (m) return (+m[2])*12 + MESES_ABREV.indexOf(m[1]);
+  return null;
+}
+function indicacaoTrimestres(rows){
+  const pts = (rows||[]).filter(r => r.pct !== undefined && r.pct !== "").map((r,i) => ({label:String(r.mes), p:toPctValue(r.pct), mi:monthIndex(r.mes), i}));
+  if (!pts.length) return null;
+  const mean = a => a.reduce((s,x)=>s+x.p,0)/a.length;
+  let cur, prev;
+  if (pts.every(x => x.mi !== null)){            // meses reconhecidos: janela por calendário (respeita meses faltando)
+    const last = Math.max(...pts.map(x=>x.mi));
+    cur = pts.filter(x => x.mi > last-3 && x.mi <= last);
+    prev = pts.filter(x => x.mi > last-6 && x.mi <= last-3);
+  } else {                                       // formato desconhecido: usa a ordem das linhas
+    cur = pts.slice(-3); prev = pts.slice(-6, -3);
+  }
+  const sort = a => a.slice().sort((x,y) => (x.mi??x.i) - (y.mi??y.i));
+  cur = sort(cur); prev = sort(prev);
+  return {
+    cur: {p: mean(cur), labels: cur.map(x=>x.label)},
+    prev: prev.length ? {p: mean(prev), labels: prev.map(x=>x.label)} : null
+  };
+}
+function renderIndKpi(){
+  const block = document.getElementById("indKpiBlock");
+  const t = indicacaoTrimestres(indConsultasRows);
+  if (!t){
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo para ver este indicador.</div>';
+    return;
+  }
+  const d = t.prev ? t.cur.p - t.prev.p : null;
+  const status = d === null ? "" : (d > 0.05 ? "status-good" : (d < -0.05 ? "status-bad" : "status-warn"));
+  const cmp = t.prev
+    ? `<span class="${d>0.05?"var-up":(d<-0.05?"var-down":"")}">${d>=0.05?"▲":(d<=-0.05?"▼":"■")} ${fmtPP(d)}</span> vs. ${fmtPct(t.prev.p)} nos 3 meses anteriores (${escapeHtml(t.prev.labels.join(", "))}${t.prev.labels.length<3?` — só ${t.prev.labels.length} ${plural(t.prev.labels.length,"mês disponível","meses disponíveis")}`:""})`
+    : "Sem meses anteriores na planilha para comparar";
+  block.innerHTML = `
+    <div class="kpi-grid">
+      <div class="hero-card ${status}">
+        <div class="hero-lbl">Indicação — média dos últimos 3 meses</div>
+        <div class="hero-num">${fmtPct(t.cur.p)}</div>
+        <div class="hero-foot">${escapeHtml(t.cur.labels.join(", "))}${t.cur.labels.length<3?` — só ${t.cur.labels.length} ${plural(t.cur.labels.length,"mês disponível","meses disponíveis")}`:""}<br>${cmp}</div>
+      </div>
+    </div>`;
+}
+
 function renderCampanha(){
   const block = document.getElementById("campanhaBlock");
   if (!campanhaData || !campanhaData.map.size){
@@ -2077,19 +2144,10 @@ function renderCampanha(){
     return;
   }
   const entries = [...campanhaData.map.entries()].sort((a,b)=>b[1]-a[1]);
-  const indTotal = entries.filter(([k])=>isIndicacao(k)).reduce((s,[,v])=>s+v,0);
-  const pctInd = campanhaData.totalComp>0 ? (indTotal/campanhaData.totalComp)*100 : 0;
   const isNaoInformado = k => normKey(k) === "nao informado";
   const hasNaoInformado = entries.some(([k])=>isNaoInformado(k));
 
   block.innerHTML = `
-    <div class="kpi-grid" style="margin-bottom:6px">
-      <div class="hero-card status-good">
-        <div class="hero-lbl">% de comparecimentos por indicação</div>
-        <div class="hero-num">${fmtPct(pctInd)}</div>
-        <div class="hero-foot">${fmtInt(indTotal)} de ${fmtInt(campanhaData.totalComp)} comparecimentos vieram de indicação</div>
-      </div>
-    </div>
     <div class="chart-card">
       <div class="chart-wrap"><canvas id="campanhaCanvas"></canvas></div>
       ${collapsibleTableHtml("campanhaTable")}
@@ -2466,6 +2524,7 @@ renderRecuperacao();
 renderCancelamentoMotivo();
 renderCancelamentoRanking();
 renderCampanha();
+renderIndKpi();
 
 const backToTopBtn = document.getElementById("backToTop");
 window.addEventListener("scroll", function(){

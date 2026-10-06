@@ -77,6 +77,7 @@ Cada linha é classificada pelo campo de status (`classifyStatus()`, case/acento
 - **Mesma regra de negócio das outras abas**: o detalhamento por especialidade é agrupado em primárias / secundárias / terciárias / outras (`TIERS`), na mesma ordem da aba Comparecimento por clínica.
 
 ### Indicações
+- **Indicador do topo** (`indicacaoTrimestres()`/`renderIndKpi()`): média simples do % de indicação em consultas dos **3 últimos meses da planilha** de evolução (o mês mais recente que ela tem, não o do calendário), comparada com a média dos **3 meses imediatamente anteriores** (▲/▼ em p.p.). Meses reconhecidos em `2026/10`, `2026-10`, `10/2026` ou `out. de 2026`; janela por calendário, então mês faltando não desloca o período — se houver menos de 3 meses em algum dos períodos, usa os disponíveis e avisa. Antes era o consolidado de toda a planilha de comparecimento (124 de 792); essa conta saiu da tela. O slide de síntese usa a mesma regra.
 - "Indicação" (KPI e evolução) reúne as campanhas `INDICAÇÃO` e `INDICAÇÃO - CARTÃO DE DESCONTO`.
 - Os dois gráficos de evolução mensal (indicação em consultas / em cirurgias) são combos coluna + linha: colunas = número bruto no eixo esquerdo, linha = % de indicação no eixo direito — os dois números já vêm prontos na planilha de origem, o painel só exibe.
 - Tooltip em modo `index`: passar o mouse em qualquer ponto do mês (coluna ou área acima dela) já mostra o **% e a quantidade** daquele mês, sem precisar acertar a linha de tendência.
