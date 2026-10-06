@@ -1270,13 +1270,16 @@ const PRETTY = {
 };
 // especialidades que a planilha traz com nomes diferentes mas que devem contar juntas
 const SPEC_ALIASES = { "CONSULTA REFRATIVA": "REFRATIVA" };
-// nome da especialidade como chave: maiúsculo e com a grafia única de "Catarata - mobilização
-// saúde ocular" (a planilha pode vir com hífen/travessão/acento diferente). É uma especialidade
-// PRÓPRIA (não soma em Catarata), tratada como primária.
+// nome da especialidade como chave: maiúsculo, com a grafia única de "Catarata - mobilização
+// saúde ocular" (a planilha pode vir com hífen/travessão/acento diferente), que é uma especialidade
+// PRÓPRIA (não soma em Catarata), e com os SPEC_ALIASES já aplicados ("Consulta refrativa" =
+// "Refrativa"). Usado em TODAS as abas, para a mesma especialidade nunca aparecer duas vezes.
 function normSpecName(raw){
-  const e = String(raw==null?"":raw).trim().toUpperCase();
+  const e = String(raw==null?"":raw).trim().replace(/\s+/g," ").toUpperCase();
   const k = normKey(e);
-  return (k.startsWith("catarata") && k.includes("mobiliza")) ? SPEC_MOBILIZACAO : e;
+  if (k.startsWith("catarata") && k.includes("mobiliza")) return SPEC_MOBILIZACAO;
+  for (const alias in SPEC_ALIASES){ if (normKey(alias) === k) return SPEC_ALIASES[alias]; }
+  return e;
 }
 const TIERS = [
   {key:"primaria", label:"Especialidades primárias", pill:"primaria", specs:["CATARATA",SPEC_MOBILIZACAO,"REFRATIVA","BLEFAROPLASTIA","RETINA"]},
@@ -2212,10 +2215,20 @@ function processMedianaRows(json){
   if (!rows.length){
     throw new Error('Não encontrei colunas de "nome_clinica", "especialidade", trimestre e "dias_consulta_1cirurgia" reconhecíveis.');
   }
-  return rows.map(r => {
+  const parsed = rows.map(r => {
     const tk = trimestreKey(r.trimestre);
     return { clinica: String(r.clinica).trim(), especialidade: normSpecName(r.especialidade), tSort: tk.sort, tLabel: tk.label, dias: toNum(r.dias) };
   });
+  // "Consulta refrativa" e "Refrativa" viram a mesma especialidade; se a mesma clínica tiver as duas
+  // no mesmo trimestre, sobra um valor só: a média dos dois (a mediana já vem calculada na planilha,
+  // não dá para recalcular a partir das consultas).
+  const merged = new Map();
+  for (const r of parsed){
+    const key = r.clinica + "||" + r.especialidade + "||" + r.tSort;
+    if (!merged.has(key)) merged.set(key, {...r, vals:[r.dias]});
+    else merged.get(key).vals.push(r.dias);
+  }
+  return [...merged.values()].map(({vals, ...r}) => ({...r, dias: vals.reduce((s,v)=>s+v,0)/vals.length}));
 }
 function setEmptyStateMediana(show){
   document.getElementById("emptyStateMediana").classList.toggle("hidden", !show);
