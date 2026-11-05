@@ -7,12 +7,12 @@ Painel estático (`index.html`) com indicadores de comparecimento, faltas, cance
 ## Arquitetura
 
 - **Arquivo único**: `index.html` — HTML + CSS + JS puro, sem build step, sem backend, sem banco de dados.
-- **Uma página, quatro abas**: a navegação entre "Visão geral & cancelamentos", "Comparecimento por clínica", "Mediana cirúrgica" e "Indicações" é feita 100% em JavaScript (`switchTab()`, troca de classe `.hidden`) — não são páginas HTML separadas nem há reload. Isso existe porque as abas dividem a mesma planilha de comparecimento (ver abaixo); com páginas separadas, cada uma pedia a planilha de novo.
-- Bibliotecas via CDN: [SheetJS](https://sheetjs.com/) (`xlsx.full.min.js`) para ler `.xlsx`/`.xls`/`.csv`, e [Chart.js](https://www.chartjs.org/) para os gráficos das abas Visão geral/Mediana/Indicações. Únicas dependências externas — o painel precisa de internet na primeira carga (o navegador cacheia depois).
+- **Uma página, cinco abas**: a navegação entre "Visão geral & cancelamentos", "Comparecimento por clínica", "Mediana cirúrgica", "Indicações" e "Síntese (infográfico)" é feita 100% em JavaScript (`switchTab()`, troca de classe `.hidden`) — não são páginas HTML separadas nem há reload. Isso existe porque as abas dividem a mesma planilha de comparecimento (ver abaixo); com páginas separadas, cada uma pedia a planilha de novo.
+- Bibliotecas via CDN: [SheetJS](https://sheetjs.com/) (`xlsx.full.min.js`) para ler `.xlsx`/`.xls`/`.csv`, [Chart.js](https://www.chartjs.org/) para os gráficos das abas Visão geral/Mediana/Indicações, e [html2canvas](https://html2canvas.hertzen.com/) + [jsPDF](https://github.com/parallax/jsPDF) só para baixar o infográfico da aba Síntese em PNG/PDF. Únicas dependências externas — o painel precisa de internet na primeira carga (o navegador cacheia depois).
 - **Todo o processamento acontece no navegador de quem abre a página.** Cada pessoa sobe suas próprias planilhas; nada é enviado para servidor nenhum, nada é compartilhado entre usuários.
 - **Não há dado real embutido no código.** O repositório pode ficar público com segurança — os números só aparecem depois que alguém sobe a planilha, e planilhas nunca são commitadas (ver `.gitignore`, que ignora `*.xlsx`/`*.xls`/`*.csv`).
 
-## As 4 abas e suas planilhas
+## As 5 abas e suas planilhas
 
 Um mesmo tipo de planilha pode alimentar mais de uma aba — por isso o botão de upload correspondente aparece duplicado (mesmo `<input>`/handler, elementos diferentes) no final de cada aba que precisa dele, em vez de pedir a mesma planilha de novo.
 
@@ -22,6 +22,7 @@ Um mesmo tipo de planilha pode alimentar mais de uma aba — por isso o botão d
 | **Comparecimento por clínica** | Comparecimento por clínica/especialidade/região — a aba original do painel, mantida como estava | Comparecimento (compartilhada) |
 | **Mediana cirúrgica** | Dias entre consulta e 1ª cirurgia, por clínica/especialidade/trimestre, com destaques e metas | Mediana cirúrgica (própria, não compartilhada) |
 | **Indicações** | Comparecimento por origem/campanha + evolução mensal de indicação em consultas e em cirurgias | Comparecimento (compartilhada) + evolução de indicação em consultas + evolução de indicação em cirurgias |
+| **Síntese (infográfico)** | Uma página só que junta o essencial das outras 4 abas em formato de infográfico, com botões **Baixar PNG** / **Baixar PDF** | Nenhuma própria — usa o que já foi carregado nas outras abas (ver "Aba Síntese" abaixo) |
 
 ### Planilha de comparecimento (compartilhada)
 
@@ -89,9 +90,31 @@ Cada linha é classificada pelo campo de status (`classifyStatus()`, case/acento
 - **Listas de clínica recolhíveis**: cada card de especialidade (Comparecimento por clínica e Mediana) tem um botão de recolher/expandir individual, mais um "recolher todas / expandir todas" por aba. Estado de recolhido é mantido em memória (`collapsedSpecsComparecimento`/`collapsedSpecsMediana`) e reaplicado a cada re-render — não persiste entre uploads novos.
   - ⚠️ **Não usar `JSON.stringify(valor)` cru dentro de um atributo `onclick="..."` com aspas duplas** — o valor serializado também vem entre aspas duplas e fecha o atributo antes da hora, quebrando o HTML silenciosamente (só falha no clique real, não em teste que chama a função direto). Sempre envolver com `escapeHtml(JSON.stringify(valor))`. Bug real, já corrigido — não reintroduzir.
 
+## Aba Síntese (infográfico)
+
+Página própria (`#tabSintese`, `renderInfographic()`) pensada para quem **não conhece o relatório**: lê de cima para baixo e sabe como estamos e o que fazer. Redesenhada a cada vez que a aba é aberta, a partir dos dados já carregados; cada bloco só aparece se a planilha dele foi carregada (a faixa no topo lista o que falta carregar, fora do PNG/PDF).
+
+**Cabeçalho**: título "Relatório de comparecimento" + período filtrado = menor e maior **"Data da consulta"** da planilha de comparecimento (`comparecimentoPeriodo()`; aceita `dd/mm/aaaa`, `aaaa-mm-dd` e data serial do Excel). Sem a coluna/datas reconhecidas, o período não aparece e a faixa acima do infográfico avisa. O PNG/PDF baixa como `relatorio-comparecimento-AAAA-MM-DD`.
+
+Ordem do infográfico: cabeçalho → 4 cartões de números-chave (comparecimento, cancelamentos, mediana, indicação) → **semáforo** (pontos positivos / de atenção / negativos) → 4 blocos com gráficos, cada um com título em forma de pergunta e uma frase de leitura em linguagem simples ("Os pacientes estão vindo às consultas?", "Quantos cancelam e por quê?", "Quanto tempo até a cirurgia?", "De onde vêm os pacientes?") → **"O que fazer agora"** (única parte em texto corrido) → rodapé com a legenda das cores.
+
+- **Nenhum critério novo de cor/meta**: usa as mesmas réguas do painel (`statusOf()`: verde ≥70%, amarelo 60–69%, vermelho <60%; `classifyMedianaSLA()` para a mediana; `indicacaoTrimestres()` para indicação; "alto volume" = `HIGH_VOLUME_MIN`). O semáforo reaproveita as mesmas frases do slide de síntese (`summaryVisaoGeral/Comparecimento/Mediana/Indicacoes`), sem as linhas de "Melhores/Piores/Mais lentas…" porque esses rankings já aparecem nos gráficos.
+- **Cores dos cartões do topo**: Comparecimento segue o status (verde/amarelo/vermelho); **Cancelamentos fica sempre na paleta negativa (vermelho)**; **Mediana e Indicação ficam em cor neutra** e só o comparativo (chip "+x vs. período anterior") é colorido — vermelho quando piora, verde quando melhora. O cartão da Mediana se chama "Mediana geral das especialidades" (ou "...do filtro" quando há filtro na aba Mediana).
+- **Redação objetiva**: nada de adjetivos subjetivos ("melhor", "pior", "bom", "ruim", "atacar") nos textos do infográfico e do slide — usar "melhor desempenho em…", "maior/menor comparecimento", "principais pontos de atenção", faixas numéricas ("70% ou mais"). Vale para qualquer frase nova.
+- **Números de cenário e variação coloridos** (`iRich()`): em "pode ficar entre X e Y" o menor (queda) fica em vermelho e o maior em verde; variações "+x p.p." em verde e "−x p.p." em vermelho. Replicar em qualquer texto novo com faixa ou comparativo.
+- **Asteriscos e notas de rodapé no semáforo**: frases que falam de "N combinações" ganham `*1`, `*2`… e a lista de quais são (com o %/dias) vai numa nota de rodapé embaixo do semáforo (máx. 12 por nota). As listas vêm de `o.notes`, devolvido por `summaryComparecimento()`/`summaryMediana()` (o slide antigo ignora).
+- **Especialidades no bloco de comparecimento**: o gráfico "Por especialidade" mostra as primárias e aceita incluir outras pelo filtro de chips acima do infográfico (fora do PNG/PDF) — é o **mesmo estado** (`especialidadeExtraSelected`) do ranking da Visão geral. As listas **top 5** ("Maiores comparecimentos" e "Principais pontos de atenção", com a especialidade em destaque) usam só as primárias + as extras marcadas, em alto volume quando houver; a barra empilhada e o semáforo continuam sobre todas as especialidades.
+- **Mediana respeita os filtros da aba Mediana** (Especialidade/Clínica), inclusive nas frases do semáforo e no slide de síntese (`summaryMediana()` usa `getFilteredMedianaRecords()`).
+- **"O que fazer agora"** é gerado por regra a partir dos mesmos buckets: o que está vermelho/negativo vira **prioridade alta**, o que está amarelo/atenção vira **prioridade média**; máx. 6 ações, alta primeiro. Ex.: combinações de clínica/especialidade abaixo de 60%, cancelamentos por solicitação da clínica, combinações de mediana críticas, queda de indicação, "Não informado" ≥ 10% no campo Campanha. ⚠️ O texto de cada ação é novo — qualquer ação/regra nova (ou mudança de prioridade) deve ser confirmada com o usuário antes e registrada aqui.
+- **Visual**: paleta cdv do slide de síntese (navy `#203B5A`, azul `#3874AF`, ciano `#00A4D0`, verde/amarelo/vermelho semânticos), Figtree, sem emoji, sentence case, laranja só para CTA. É igual no modo claro e escuro (o que se vê é o que se baixa).
+- **Como é feito**: largura fixa de 1120px (`INFO_W`); na tela é escalado para caber (`fitInfographic()`), no download volta a 100%. Gráficos = formas em SVG (rosquinhas via `stroke-dasharray`) + texto/barras em HTML — **não usar `<text>` dentro de SVG nem `conic-gradient`/`clip-path`**, o html2canvas não renderiza fonte web dentro de SVG e não suporta os outros dois.
+- **Download** (`downloadInfographic('png'|'pdf')`): `html2canvas` em escala 2 (PNG ~2–3 MB). O PDF é **uma página única** do tamanho do infográfico (jsPDF com a imagem), não paginado — diferente do relatório completo, que continua usando `window.print()`. Os botões ficam desabilitados enquanto nenhuma planilha foi carregada, e os botões de PDF do topo somem nessa aba (`body.on-sintese`).
+- ⚠️ A classe CSS do infográfico é `.infog` (não `.info`): `.info` já é a variante azul do aviso de upload (`.banner.info`) e deformava o banner.
+- O "Exportar só a síntese" / último slide do relatório completo (slide 16:9 em texto, `buildSummaryHtml()`) continua existindo, sem mudanças.
+
 ## Exportação em PDF
 
-Dois botões no topo, ao lado do título — ambos usam `window.print()` (o usuário escolhe "Salvar como PDF" como destino; nenhuma biblioteca tipo jsPDF, de propósito):
+Dois botões no topo, ao lado do título — ambos usam `window.print()` (o usuário escolhe "Salvar como PDF" como destino; nenhuma biblioteca tipo jsPDF nesses botões, de propósito; o jsPDF só é usado no download do infográfico da aba Síntese):
 
 - **Exportar esta aba**: imprime só a aba aberta, como está na tela.
 - **Exportar relatório completo** (`exportAllPdf()`): todas as abas que já têm dado, de uma vez. `prepareExportAll()` mostra as abas, expande listas/tabelas recolhidas, esconde seções vazias e redimensiona os gráficos; `endExportAll()` (no `afterprint`) devolve a tela ao estado anterior. Cada aba e cada seção começam numa página nova.
