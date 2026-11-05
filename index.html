@@ -307,6 +307,36 @@ body.export-only-summary .topbar{display:none}
 }
 .export-tab-title{display:none}
 
+/* ---- aba Comparar períodos ---- */
+.c-good{color:var(--good)} .c-warn{color:var(--warn)} .c-bad{color:var(--bad)} .c-crit{color:var(--bad);font-weight:800} .c-neu{color:var(--muted)}
+.cmp-files{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
+.cmp-chip{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13.5px}
+.cmp-chip b{font-size:15px}
+.cmp-chip span{color:var(--sub)}
+.cmp-chip{max-width:100%}
+.cmp-chip span{min-width:0;overflow-wrap:anywhere}
+.cmp-chip button{flex:0 0 auto;border:none;background:var(--surface-2);color:var(--sub);width:26px;height:26px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer}
+.cmp-chip button:hover{background:var(--bad-bg);color:var(--bad)}
+.cmp-warn{margin:0 0 10px;padding:11px 16px;border-radius:12px;background:var(--warn-bg);color:var(--ink);font-size:14px;line-height:1.5}
+.cmp-wrap{overflow-x:auto;border-radius:var(--radius)}
+.cmp-table{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--surface)}
+.cmp-table th,.cmp-table td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
+.cmp-table th{font-size:13px;font-weight:700;color:var(--sub);background:var(--surface-2)}
+.cmp-table th small{display:block;font-weight:500;color:var(--muted)}
+.cmp-table th:first-child,.cmp-table td:first-child{text-align:left;white-space:normal;min-width:220px;position:sticky;left:0;background:var(--surface-2)}
+.cmp-table td:first-child{background:var(--surface);font-weight:600}
+.cmp-val{font-weight:700;font-size:16px}
+.cmp-d{font-size:12px;font-weight:600;margin-top:1px}
+.cmp-na{color:var(--muted)}
+.cmp-na .cmp-d{font-weight:500}
+.cmp-ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:14px;color:var(--sub)}
+.cmp-ctrl select{padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-size:14px}
+.cmp-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.cmp-sum-c{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
+.cmp-sum-c h4{margin:0 0 8px;font-size:14.5px;color:var(--ink)}
+.cmp-sum-c ul{margin:0;padding-left:18px;font-size:14px;line-height:1.55}
+.cmp-det summary{cursor:pointer;font-weight:650;font-size:14.5px;margin:14px 0 8px;color:var(--accent)}
+
 /* ---- aba Síntese: infográfico ----
    Visual próprio (paleta cdv do slide de síntese), igual no modo claro e escuro: o que se vê na
    tela é o que sai no PNG/PDF. Largura fixa de 1120px; na tela é escalado para caber (fitInfographic)
@@ -538,6 +568,7 @@ body.export-all .chart-wrap{height:240px !important}
     <button id="navMediana" class="tab-btn" type="button" onclick="switchTab('mediana')">Mediana cirúrgica</button>
     <button id="navIndicacoes" class="tab-btn" type="button" onclick="switchTab('indicacoes')">Indicações</button>
     <button id="navSintese" class="tab-btn" type="button" onclick="switchTab('sintese')">Síntese (infográfico)</button>
+    <button id="navComparar" class="tab-btn" type="button" onclick="switchTab('comparar')">Comparar períodos</button>
   </nav>
 
   <div class="topbar">
@@ -816,12 +847,41 @@ body.export-all .chart-wrap{height:240px !important}
         </button>
       </div>
     </div>
+    <div class="info-bar no-print" style="margin-top:-6px">
+      <div class="info-txt"><b>Guardar este período para comparar depois.</b> O arquivo de dados (JSON) é lido pela aba Comparar períodos; a tabela do Excel é opcional, só para conferir. Ambos saem sempre com os números completos, sem filtros de tela.</div>
+      <div class="info-actions">
+        <button class="btn-upload" id="infoJsonBtn" type="button" onclick="saveSnapshot('json')" disabled>Salvar dados do período (JSON)</button>
+        <button class="btn-upload" id="infoXlsBtn" type="button" onclick="saveSnapshot('xlsx')" disabled>Tabela do período (Excel)</button>
+      </div>
+    </div>
     <div id="infoSpecFilter" class="filter-bar no-print hidden" style="margin:0 0 14px"></div>
     <div id="infoEmpty" class="empty-state">
       <div class="empty-title">Ainda não há dados para a síntese</div>
       <div class="empty-sub">Carregue as planilhas nas outras abas (no final de cada uma). O infográfico monta sozinho cada bloco que tiver dado.</div>
     </div>
     <div id="infoStage" class="info-stage hidden"><div id="infoRoot" class="infog"></div></div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- ABA 6: COMPARAR PERÍODOS — lê arquivos JSON salvos na aba Síntese -->
+  <!-- ================================================================ -->
+  <div id="tabComparar" class="hidden">
+    <div class="export-tab-title">Comparar períodos<small>Até 6 arquivos de dados salvos na aba Síntese</small></div>
+    <div class="info-bar no-print">
+      <div class="info-txt"><b>Compare de 1 a 6 períodos lado a lado.</b> Carregue os arquivos "relatorio-cx-….json" salvos na aba Síntese (botão "Salvar dados do período"). O período de cada arquivo vem de dentro dele, não do nome.</div>
+      <div class="info-actions">
+        <input type="file" id="fileCmp" accept=".json,application/json" multiple hidden>
+        <button class="btn-export" type="button" onclick="document.getElementById('fileCmp').click()">Carregar arquivos (JSON)</button>
+        <button class="btn-upload" type="button" onclick="cmpClear()">Limpar</button>
+      </div>
+    </div>
+    <div id="cmpMsgs"></div>
+    <div id="cmpFiles" class="cmp-files"></div>
+    <div id="cmpEmpty" class="empty-state">
+      <div class="empty-title">Nenhum período carregado</div>
+      <div class="empty-sub">Primeiro, nas outras abas, carregue as planilhas de um período e use <b>Síntese → Salvar dados do período (JSON)</b>. Repita para cada mês. Depois traga aqui os arquivos.</div>
+    </div>
+    <div id="cmpBody" class="hidden"></div>
   </div>
 
   <!-- Síntese (slide final): vazia na tela, preenchida só na hora de exportar -->
@@ -1063,7 +1123,8 @@ const TAB_META = {
   visaogeral: {title:"Visão Geral & Cancelamentos", subtitle:"Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento"},
   indicacoes: {title:"Indicações", subtitle:"De onde vêm os pacientes que compareceram e operaram"},
   mediana: {title:"Mediana Cirúrgica", subtitle:"Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre"},
-  sintese: {title:"Síntese do período", subtitle:"Os números das outras abas num infográfico só, com o que fazer a seguir"}
+  sintese: {title:"Síntese do período", subtitle:"Os números das outras abas num infográfico só, com o que fazer a seguir"},
+  comparar: {title:"Comparar períodos", subtitle:"Até 6 períodos lado a lado, por indicador, especialidade e clínica"}
 };
 function switchTab(tab){
   document.getElementById("tabComparecimento").classList.toggle("hidden", tab !== "comparecimento");
@@ -1071,6 +1132,8 @@ function switchTab(tab){
   document.getElementById("tabIndicacoes").classList.toggle("hidden", tab !== "indicacoes");
   document.getElementById("tabMediana").classList.toggle("hidden", tab !== "mediana");
   document.getElementById("tabSintese").classList.toggle("hidden", tab !== "sintese");
+  document.getElementById("tabComparar").classList.toggle("hidden", tab !== "comparar");
+  document.getElementById("navComparar").classList.toggle("active", tab === "comparar");
   document.getElementById("navComparecimento").classList.toggle("active", tab === "comparecimento");
   document.getElementById("navVisaoGeral").classList.toggle("active", tab === "visaogeral");
   document.getElementById("navIndicacoes").classList.toggle("active", tab === "indicacoes");
@@ -1098,7 +1161,9 @@ let exportState = null;
 function hasAnyData(){ return EXPORT_TABS.some(t => t.has()); }
 function updateExportAvailability(){
   const hasAny = hasAnyData();
-  document.getElementById("exportBtn").disabled = !hasAny;
+  document.getElementById("exportBtn").disabled = !(hasAny || CMP.length);   // "esta aba" também serve para a comparação
+  document.getElementById("infoJsonBtn").disabled = !hasAny;
+  document.getElementById("infoXlsBtn").disabled = !hasAny;
   document.getElementById("exportAllBtn").disabled = !hasAny;
   document.getElementById("exportSummaryBtn").disabled = !hasAny;
   document.getElementById("infoPngBtn").disabled = !hasAny;
@@ -1834,7 +1899,7 @@ function comparecimentoPeriodo(){
   }
   if (!n) return null;
   const f = t => new Date(t).toLocaleDateString("pt-BR", {timeZone:"UTC"});
-  return {de:f(lo), ate:f(hi), n};
+  return {de:f(lo), ate:f(hi), n, lo, hi};
 }
 
 /* ---- seção "O que fazer agora": 5 ações principais (cartão completo) + 5 secundárias (compactas) ---- */
@@ -1941,6 +2006,329 @@ function saveBlob(blob, filename){
   const url = URL.createObjectURL(blob), a = document.createElement("a");
   a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* =========================================================================
+   DADOS DO PERÍODO (arquivo JSON) + TABELA OPCIONAL (Excel)
+   Guarda só números agregados (nada de paciente), SEMPRE completos e sem filtros de
+   tela — assim dois períodos nunca são comparados com recortes diferentes. O período
+   vem da "Data da consulta" da planilha (não do nome do arquivo); a aba Comparar
+   períodos lê estes arquivos. Mudou o formato? Aumentar SNAP_SCHEMA e tratar na leitura.
+   ========================================================================= */
+const SNAP_APP = "cdv-painel-cx", SNAP_SCHEMA = 1;
+const isoDay = ms => new Date(ms).toISOString().slice(0,10);
+function snapPeriodLabel(lo, hi){
+  const a = new Date(lo), b = new Date(hi);
+  if (a.getUTCFullYear()*12 + a.getUTCMonth() === b.getUTCFullYear()*12 + b.getUTCMonth())
+    return `${MESES_ABREV[a.getUTCMonth()]}/${String(a.getUTCFullYear()).slice(-2)}`;
+  const f = d => d.toLocaleDateString("pt-BR", {timeZone:"UTC", day:"2-digit", month:"2-digit", year:"2-digit"});
+  return `${f(a)} a ${f(b)}`;
+}
+function buildSnapshot(labelOverride){
+  if (!hasAnyData()) return null;
+  const per = comparecimentoPeriodo();
+  const s = {
+    app:SNAP_APP, schema:SNAP_SCHEMA, geradoEm:new Date().toISOString(),
+    periodo: per ? {de:isoDay(per.lo), ate:isoDay(per.hi)} : null,
+    rotulo: per ? snapPeriodLabel(per.lo, per.hi) : labelOverride,
+    fontes:{comparecimento: !!(comparecimentoData || CLINICA_RECORDS.length), cancelamentos: !!cancelamentoData, recuperacao: !!(recuperacaoRows && recuperacaoRows.length),
+            mediana: MEDIANA_RECORDS.length > 0, indConsultas: !!indConsultasRows, indCirurgias: !!indCirurgiasRows},
+    // só anotação do que estava na tela; os números abaixo NÃO são filtrados
+    anotacoes:{medianaEspecialidades:[...medianaMsEsp.selected], medianaClinicas:[...medianaMsCli.selected], especialidadesExtras:[...especialidadeExtraSelected]},
+    comparecimento:null, porEspecialidade:[], porTipo:[], porClinica:[], campanhas:null, cancelamentos:null, recuperacao:null, mediana:null, indicacao:null
+  };
+  if (s.fontes.comparecimento){
+    let comp, falt, ag;
+    if (comparecimentoData){ comp = comparecimentoData.compareceu; falt = comparecimentoData.faltou; ag = comparecimentoData.aguardando; }
+    else { const st = specStats(CLINICA_RECORDS); comp = st.comp; falt = st.f; ag = st.ag; }
+    s.comparecimento = {compareceu:comp, faltou:falt, aguardando:ag};
+    s.porEspecialidade = especialidadeData
+      ? [...especialidadeData].map(([k,d]) => ({k, compareceu:d.compareceu, faltou:d.faltou, aguardando:d.aguardando}))
+      : [...CLINICA_BY_SPEC].map(([k,rows]) => { const st = specStats(rows); return {k, compareceu:st.comp, faltou:st.f, aguardando:st.ag}; });
+    s.porTipo = comparecimentoData ? [...comparecimentoData.byTipo].map(([k,v]) => ({k, compareceu:v.compareceu, faltou:v.faltou, aguardando:v.aguardando})) : [];
+    const byC = new Map();
+    CLINICA_RECORDS.forEach(r => { const o = byC.get(r.c) || {c:r.c, compareceu:0, faltou:0, aguardando:0}; o.compareceu += r.a - r.f; o.faltou += r.f; o.aguardando += (r.ag||0); byC.set(r.c, o); });
+    s.porClinica = [...byC.values()];
+    if (campanhaData){
+      const ent = [...campanhaData.map];
+      s.campanhas = {totalComp:campanhaData.totalComp, indicacao:ent.filter(([k]) => isIndicacao(k)).reduce((a,[,v]) => a+v, 0), naoInformado:(ent.find(([k]) => normKey(k)==="nao informado") || [0,0])[1]};
+    }
+  }
+  if (cancelamentoData){
+    const c = cancelamentoData;
+    s.cancelamentos = {total:c.total, paciente:c.paciente, tombados:c.clinica,
+      porMotivo:[...c.byMotivo].map(([k,qtd]) => ({k, qtd})),
+      porClinica:c.byClinica ? [...c.byClinica].map(([k,v]) => ({c:k, total:v.total, tombados:v.tombados})) : []};
+  }
+  if (s.fontes.recuperacao){
+    const r = recuperacaoRows[recuperacaoRows.length-1], has = v => v !== undefined && v !== "";
+    s.recuperacao = {mes:String(r.mes), total:toNum(r.total), perdidos:toNum(r.perdidos), convertidos:toNum(r.convertidos),
+      pctConversao:has(r.pct_conversao) ? toPctValue(r.pct_conversao) : null, pctPerdidos:has(r.pct_perdidos) ? toPctValue(r.pct_perdidos) : null};
+  }
+  if (s.fontes.mediana){
+    const recs = MEDIANA_RECORDS, cur = Math.max(...recs.map(r => r.tSort)), atual = recs.filter(r => r.tSort === cur);
+    const byT = new Map(); recs.forEach(r => { if (!byT.has(r.tSort)) byT.set(r.tSort, {t:r.tLabel, v:[]}); byT.get(r.tSort).v.push(r.dias); });
+    const bySpec = new Map(); atual.forEach(r => { if (!bySpec.has(r.especialidade)) bySpec.set(r.especialidade, []); bySpec.get(r.especialidade).push(r.dias); });
+    s.mediana = {trimestre:atual[0].tLabel, geral:median(atual.map(r => r.dias)),
+      porTrimestre:[...byT.keys()].sort((a,b) => a-b).map(k => ({t:byT.get(k).t, v:median(byT.get(k).v)})),
+      porEspecialidade:[...bySpec].map(([k,v]) => ({k, v:median(v), n:v.length})),
+      combinacoes:atual.map(r => ({c:r.clinica, e:r.especialidade, dias:r.dias}))};
+  }
+  if (s.fontes.indConsultas || s.fontes.indCirurgias){
+    const tri = indicacaoTrimestres(indConsultasRows);
+    s.indicacao = {media3m:tri ? tri.cur.p : null, media3mAnterior:tri && tri.prev ? tri.prev.p : null,
+      serie:iSeries(indConsultasRows).map(x => ({mes:x.m, pct:x.p})), cirurgias:iSeries(indCirurgiasRows).map(x => ({mes:x.m, pct:x.p}))};
+  }
+  return s;
+}
+// tabela longa (uma linha por número) para conferir no Excel
+function snapshotAoa(s){
+  const P = s.rotulo, rows = [["Período","Indicador","Recorte","Valor","Unidade"]];
+  const add = (ind, rec, val, un) => { if (val === null || val === undefined || (typeof val === "number" && isNaN(val))) return; rows.push([P, ind, rec, typeof val === "number" ? Math.round(val*100)/100 : val, un]); };
+  const pctOf = e => { const d = e.compareceu + e.faltou; return d > 0 ? e.compareceu/d*100 : null; };
+  const c = s.comparecimento;
+  if (c){ add("Comparecimento","Geral",pctOf(c),"%"); add("Consultas","Geral",c.compareceu+c.faltou+c.aguardando,"consultas"); add("Faltas","Geral",c.faltou,"consultas"); add("Aguardando retorno","Geral",c.aguardando,"consultas"); }
+  const dim = (ind, arr, lab) => (arr||[]).forEach(e => { add(`Comparecimento - ${ind}`, lab(e), pctOf(e), "%"); add(`Consultas - ${ind}`, lab(e), e.compareceu+e.faltou+e.aguardando, "consultas"); add(`Faltas - ${ind}`, lab(e), e.faltou, "consultas"); });
+  dim("por especialidade", s.porEspecialidade, e => prettyName(e.k));
+  dim("por tipo de agendamento", s.porTipo, e => prettyName(e.k));
+  dim("por clínica", s.porClinica, e => e.c);
+  if (s.campanhas && s.campanhas.totalComp > 0){ add("Origem - indicação","% dos comparecimentos",s.campanhas.indicacao/s.campanhas.totalComp*100,"%"); add("Origem - não informado","% dos comparecimentos",s.campanhas.naoInformado/s.campanhas.totalComp*100,"%"); }
+  const k = s.cancelamentos;
+  if (k){ add("Cancelamentos","Total",k.total,"cancelamentos"); add("Cancelamentos","Pelo paciente",k.paciente,"cancelamentos"); add("Cancelamentos","Tombados pela clínica",k.tombados,"cancelamentos");
+    k.porMotivo.forEach(m => add("Cancelamentos - por motivo", prettyName(m.k), m.qtd, "cancelamentos"));
+    k.porClinica.forEach(x => { add("Tombamento - por clínica", x.c, x.total > 0 ? x.tombados/x.total*100 : null, "%"); add("Cancelamentos - por clínica", x.c, x.total, "cancelamentos"); }); }
+  const r = s.recuperacao;
+  if (r){ add("Recuperação pós-cancelamento", `Reagendados e convertidos (${r.mes})`, r.pctConversao, "%"); add("Recuperação pós-cancelamento", `Perdidos (${r.mes})`, r.pctPerdidos, "%"); }
+  const m = s.mediana;
+  if (m){ add("Mediana até a cirurgia", `Geral (${m.trimestre})`, m.geral, "dias"); m.porEspecialidade.forEach(e => add("Mediana até a cirurgia - por especialidade", `${prettyName(e.k)} (${m.trimestre})`, e.v, "dias")); m.porTrimestre.forEach(t => add("Mediana até a cirurgia - por trimestre", t.t, t.v, "dias")); }
+  const i = s.indicacao;
+  if (i){ add("Indicação em consultas","Média dos últimos 3 meses",i.media3m,"%"); add("Indicação em consultas","Média dos 3 meses anteriores",i.media3mAnterior,"%");
+    i.serie.forEach(x => add("Indicação em consultas - por mês", x.mes, x.pct, "%")); i.cirurgias.forEach(x => add("Indicação em 1ªs cirurgias - por mês", x.mes, x.pct, "%")); }
+  return rows;
+}
+function saveSnapshot(kind){
+  if (!hasAnyData()) return;
+  let label = null;
+  if (!comparecimentoPeriodo()){
+    label = (window.prompt('A planilha de comparecimento não tem a coluna "Data da consulta". Dê um nome para este período (ex.: out/26):') || "").trim();
+    if (!label) return;
+  }
+  const s = buildSnapshot(label);
+  const stamp = s.periodo ? `${s.periodo.de}_${s.periodo.ate}` : label.replace(/[^\w-]+/g, "-");
+  if (kind === "json"){
+    saveBlob(new Blob([JSON.stringify(s, null, 1)], {type:"application/json"}), `relatorio-cx-${stamp}.json`);
+    showBanner("info", `Dados do período <b>${escapeHtml(s.rotulo)}</b> salvos. Para comparar, carregue este arquivo na aba <b>Comparar períodos</b>.`);
+  } else {
+    if (typeof XLSX === "undefined"){ showBanner("error", "Biblioteca do Excel indisponível (precisa de internet na primeira carga)."); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(snapshotAoa(s)), "Dados");
+    const fon = Object.entries(s.fontes).filter(([,v]) => v).map(([k]) => k).join(", ");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Campo","Valor"],["Período",s.rotulo],["Datas das consultas", s.periodo ? `${s.periodo.de} a ${s.periodo.ate}` : "não identificadas"],["Gerado em",s.geradoEm],["Planilhas carregadas",fon],["Observação","Números completos, sem filtros de tela. Para comparar períodos use o arquivo JSON na aba Comparar períodos."]]), "Informações");
+    XLSX.writeFile(wb, `relatorio-cx-${stamp}.xlsx`);
+  }
+}
+
+/* =========================================================================
+   ABA COMPARAR PERÍODOS (até 6 arquivos JSON salvos na aba Síntese)
+   - O período e o rótulo vêm de DENTRO do arquivo; ordem cronológica pela data da consulta.
+   - Bloqueia arquivo repetido (mesmo período) e de outro formato; avisa períodos sobrepostos
+     ou sem data. Indicador que um arquivo não tem aparece como "—" (nunca como zero).
+   - Rankings de especialidade/tipo/clínica: só com 10+ consultas no período (HIGH_VOLUME_MIN).
+   - Cores: comparecimento/recuperação/mediana pelas faixas já definidas; variação pela regra
+     5/10/15% (piora relativa). Contagens (consultas, faltas) ficam sem cor: dependem do volume.
+   ========================================================================= */
+const CMP_MAX = 6;
+let CMP = [], cmpMsgs = [], cmpClinSort = null, cmpClinAll = false;
+document.getElementById("fileCmp").addEventListener("change", async e => { const fs = [...e.target.files]; e.target.value = ""; await cmpAddFiles(fs); });
+
+function cmpValidate(s){
+  if (!s || typeof s !== "object" || s.app !== SNAP_APP) return "não é um arquivo de dados salvo por este painel.";
+  if (s.schema !== SNAP_SCHEMA) return `formato versão ${s.schema}; este painel lê a versão ${SNAP_SCHEMA}. Salve de novo pelo painel atual.`;
+  if (!s.rotulo || !s.fontes) return "arquivo incompleto.";
+  return null;
+}
+async function cmpAddFiles(files){
+  const msgs = [];
+  for (const f of files){
+    if (CMP.length >= CMP_MAX){ msgs.push(`Limite de ${CMP_MAX} períodos: "${f.name}" ficou de fora.`); continue; }
+    let s; try { s = JSON.parse(await f.text()); } catch(err){ msgs.push(`"${f.name}" não é um JSON válido.`); continue; }
+    const why = cmpValidate(s); if (why){ msgs.push(`"${f.name}": ${why}`); continue; }
+    s.__file = f.name;
+    const dup = CMP.find(x => x.geradoEm === s.geradoEm || (s.periodo && x.periodo && s.periodo.de === x.periodo.de && s.periodo.ate === x.periodo.ate) || (!s.periodo && !x.periodo && x.rotulo === s.rotulo));
+    if (dup){ msgs.push(`"${f.name}" repete o período de "${dup.__file}" (${dup.rotulo}) e não foi adicionado.`); continue; }
+    CMP.push(s);
+  }
+  cmpSort(); cmpMsgs = msgs; cmpClinSort = null; renderCompare(); updateExportAvailability();
+}
+function cmpSort(){ CMP.sort((a,b) => (a.periodo ? Date.parse(a.periodo.de) : Infinity) - (b.periodo ? Date.parse(b.periodo.de) : Infinity) || Date.parse(a.geradoEm) - Date.parse(b.geradoEm)); }
+function cmpRemove(i){ CMP.splice(i,1); cmpMsgs = []; renderCompare(); updateExportAvailability(); }
+function cmpClear(){ CMP = []; cmpMsgs = []; renderCompare(); updateExportAvailability(); }
+
+const isoBR = iso => iso.split("-").reverse().join("/");
+const cmpPer = s => s.periodo ? `${isoBR(s.periodo.de)} a ${isoBR(s.periodo.ate)}` : "período não identificado";
+const cmpMap = (s, field, key) => { s.__m = s.__m || {}; return s.__m[field] || (s.__m[field] = new Map((s[field]||[]).map(e => [key(e), e]))); };
+const cmpTot = e => e.compareceu + e.faltou + e.aguardando;
+const cmpPct = e => (e.compareceu + e.faltou) > 0 ? e.compareceu/(e.compareceu + e.faltou)*100 : null;
+const okNum = v => v !== null && v !== undefined && !isNaN(v);
+
+// variação contra o período anterior: hib = "quanto maior, melhor?" (null = sem cor)
+function cmpDelta(cur, prev, hib, unit){
+  if (!okNum(cur) || !okNum(prev)) return "";
+  const diff = cur - prev, rel = prev ? diff/Math.abs(prev)*100 : null, worse = rel === null || hib === null ? 0 : (hib ? -rel : rel);
+  let cls = "neu";
+  if (hib !== null){
+    if (rel === null) cls = diff === 0 ? "neu" : ((hib ? diff < 0 : diff > 0) ? "bad" : "good");   // veio de zero: sem % relativo
+    else cls = worse < -0.5 ? "good" : (worse > VAR_CRITICA ? "crit" : (worse >= VAR_RUIM ? "bad" : (worse >= VAR_ATENCAO ? "warn" : "neu")));
+  }
+  const abs = unit === "pct" ? fmtPP(diff) : (unit === "dias" ? fmtDelta(diff,"dias") : (diff >= 0 ? "+" : "−") + fmtInt(Math.abs(diff)));
+  return `<div class="cmp-d c-${cls}">${abs}${rel === null ? "" : ", " + fmtRel(rel)}${cls === "crit" ? " · crítica" : ""}</div>`;
+}
+const cmpCell = (v, fmt, vcls, deltaHtml) => okNum(v) ? `<td><div class="cmp-val c-${vcls||"neu"}">${fmt(v)}</div>${deltaHtml||""}</td>` : `<td class="cmp-na">—</td>`;
+const cmpHead = (first, sub) => `<tr><th>${first}</th>${CMP.map(s => `<th>${escapeHtml(s.rotulo)}<small>${escapeHtml(sub ? sub(s) : cmpPer(s))}</small></th>`).join("")}</tr>`;
+const cmpTable = (head, rows) => `<div class="cmp-wrap"><table class="cmp-table"><thead>${head}</thead><tbody>${rows.join("")}</tbody></table></div>`;
+const cmpSec = (title, sub, html) => `<div class="sec-divider"><div class="sec-title">${title}</div>${sub ? `<div class="sec-sub">${sub}</div>` : ""}</div>${html}`;
+const slaTier = (v, spec) => { const c = classifyMedianaSLA(v, spec || "CATARATA"); return c ? c.tier : "neu"; };
+
+// indicadores gerais (uma linha cada)
+const CMP_IND = [
+  {label:"Comparecimento geral", unit:"pct", hib:true, fmt:fmtPct, vcls:statusOf, get:s => s.comparecimento ? cmpPct(s.comparecimento) : null},
+  {label:"Consultas", unit:"n", hib:null, fmt:fmtInt, get:s => s.comparecimento ? cmpTot(s.comparecimento) : null},
+  {label:"Faltas", unit:"n", hib:null, fmt:fmtInt, get:s => s.comparecimento ? s.comparecimento.faltou : null},
+  {label:"Aguardando retorno", unit:"n", hib:null, fmt:fmtInt, get:s => s.comparecimento ? s.comparecimento.aguardando : null},
+  {label:"Cancelamentos (total)", unit:"n", hib:false, fmt:fmtInt, get:s => s.cancelamentos ? s.cancelamentos.total : null},
+  {label:"Tombados pela clínica (% dos cancelamentos)", unit:"pct", hib:false, fmt:fmtPct, get:s => s.cancelamentos && s.cancelamentos.total > 0 ? s.cancelamentos.tombados/s.cancelamentos.total*100 : null},
+  {label:"Reagendados e convertidos (% dos cancelamentos)", unit:"pct", hib:true, fmt:fmtPct, vcls:recConvTone, get:s => s.recuperacao ? s.recuperacao.pctConversao : null},
+  {label:"Perdidos (% dos cancelamentos)", unit:"pct", hib:false, fmt:fmtPct, vcls:recPerdTone, get:s => s.recuperacao ? s.recuperacao.pctPerdidos : null},
+  {label:"Mediana geral até a cirurgia", unit:"dias", hib:false, fmt:v => fmtDias(v) + " dias", vcls:v => slaTier(v), get:s => s.mediana ? s.mediana.geral : null},
+  {label:"Indicação em consultas (média dos últimos 3 meses)", unit:"pct", hib:true, fmt:fmtPct, get:s => s.indicacao ? s.indicacao.media3m : null},
+  {label:"Indicação nas 1ªs cirurgias (último mês da planilha)", unit:"pct", hib:true, fmt:fmtPct, get:s => s.indicacao && s.indicacao.cirurgias.length ? s.indicacao.cirurgias[s.indicacao.cirurgias.length-1].pct : null},
+  {label:"Indicação (% dos comparecimentos)", unit:"pct", hib:true, fmt:fmtPct, get:s => s.campanhas && s.campanhas.totalComp > 0 ? s.campanhas.indicacao/s.campanhas.totalComp*100 : null},
+  {label:'Sem campanha, "Não informado" (% dos comparecimentos)', unit:"pct", hib:false, fmt:fmtPct, get:s => s.campanhas && s.campanhas.totalComp > 0 ? s.campanhas.naoInformado/s.campanhas.totalComp*100 : null}
+];
+function cmpGeneralRows(){
+  return CMP_IND.map(ind => `<tr><td>${ind.label}</td>${CMP.map((s,i) => cmpCell(ind.get(s), ind.fmt, ind.vcls ? ind.vcls(ind.get(s)) : "neu", i ? cmpDelta(ind.get(s), ind.get(CMP[i-1]), ind.hib, ind.unit) : "")).join("")}</tr>`);
+}
+
+// tabela por recorte (especialidade, tipo, clínica): % de comparecimento, só com 10+ consultas
+function cmpDimVal(s, field, keyFn, key){
+  const e = cmpMap(s, field, keyFn).get(key);
+  if (!e) return null;
+  return {v:cmpTot(e) >= HIGH_VOLUME_MIN ? cmpPct(e) : null, low:cmpTot(e) < HIGH_VOLUME_MIN};
+}
+function cmpDimRow(label, vals){
+  return `<tr><td>${label}</td>${vals.map((x,i) => {
+    if (x && okNum(x.v)){ const p = i ? vals[i-1] : null; return cmpCell(x.v, fmtPct, statusOf(x.v), p && okNum(p.v) ? cmpDelta(x.v, p.v, true, "pct") : ""); }
+    return `<td class="cmp-na">—${x && x.low ? `<div class="cmp-d">menos de ${HIGH_VOLUME_MIN} consultas</div>` : ""}</td>`; }).join("")}</tr>`;
+}
+function cmpDimRows(field, keyFn, keys, labelFn){
+  return keys.map(k => ({k, vals:CMP.map(s => cmpDimVal(s, field, keyFn, k))})).filter(r => r.vals.some(x => x && okNum(x.v))).map(r => cmpDimRow(labelFn(r.k), r.vals));
+}
+const cmpKeys = (field, keyFn) => [...new Set(CMP.flatMap(s => (s[field]||[]).map(keyFn)))];
+
+function cmpClinicRows(){
+  const rows = cmpKeys("porClinica", e => e.c).map(c => ({c, vals:CMP.map(s => cmpDimVal(s, "porClinica", e => e.c, c))})).filter(r => r.vals.some(x => x && okNum(x.v)));
+  const n = CMP.length;
+  rows.forEach(r => { const l = r.vals[n-1], p = n > 1 ? r.vals[n-2] : null; r.last = l && okNum(l.v) ? l.v : null; r.d = l && p && okNum(l.v) && okNum(p.v) ? l.v - p.v : null; });
+  return rows;
+}
+const cmpNullLast = (f, dir) => (a,b) => (f(a) === null) - (f(b) === null) || dir * (f(a) - f(b));
+
+function cmpSummary(){
+  const n = CMP.length; if (n < 2) return "";
+  const a = CMP[n-2], b = CMP[n-1], pair = `${escapeHtml(a.rotulo)} → ${escapeHtml(b.rotulo)}`;
+  const worse = [], better = [];
+  CMP_IND.filter(i => i.hib !== null).forEach(i => {
+    const x = i.get(a), y = i.get(b); if (!okNum(x) || !okNum(y) || !x) return;
+    const rel = (y-x)/Math.abs(x)*100, w = i.hib ? -rel : rel;
+    const txt = `<b>${i.label}</b>: ${i.fmt(x)} → ${i.fmt(y)} (${cB(i.unit === "pct" ? fmtPP(y-x) : (i.unit === "dias" ? fmtDelta(y-x,"dias") : fmtRel(rel)), w > 0 ? "bad" : "good")}; ${fmtRel(rel)})`;
+    if (w >= VAR_ATENCAO) worse.push({w, txt}); else if (w <= -VAR_ATENCAO) better.push({w, txt});
+  });
+  worse.sort((p,q) => q.w-p.w); better.sort((p,q) => p.w-q.w);
+  const cl = cmpClinicRows(), withD = cl.filter(r => r.d !== null);
+  const mv = (arr) => arr.slice(0,3).map(r => `${escapeHtml(cleanName(r.c))} (${cB(fmtPP(r.d), r.d < 0 ? "bad" : "good")})`).join("; ");
+  const drops = withD.filter(r => r.d < 0).sort((p,q) => p.d-q.d), rises = withD.filter(r => r.d > 0).sort((p,q) => q.d-p.d);
+  const tmap = s => new Map(((s.cancelamentos && s.cancelamentos.porClinica) || []).filter(x => x.total >= TOMBAMENTO_MIN_CANC).map(x => [x.c, x.tombados/x.total*100]));
+  const ta = tmap(a), tb = tmap(b), crossed = [], back = [];
+  tb.forEach((v,c) => { if (v > TOMBAMENTO_MAX && !(ta.get(c) > TOMBAMENTO_MAX)) crossed.push(c); });
+  ta.forEach((v,c) => { if (v > TOMBAMENTO_MAX && tb.has(c) && tb.get(c) <= TOMBAMENTO_MAX) back.push(c); });
+  const li = arr => arr.length ? `<ul>${arr.map(x => `<li>${x}</li>`).join("")}</ul>` : '<div class="cmp-na" style="font-size:14px">Nada a registrar.</div>';
+  const card = (t, body) => `<div class="cmp-sum-c"><h4>${t}</h4>${body}</div>`;
+  return cmpSec(`O que mudou (${pair})`, "Variação relativa de 5% ou mais entre os dois últimos períodos carregados", `<div class="cmp-sum">` +
+    card("Indicadores com piora de 5% ou mais", li(worse.map(x => x.txt))) +
+    card("Indicadores com melhora de 5% ou mais", li(better.map(x => x.txt))) +
+    card(`Clínicas: maiores quedas de comparecimento <small>(${HIGH_VOLUME_MIN}+ consultas nos dois períodos)</small>`, li(drops.length ? [mv(drops)] : [])) +
+    card("Clínicas: maiores altas de comparecimento", li(rises.length ? [mv(rises)] : [])) +
+    card(`Tombamento por clínica (limite de ${TOMBAMENTO_MAX}%)`, li([crossed.length ? `Passaram de até ${TOMBAMENTO_MAX}% para acima: ${crossed.map(c => escapeHtml(cleanName(c))).join("; ")}` : "", back.length ? `Voltaram para até ${TOMBAMENTO_MAX}%: ${back.map(c => escapeHtml(cleanName(c))).join("; ")}` : ""].filter(Boolean))) +
+    `</div>`);
+}
+
+function cmpWarnings(){
+  const w = cmpMsgs.slice();
+  const noPer = CMP.filter(s => !s.periodo);
+  if (noPer.length) w.push(`Sem datas de consulta (ordem pela data em que foram salvos): ${noPer.map(s => escapeHtml(s.rotulo)).join(", ")}.`);
+  for (let i = 1; i < CMP.length; i++){ const p = CMP[i-1], q = CMP[i]; if (p.periodo && q.periodo && p.periodo.ate >= q.periodo.de) w.push(`Períodos sobrepostos: <b>${escapeHtml(p.rotulo)}</b> (${cmpPer(p)}) e <b>${escapeHtml(q.rotulo)}</b> (${cmpPer(q)}). A mesma consulta pode estar nos dois.`); }
+  const names = {comparecimento:"comparecimento", cancelamentos:"cancelamentos por motivo", recuperacao:"recuperação pós-cancelamento", mediana:"mediana cirúrgica", indConsultas:"indicação em consultas", indCirurgias:"indicação em cirurgias"};
+  Object.keys(names).forEach(k => { const miss = CMP.filter(s => !s.fontes[k]); if (miss.length && miss.length < CMP.length) w.push(`Sem a planilha de ${names[k]} em: ${miss.map(s => escapeHtml(s.rotulo)).join(", ")} (aparece "—" nesses indicadores).`); });
+  return w;
+}
+
+function renderCompare(){
+  const body = document.getElementById("cmpBody");
+  document.getElementById("cmpEmpty").classList.toggle("hidden", CMP.length > 0);
+  body.classList.toggle("hidden", !CMP.length);
+  document.getElementById("cmpFiles").innerHTML = CMP.map((s,i) => `<div class="cmp-chip"><b>${escapeHtml(s.rotulo)}</b><span>${escapeHtml(cmpPer(s))}</span><span>${escapeHtml(s.__file)}</span><button type="button" onclick="cmpRemove(${i})" aria-label="Remover ${escapeHtml(s.rotulo)}" title="Remover">×</button></div>`).join("");
+  document.getElementById("cmpMsgs").innerHTML = CMP.length || cmpMsgs.length ? cmpWarnings().map(m => `<div class="cmp-warn">${m}</div>`).join("") : "";
+  if (!CMP.length){ body.innerHTML = ""; return; }
+
+  const n = CMP.length;
+  const sort = cmpClinSort || (n > 1 ? "queda" : "atual");
+  let html = cmpSummary();
+  html += cmpSec("Indicadores gerais", "Cada célula mostra o valor e, embaixo, a variação contra o período à esquerda. Cor da variação: piora relativa de 5% atenção, 10% ruim, acima de 15% crítica", cmpTable(cmpHead("Indicador"), cmpGeneralRows()));
+
+  const specKeys = cmpKeys("porEspecialidade", e => e.k).sort((a,b) => specSortIndex(a) - specSortIndex(b) || a.localeCompare(b));
+  const prim = specKeys.filter(k => DEFAULT_RANKING_SPECS.includes(k)), outras = specKeys.filter(k => !DEFAULT_RANKING_SPECS.includes(k));
+  const spRows = ks => cmpDimRows("porEspecialidade", e => e.k, ks, prettyName);
+  const outrasRows = spRows(outras);
+  html += cmpSec("Comparecimento por especialidade", `Só períodos com ${HIGH_VOLUME_MIN} ou mais consultas na especialidade; abaixo disso aparece "—"`,
+    cmpTable(cmpHead("Especialidade"), spRows(prim)) + (outrasRows.length ? `<details class="cmp-det"><summary>Outras especialidades (${outrasRows.length})</summary>${cmpTable(cmpHead("Especialidade"), outrasRows)}</details>` : ""));
+
+  const tipoKeys = cmpKeys("porTipo", e => e.k).sort((a,b) => prettyName(a).localeCompare(prettyName(b)));
+  const tipoRows = cmpDimRows("porTipo", e => e.k, tipoKeys, prettyName);
+  if (tipoRows.length) html += cmpSec("Comparecimento por tipo de agendamento", `Só períodos com ${HIGH_VOLUME_MIN} ou mais consultas no tipo`, cmpTable(cmpHead("Tipo de agendamento"), tipoRows));
+
+  const clin = cmpClinicRows();
+  if (clin.length){
+    clin.sort(sort === "queda" ? cmpNullLast(r => r.d, 1) : sort === "alta" ? cmpNullLast(r => r.d, -1) : sort === "nome" ? (a,b) => cleanName(a.c).localeCompare(cleanName(b.c)) : cmpNullLast(r => r.last, 1));
+    const shown = cmpClinAll ? clin : clin.slice(0,20);
+    html += cmpSec("Comparecimento por clínica", `Só períodos com ${HIGH_VOLUME_MIN} ou mais consultas na clínica (todas as especialidades somadas)`,
+      `<div class="cmp-ctrl no-print">Ordenar por <select onchange="cmpClinSort=this.value;renderCompare()">${[["queda","maior queda entre os dois últimos períodos"],["alta","maior alta entre os dois últimos períodos"],["atual","menor comparecimento no último período"],["nome","nome da clínica"]].map(([v,l]) => `<option value="${v}"${v===sort?" selected":""}>${l}</option>`).join("")}</select>
+        <span>${shown.length} de ${clin.length} clínicas</span>${clin.length > 20 ? `<button type="button" class="collapse-toggle" onclick="cmpClinAll=!cmpClinAll;renderCompare()">${cmpClinAll ? "Mostrar só 20" : "Mostrar todas"}</button>` : ""}</div>` +
+      cmpTable(cmpHead("Clínica"), shown.map(r => cmpDimRow(escapeHtml(cleanName(r.c)), r.vals))));
+  }
+
+  // cancelamentos
+  if (CMP.some(s => s.cancelamentos)){
+    const share = (s, k) => { const c = s.cancelamentos; if (!c || !c.total) return null; const e = c.porMotivo.find(x => x.k === k); return e ? e.qtd/c.total*100 : 0; };
+    const last = CMP[n-1];
+    const mk = [...new Set(CMP.flatMap(s => s.cancelamentos ? s.cancelamentos.porMotivo.slice().sort((a,b) => b.qtd-a.qtd).slice(0,6).map(x => x.k) : []))]
+      .sort((a,b) => (share(last,b) ?? -1) - (share(last,a) ?? -1));
+    html += cmpSec("Principais motivos de cancelamento", "% do total de cancelamentos de cada período (motivos que estão entre os 6 maiores em algum período)",
+      cmpTable(cmpHead("Motivo"), mk.map(k => `<tr><td>${escapeHtml(prettyName(k))}</td>${CMP.map((s,i) => cmpCell(share(s,k), fmtPct, "neu", i ? cmpDelta(share(s,k), share(CMP[i-1],k), null, "pct") : "")).join("")}</tr>`)));
+    const tv = (s, c) => { const e = s.cancelamentos && s.cancelamentos.porClinica.find(x => x.c === c); return e && e.total >= TOMBAMENTO_MIN_CANC ? e.tombados/e.total*100 : null; };
+    const names = [...new Set(CMP.flatMap(s => s.cancelamentos ? s.cancelamentos.porClinica.map(x => x.c) : []))].filter(c => CMP.some(s => tv(s,c) > TOMBAMENTO_MAX))
+      .sort((a,b) => (tv(last,b) ?? -1) - (tv(last,a) ?? -1)).slice(0,15);
+    if (names.length) html += cmpSec(`Tombamento por clínica (limite de ${TOMBAMENTO_MAX}%)`, `Tombados ÷ cancelamentos da clínica, só clínicas com ${TOMBAMENTO_MIN_CANC}+ cancelamentos que passaram de ${TOMBAMENTO_MAX}% em algum período (até 15)`,
+      cmpTable(cmpHead("Clínica"), names.map(c => `<tr><td>${escapeHtml(cleanName(c))}</td>${CMP.map((s,i) => cmpCell(tv(s,c), fmtPct, tv(s,c) > TOMBAMENTO_MAX ? "bad" : "good", i ? cmpDelta(tv(s,c), tv(CMP[i-1],c), false, "pct") : "")).join("")}</tr>`)));
+  }
+
+  // mediana por especialidade
+  if (CMP.some(s => s.mediana)){
+    const mv = (s, k) => { const e = s.mediana && s.mediana.porEspecialidade.find(x => x.k === k); return e ? e.v : null; };
+    const ks = [...new Set(CMP.flatMap(s => s.mediana ? s.mediana.porEspecialidade.map(x => x.k) : []))].sort((a,b) => specSortIndex(a) - specSortIndex(b) || a.localeCompare(b));
+    html += cmpSec("Mediana cirúrgica por especialidade", "Mediana de dias entre a consulta e a 1ª cirurgia no trimestre mais recente de cada arquivo; cor pela meta de dias (especialidades terciárias não têm meta)",
+      cmpTable(cmpHead("Especialidade", s => s.mediana ? s.mediana.trimestre : "sem dado"), ks.map(k => `<tr><td>${escapeHtml(prettyName(k))}</td>${CMP.map((s,i) => cmpCell(mv(s,k), v => fmtDias(v) + " dias", slaTier(mv(s,k), k), i ? cmpDelta(mv(s,k), mv(CMP[i-1],k), false, "dias") : "")).join("")}</tr>`)));
+  }
+  body.innerHTML = html;
 }
 
 /* =========================================================================
