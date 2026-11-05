@@ -1845,7 +1845,7 @@ function infoSemaforo(){
   const col = (k, title, tone) => `<div class="i-sem-c t-${tone}"><div class="i-sem-h">${title}</div>` +
     (cols[k].length ? cols[k].slice(0,5).map(item).join("") : '<div class="i-sem-none">Nada a registrar.</div>') + `</div>`;
   const grid = `<div class="i-sem">${col("g","Pontos positivos","good")}${col("w","Pontos de atenção","warn")}${col("b","Pontos negativos","bad")}</div>`;
-  const MAXN = 12;
+  const MAXN = 8;   // itens listados em cada nota (o resto vira "e mais N"); notas longas empurravam o semáforo para outra página
   const fn = notes.length ? `<div class="i-fn">${notes.map(x => `<p><b>*${x.n}</b> ${escapeHtml(x.title)}: ${escapeHtml(x.items.slice(0,MAXN).join("; "))}${x.items.length>MAXN ? ` e mais ${x.items.length-MAXN}` : ""}.</p>`).join("")}</div>` : "";
   return grid + fn;
 }
@@ -1964,6 +1964,93 @@ function fitInfographic(){
 }
 window.addEventListener("resize", fitInfographic);
 
+/* ---- PDF em páginas A4 (retrato) ----
+   O infográfico é capturado inteiro (imagem) e fatiado em páginas de 1120 × 1584 px (proporção A4).
+   As quebras só caem ENTRE blocos: nunca no meio de gráfico, cartão, lista ou tabela. Um bloco
+   (seção, cartão de ação...) é "inteiro" quando cabe em uma página; seções maiores que uma página
+   (ex.: a de ações com 10 cartões) quebram só entre os cartões internos, e título + 1º item ficam
+   juntos. Se algum bloco único passar de uma página (não deveria), corta no limite e conta em `forced`. */
+const PDF_PAGE_W = INFO_W, PDF_PAGE_H = 1584;   // 1120 × 1584 = A4 retrato
+const PDF_TOP = 20, PDF_BOTTOM = 40;            // margem no topo (páginas 2+) e faixa do rodapé com o nº da página
+const pdfRoom = i => PDF_PAGE_H - PDF_BOTTOM - (i ? PDF_TOP : 0);   // altura útil da página i (0 = primeira)
+function infoUnits(root, maxH, fine){   // fine = true: toda seção pode quebrar entre seus blocos internos
+  const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1;   // desfaz a escala da tela
+  const rel = el => { const r = el.getBoundingClientRect(); return {top:(r.top-rr.top)/k, bottom:(r.bottom-rr.top)/k}; };
+  const out = [];
+  [...root.children].forEach(c => {
+    const iv = rel(c);
+    if (!(c.classList.contains("i-sec") && (fine || iv.bottom - iv.top > maxH))){ out.push(iv); return; }   // cabe numa página: não se divide
+    [...c.children].forEach(x => {
+      if (x.classList.contains("i-acs") || x.classList.contains("i-acs2")) [...x.children].forEach(y => out.push(rel(y)));
+      else out.push({...rel(x), glue:x.classList.contains("i-sec-h") || x.classList.contains("i-take") || x.classList.contains("i-sub")});
+    });
+  });
+  const merged = [];   // título/subtítulo ("glue") nunca fica sozinho no fim da página: cola no item seguinte
+  for (let i = 0; i < out.length; i++){ let u = out[i]; while (u.glue && i + 1 < out.length){ i++; u = {top:u.top, bottom:out[i].bottom, glue:out[i].glue}; } merged.push(u); }
+  return merged;
+}
+function infoPlanPages(root){
+  const total = root.offsetHeight, coarse = infoUnits(root, pdfRoom(1), false), fine = infoUnits(root, pdfRoom(1), true);
+  const pages = []; let start = 0, forced = 0;
+  const findBreak = (units, limit) => {   // sobe até um espaço livre, parando no MEIO do vão entre dois blocos (margem para qualquer diferença de render)
+    let y = limit, hit, guard = 0;
+    while ((hit = units.find(u => u.top < y && y < u.bottom)) && guard++ < 300){
+      const above = units.reduce((m,u) => u.bottom <= hit.top + 0.5 && u.bottom > m ? u.bottom : m, -1);
+      y = above >= 0 && hit.top - above > 1 ? (above + hit.top) / 2 : hit.top - 4;
+    }
+    return y;
+  };
+  for (;;){
+    const i = pages.length, limit = start + pdfRoom(i), room = pdfRoom(i);
+    if (total <= limit + 1){ pages.push({s:start, e:total}); break; }
+    let y = findBreak(coarse, limit);
+    if (y - start < room * 0.65) y = Math.max(y, findBreak(fine, limit));   // página ficaria vazia demais: permite quebrar entre blocos internos da seção
+    if (y <= start + room * 0.3){ y = limit; forced++; }                    // bloco gigante: corta no limite
+    pages.push({s:start, e:y}); start = y;
+  }
+  // evita página final "órfã" (só o rodapé ou um pedacinho): recua a quebra da página anterior para o último bloco ir junto
+  const n = pages.length;
+  if (n > 1 && pages[n-1].e - pages[n-1].s < pdfRoom(n-1) * 0.2){
+    const prev = pages[n-2], last = pages[n-1], room = pdfRoom(n-2);
+    for (let cut = 100; cut <= 800; cut += 100){
+      const lim = prev.s + room - cut;
+      let y = findBreak(coarse, lim);
+      if (y - prev.s < room * 0.65) y = Math.max(y, findBreak(fine, lim));
+      if (y > prev.s + room * 0.4 && total - y <= pdfRoom(n-1) && total - y >= pdfRoom(n-1) * 0.2){ prev.e = y; last.s = y; break; }
+    }
+  }
+  return {pages, forced};
+}
+// confere, pela posição, que nenhum elemento gráfico atravessa uma quebra de página
+const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
+function infoVerifyPlan(root, plan){
+  const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, bad = [];
+  const breaks = plan.pages.slice(0,-1).map(p => p.e);
+  root.querySelectorAll(PDF_GRAPHIC_SEL).forEach(el => {
+    if (el instanceof SVGElement && el.tagName !== "svg") return;
+    const r = el.getBoundingClientRect(), top = (r.top-rr.top)/k, bottom = (r.bottom-rr.top)/k;
+    breaks.forEach((y,i) => { if (bottom - top > 1 && top < y - 0.5 && y + 0.5 < bottom) bad.push(`quebra ${i+1} (y=${Math.round(y)}) corta ${el.tagName.toLowerCase()}.${String(el.className.baseVal ?? el.className).split(" ")[0]} (${Math.round(top)}–${Math.round(bottom)})`); });
+  });
+  plan.pages.forEach((p,i) => { if (p.e - p.s > pdfRoom(i) + 0.5) bad.push(`página ${i+1} passa da altura útil`); });
+  return bad;
+}
+// fatia o canvas (escala 2) em um canvas por página, com rodapé "página X de N"
+function infoPageCanvases(canvas, plan){
+  const sc = canvas.width / INFO_W, n = plan.pages.length, H = PDF_PAGE_H * sc;
+  return plan.pages.map((p,i) => {
+    const pc = document.createElement("canvas"); pc.width = canvas.width; pc.height = H;
+    const ctx = pc.getContext("2d");
+    ctx.fillStyle = "#EAF0F6"; ctx.fillRect(0, 0, pc.width, H);
+    const sy = Math.round(p.s * sc), sh = Math.min(Math.round((p.e - p.s) * sc), canvas.height - sy);
+    ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, i ? PDF_TOP * sc : 0, canvas.width, sh);
+    ctx.fillStyle = "#67727F"; ctx.font = `600 ${13*sc}px Figtree, "Segoe UI", sans-serif`; ctx.textBaseline = "middle";
+    const y = H - 20*sc;
+    ctx.textAlign = "left";  ctx.fillText("cdv · Relatório de comparecimento", 24*sc, y);
+    ctx.textAlign = "right"; ctx.fillText(`página ${i+1} de ${n}`, canvas.width - 24*sc, y);
+    return pc;
+  });
+}
+
 async function downloadInfographic(kind){
   const root = document.getElementById("infoRoot");
   const btns = [document.getElementById("infoPngBtn"), document.getElementById("infoPdfBtn")];
@@ -1977,6 +2064,7 @@ async function downloadInfographic(kind){
   btns[kind==="png"?0:1].textContent = "Gerando...";
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const plan = kind === "pdf" ? infoPlanPages(root) : null;   // medir ANTES de capturar, com o infográfico na tela como está
     const canvas = await html2canvas(root, {
       scale:2, backgroundColor:"#EAF0F6", useCORS:true, logging:false, windowWidth:Math.max(window.innerWidth, INFO_W+40),
       onclone: doc => {   // no clone, tira a escala da tela para capturar em 100%
@@ -1989,9 +2077,14 @@ async function downloadInfographic(kind){
       const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
       saveBlob(blob, name + ".png");
     } else {
-      const w = canvas.width/2, h = canvas.height/2;   // página única do tamanho do infográfico
-      const pdf = new window.jspdf.jsPDF({orientation: w>h?"l":"p", unit:"px", format:[w,h], hotfixes:["px_scaling"], compress:true});
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h, undefined, "FAST");
+      // várias páginas A4 (retrato), quebrando só entre blocos; confere a medida contra a imagem antes de fatiar
+      const bad = infoVerifyPlan(root, plan);
+      if (Math.abs(canvas.height / (canvas.width / INFO_W) - root.offsetHeight) > 3 || bad.length) console.warn("PDF: medida diferente da imagem ou quebra duvidosa", bad);
+      const pdf = new window.jspdf.jsPDF({orientation:"p", unit:"px", format:[PDF_PAGE_W, PDF_PAGE_H], hotfixes:["px_scaling"], compress:true});
+      infoPageCanvases(canvas, plan).forEach((pc, i) => {
+        if (i) pdf.addPage([PDF_PAGE_W, PDF_PAGE_H], "p");
+        pdf.addImage(pc.toDataURL("image/png"), "PNG", 0, 0, PDF_PAGE_W, PDF_PAGE_H, undefined, "FAST");
+      });
       pdf.save(name + ".pdf");
     }
   } catch(err){
