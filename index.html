@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
   --bg:#f5f8fa;
@@ -305,6 +307,101 @@ body.export-only-summary .topbar{display:none}
 }
 .export-tab-title{display:none}
 
+/* ---- aba Síntese: infográfico ----
+   Visual próprio (paleta cdv do slide de síntese), igual no modo claro e escuro: o que se vê na
+   tela é o que sai no PNG/PDF. Largura fixa de 1120px; na tela é escalado para caber (fitInfographic)
+   e na hora de baixar volta a 100%. Só formas em SVG + texto em HTML (o html2canvas não carrega
+   fonte dentro de SVG). Sem emoji, sentence case, laranja só para CTA. */
+body.on-sintese .toolbar{display:none}
+.info-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 16px;padding:14px 18px;border-radius:12px;background:var(--accent-bg);font-size:14.5px}
+.info-bar .info-txt{flex:1 1 380px}
+.info-missing{display:block;margin-top:3px;color:var(--sub);font-size:13.5px}
+.info-actions{display:flex;gap:10px;flex-wrap:wrap}
+.info-stage{overflow:hidden;border-radius:24px}
+.infog{--c-navy:#203B5A;--c-blue:#3874AF;--c-cyan:#00A4D0;--c-body:#333C47;--c-muted:#67727F;--c-line:#E8ECF1;--c-page:#EAF0F6;
+  --c-ok:#1E8A5F;--c-ok-bg:#DCF2E8;--c-warn:#C77A08;--c-warn-bg:#FCEFD4;--c-bad:#C63B2A;--c-bad-bg:#FBE3DF;--c-neu-bg:#DDEAF6;
+  width:1120px;transform-origin:0 0;background:var(--c-page);color:var(--c-body);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.35;padding:24px;display:flex;flex-direction:column;gap:18px}
+.infog *{box-sizing:border-box}
+.infog .t-good{--tc:var(--c-ok);--tb:var(--c-ok-bg)} .infog .t-warn{--tc:var(--c-warn);--tb:var(--c-warn-bg)}
+.infog .t-bad{--tc:var(--c-bad);--tb:var(--c-bad-bg)} .infog .t-neutral{--tc:var(--c-blue);--tb:var(--c-neu-bg)}
+.i-head{background:linear-gradient(135deg,#3874AF 0%,#00A4D0 100%);border-radius:24px;color:#fff;padding:26px 32px 26px}
+.i-head-top{display:flex;justify-content:space-between;align-items:center}
+.i-brand{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.i-date{font-size:14px;opacity:.92}
+.i-title{font-size:46px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin-top:16px}
+.i-lead{font-size:17px;max-width:840px;margin-top:8px;opacity:.96}
+.i-kpis{display:grid;gap:14px}
+.i-kpi{border-radius:20px;background:var(--tb);padding:18px 18px 16px;display:flex;flex-direction:column;min-width:0}
+.i-kpi-l{font-size:15px;font-weight:700;color:var(--c-navy)}
+.i-kpi-n{font-size:52px;font-weight:700;color:var(--tc);letter-spacing:-.03em;line-height:1.05;margin-top:6px}
+.i-kpi-n small{font-size:20px;font-weight:700;letter-spacing:0;margin-left:4px}
+.i-kpi-s{font-size:13.5px;color:var(--c-body);margin-top:2px}
+.i-chip{display:inline-block;align-self:flex-start;margin-top:10px;padding:3px 11px;border-radius:99px;background:#fff;color:var(--tc);font-size:13px;font-weight:700}
+.i-sec{background:#fff;border-radius:24px;padding:24px 26px 26px;box-shadow:0 2px 8px rgba(32,59,90,.08)}
+.i-sec-h{display:flex;align-items:center;gap:14px}
+.i-num{width:38px;height:38px;border-radius:50%;background:var(--c-navy);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.i-sec-t{font-size:26px;font-weight:700;color:var(--c-navy);letter-spacing:-.02em;line-height:1.1}
+.i-take{font-size:16.5px;margin:8px 0 20px 52px;color:var(--c-body)}
+.i-g{display:grid;gap:28px}
+.i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
+.i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
+.i-hint{font-size:12.5px;font-weight:400;color:var(--c-muted);margin-left:4px}
+.i-note{font-size:13px;color:var(--c-muted);margin-top:8px;line-height:1.4}
+.i-brow{display:grid;grid-template-columns:200px 1fr 62px;align-items:center;gap:10px;margin-bottom:10px}
+.i-bl{font-size:14px;line-height:1.2;color:var(--c-body)}
+.i-bt{height:14px;border-radius:99px;background:var(--c-line);position:relative}
+.i-bt i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.i-bt u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--c-navy);opacity:.5}
+.i-bv{font-size:15px;font-weight:700;text-align:right}
+.i-stack{display:flex;height:36px;border-radius:12px;overflow:hidden;gap:2px}
+.i-stack div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14.5px;min-width:0}
+.i-leg{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:9px;font-size:13px}
+.i-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.i-hero{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.i-donut{position:relative;flex:0 0 auto}
+.i-donut-c{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.i-dn{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.i-dl{font-size:13px;color:var(--c-muted);margin-top:3px}
+.i-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.i-trio div{border-radius:14px;background:var(--tb);padding:9px 4px}
+.i-trio b{display:block;font-size:22px;color:var(--tc);line-height:1.1}
+.i-trio span{font-size:12.5px;color:var(--c-body)}
+.i-li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--tb);margin-bottom:7px}
+.i-li span{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.i-li b{color:var(--tc);font-size:15px;white-space:nowrap}
+.i-li2{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--tb);margin-bottom:7px}
+.i-li2 div{min-width:0}
+.i-li2 strong{display:block;font-size:15.5px;font-weight:700;color:var(--c-navy);line-height:1.2}
+.i-li2 span{display:block;font-size:12.5px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.i-li2 b{color:var(--tc);font-size:16px;white-space:nowrap}
+.i-fn{margin-top:14px;padding-top:12px;border-top:1px solid var(--c-line);font-size:11.5px;line-height:1.5;color:var(--c-muted)}
+.i-fn p{margin:0 0 5px}
+.i-fn b{color:var(--c-navy)}
+.i-sup{font-size:.72em;font-weight:700;vertical-align:super;line-height:0;margin-left:2px;color:var(--c-navy)}
+.i-per{display:inline-block;margin-top:12px;padding:5px 14px;border-radius:99px;background:rgba(255,255,255,.2);font-size:14.5px;font-weight:600}
+.i-cols{display:flex;align-items:flex-end;gap:10px;height:158px}
+.i-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+.i-col i{display:block;width:100%;max-width:48px;border-radius:9px 9px 4px 4px}
+.i-cv{font-size:13px;font-weight:700;color:var(--c-navy);white-space:nowrap}
+.i-cl{font-size:12px;color:var(--c-muted);white-space:nowrap}
+.i-mini{display:flex;align-items:center;gap:22px}
+.i-mini-it{display:flex;align-items:center;gap:12px}
+.i-mini-t{font-size:13.5px;line-height:1.35}
+.i-mini-t b{display:block;font-size:15px;color:var(--c-navy)}
+.i-sem{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.i-sem-c{border-radius:22px;background:var(--tb);padding:18px 18px 12px}
+.i-sem-h{font-size:20px;font-weight:700;color:var(--tc);margin-bottom:11px}
+.i-sem-it{background:#fff;border-radius:13px;padding:9px 13px 10px;margin-bottom:8px;font-size:14px;line-height:1.4}
+.i-tag{display:block;font-size:12px;font-weight:700;color:var(--tc);margin-bottom:1px}
+.i-sem-none{font-size:14px;color:var(--c-muted);padding:4px 2px 10px}
+.i-act{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--c-line)}
+.i-act.first{border-top:none;padding-top:4px}
+.i-act-n{width:32px;height:32px;border-radius:50%;background:var(--tb);color:var(--tc);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.i-act-t{font-size:16px;line-height:1.45;flex:1}
+.i-prio{align-self:flex-start;flex:0 0 auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:13px;font-weight:700;white-space:nowrap}
+.i-foot{background:var(--c-navy);color:#fff;border-radius:16px;padding:13px 22px;font-size:12.5px;line-height:1.45;display:flex;justify-content:space-between;gap:24px}
+
 /* ---- recolher/expandir listas de especialidade ---- */
 .collapse-all-bar{display:flex;gap:14px;margin:14px 0 4px}
 .collapse-all-bar button{border:none;background:none;color:var(--accent);font-family:inherit;font-size:13.5px;font-weight:650;cursor:pointer;padding:2px}
@@ -415,6 +512,7 @@ body.export-all .chart-wrap{height:240px !important}
     <button id="navComparecimento" class="tab-btn" type="button" onclick="switchTab('comparecimento')">Comparecimento por clínica</button>
     <button id="navMediana" class="tab-btn" type="button" onclick="switchTab('mediana')">Mediana cirúrgica</button>
     <button id="navIndicacoes" class="tab-btn" type="button" onclick="switchTab('indicacoes')">Indicações</button>
+    <button id="navSintese" class="tab-btn" type="button" onclick="switchTab('sintese')">Síntese (infográfico)</button>
   </nav>
 
   <div class="topbar">
@@ -675,6 +773,32 @@ body.export-all .chart-wrap{height:240px !important}
     </div>
   </div>
 
+  <!-- ================================================================ -->
+  <!-- ABA 5: SÍNTESE (INFOGRÁFICO) — junta os dados das outras abas     -->
+  <!-- ================================================================ -->
+  <div id="tabSintese" class="hidden">
+    <div class="info-bar no-print">
+      <div class="info-txt"><b>Infográfico do período.</b> Junta os números das outras abas numa página só, para quem não conhece o relatório entender e agir.
+        <span class="info-missing" id="infoMissing"></span></div>
+      <div class="info-actions">
+        <button class="btn-upload" id="infoPngBtn" type="button" onclick="downloadInfographic('png')" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+          Baixar PNG
+        </button>
+        <button class="btn-export" id="infoPdfBtn" type="button" onclick="downloadInfographic('pdf')" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+          Baixar PDF
+        </button>
+      </div>
+    </div>
+    <div id="infoSpecFilter" class="filter-bar no-print hidden" style="margin:0 0 14px"></div>
+    <div id="infoEmpty" class="empty-state">
+      <div class="empty-title">Ainda não há dados para a síntese</div>
+      <div class="empty-sub">Carregue as planilhas nas outras abas (no final de cada uma). O infográfico monta sozinho cada bloco que tiver dado.</div>
+    </div>
+    <div id="infoStage" class="info-stage hidden"><div id="infoRoot" class="infog"></div></div>
+  </div>
+
   <!-- Síntese (slide final): vazia na tela, preenchida só na hora de exportar -->
   <section id="exportSummary" class="export-summary"></section>
 </div>
@@ -913,19 +1037,24 @@ const TAB_META = {
   comparecimento: {title:"Dashboard de Comparecimento", subtitle:"Consolidado por clínica e especialidade"},
   visaogeral: {title:"Visão Geral & Cancelamentos", subtitle:"Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento"},
   indicacoes: {title:"Indicações", subtitle:"De onde vêm os pacientes que compareceram e operaram"},
-  mediana: {title:"Mediana Cirúrgica", subtitle:"Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre"}
+  mediana: {title:"Mediana Cirúrgica", subtitle:"Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre"},
+  sintese: {title:"Síntese do período", subtitle:"Os números das outras abas num infográfico só, com o que fazer a seguir"}
 };
 function switchTab(tab){
   document.getElementById("tabComparecimento").classList.toggle("hidden", tab !== "comparecimento");
   document.getElementById("tabVisaoGeral").classList.toggle("hidden", tab !== "visaogeral");
   document.getElementById("tabIndicacoes").classList.toggle("hidden", tab !== "indicacoes");
   document.getElementById("tabMediana").classList.toggle("hidden", tab !== "mediana");
+  document.getElementById("tabSintese").classList.toggle("hidden", tab !== "sintese");
   document.getElementById("navComparecimento").classList.toggle("active", tab === "comparecimento");
   document.getElementById("navVisaoGeral").classList.toggle("active", tab === "visaogeral");
   document.getElementById("navIndicacoes").classList.toggle("active", tab === "indicacoes");
   document.getElementById("navMediana").classList.toggle("active", tab === "mediana");
+  document.getElementById("navSintese").classList.toggle("active", tab === "sintese");
+  document.body.classList.toggle("on-sintese", tab === "sintese");   // esconde os botões de PDF do topo: a aba tem os próprios
   document.getElementById("pageTitle").textContent = TAB_META[tab].title;
   document.getElementById("pageSubtitle").textContent = TAB_META[tab].subtitle;
+  if (tab === "sintese") renderInfographic();
   window.scrollTo({top:0});
 }
 function exportPdf(){ window.print(); }
@@ -947,6 +1076,8 @@ function updateExportAvailability(){
   document.getElementById("exportBtn").disabled = !hasAny;
   document.getElementById("exportAllBtn").disabled = !hasAny;
   document.getElementById("exportSummaryBtn").disabled = !hasAny;
+  document.getElementById("infoPngBtn").disabled = !hasAny;
+  document.getElementById("infoPdfBtn").disabled = !hasAny;
 }
 function allCharts(){ return [tipoChart, cancelMotivoChart, campanhaChart, consultasChart, cirurgiasChart, overallChart].filter(Boolean); }
 function resizeAllCharts(){ allCharts().forEach(c => { try { c.resize(); } catch(e){} }); }
@@ -982,7 +1113,7 @@ function summaryVisaoGeral(){
     const tipos = [...d.byTipo.entries()].map(([k,v]) => ({k, den:v.compareceu+v.faltou, p:(v.compareceu+v.faltou)>0 ? v.compareceu/(v.compareceu+v.faltou)*100 : 0})).filter(t=>t.den>=10).sort((a,b)=>b.p-a.p);
     if (tipos.length > 1){
       const best = tipos[0], worst = tipos[tipos.length-1];
-      if (best.p >= 70) o.g.push(`Melhor tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
+      if (best.p >= 70) o.g.push(`Melhor desempenho em tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
       if (worst.p < 70) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Menor comparecimento por tipo: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
     }
   }
@@ -993,8 +1124,8 @@ function summaryVisaoGeral(){
     }).filter(r=>r.den>0).sort((a,b)=>b.p-a.p);
     if (rows.length > 1){
       const best = rows[0], worst = rows[rows.length-1];
-      if (best.p >= 70) o.g.push(`Melhor especialidade: ${prettyName(best.s)} (${fmtPct(best.p)})`);
-      o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Menor comparecimento: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
+      if (best.p >= 70) o.g.push(`Melhor desempenho em especialidade: ${prettyName(best.s)} (${fmtPct(best.p)})`);
+      o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Menor comparecimento por especialidade: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
     }
   }
   if (cancelamentoData){
@@ -1008,8 +1139,11 @@ function summaryVisaoGeral(){
   }
   return o;
 }
+/* o.notes: frase → {title, items}. Frases que falam de "N combinações" guardam aqui QUAIS são,
+   para o infográfico mostrar um asterisco na frase e a lista na nota de rodapé (o slide ignora). */
 function summaryComparecimento(){
-  const o = {g:[],w:[],b:[]};
+  const o = {g:[],w:[],b:[],notes:{}};
+  const note = (txt, title, arr) => { o.notes[txt] = {title:`${title} (${scope.replace("combinações ","")})`, items:arr.map(r => `${r.label} (${fmtPct(r.p)})`)}; return txt; };
   const all = CLINICA_RECORDS.filter(r=>r.a>0).map(r => ({...r, p:pct(r.a,r.f), total:r.a+(r.ag||0), label:`${cleanName(r.c)} · ${prettyName(r.e)}`}));
   let pool = all.filter(r=>r.total >= HIGH_VOLUME_MIN);
   const scope = pool.length ? `combinações de alto volume` : "combinações clínica/especialidade";
@@ -1018,10 +1152,10 @@ function summaryComparecimento(){
   const warn = pool.filter(r=>r.p>=60 && r.p<70).sort((a,b)=>a.p-b.p);
   const bad = pool.filter(r=>r.p<60).sort((a,b)=>a.p-b.p || b.total-a.total);
   const list = arr => arr.slice(0,3).map(r=>`${r.label} (${fmtPct(r.p)})`).join("; ");
-  o.g.push(`${good.length} de ${pool.length} ${scope} com comparecimento ≥ 70%`);
-  if (good.length) o.g.push(`Melhores: ${list(good)}`);
-  if (warn.length) o.w.push(`${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69%`, `Mais perto de cair: ${list(warn)}`);
-  if (bad.length) o.b.push(`${bad.length} ${plural(bad.length,"combinação","combinações")} abaixo de 60%`, `Piores: ${list(bad)}`);
+  o.g.push(note(`${good.length} de ${pool.length} ${scope} com comparecimento ≥ 70%`, `Combinações com comparecimento de 70% ou mais`, good));
+  if (good.length) o.g.push(`Maiores comparecimentos: ${list(good)}`);
+  if (warn.length) o.w.push(note(`${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69%`, `Combinações entre 60% e 69%`, warn), `Mais próximas de 60%: ${list(warn)}`);
+  if (bad.length) o.b.push(note(`${bad.length} ${plural(bad.length,"combinação","combinações")} abaixo de 60%`, `Combinações abaixo de 60%`, bad), `Menores comparecimentos: ${list(bad)}`);
   const bySpec = [...CLINICA_BY_SPEC.entries()].map(([s,rows]) => ({s, st:specStats(rows)})).filter(x=>x.st.a>=HIGH_VOLUME_MIN);
   if (bySpec.length > 1){
     bySpec.sort((a,b)=>a.st.p-b.st.p);
@@ -1032,8 +1166,11 @@ function summaryComparecimento(){
   return o;
 }
 function summaryMediana(){
-  const o = {g:[],w:[],b:[]};
-  const recs = MEDIANA_RECORDS, cur = Math.max(...recs.map(r=>r.tSort));
+  const o = {g:[],w:[],b:[],notes:{}};
+  const recs = getFilteredMedianaRecords();   // respeita os filtros de Especialidade/Clínica da aba Mediana
+  if (!recs.length) return o;
+  const cur = Math.max(...recs.map(r=>r.tSort));
+  const note = (txt, title, arr) => { o.notes[txt] = {title, items:arr.map(c => `${c.label} (${fmtDias(c.dias)} dias)`)}; return txt; };
   const atual = recs.filter(r=>r.tSort===cur), tLabel = atual[0].tLabel;
   const combos = atual.map(r => ({...r, sla:classifyMedianaSLA(r.dias, r.especialidade), label:`${cleanName(r.clinica)} · ${prettyName(r.especialidade)}`}));
   const withSla = combos.filter(c=>c.sla);
@@ -1042,10 +1179,10 @@ function summaryMediana(){
   const mid = withSla.filter(c=>c.sla.tier==="warn");
   const crit = withSla.filter(c=>c.sla.tier==="bad").sort((a,b)=>b.dias-a.dias);
   if (withSla.length){
-    o.g.push(`${okc.length} de ${withSla.length} combinações dentro da meta em ${tLabel}`);
-    if (okc.length) o.g.push(`Mais rápidas: ${fmt(okc)}`);
-    if (mid.length) o.w.push(`${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário (acima da meta, ainda não críticas)`);
-    if (crit.length) o.b.push(`${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel}`, `Mais lentas: ${fmt(crit)}`);
+    o.g.push(note(`${okc.length} de ${withSla.length} combinações dentro da meta em ${tLabel}`, `Combinações dentro da meta em ${tLabel}`, okc));
+    if (okc.length) o.g.push(`Menor tempo: ${fmt(okc)}`);
+    if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário (acima da meta, ainda não críticas)`, `Combinações em nível intermediário em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
+    if (crit.length) o.b.push(note(`${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel}`, `Combinações críticas em ${tLabel}`, crit), `Maior tempo: ${fmt(crit)}`);
   }
   const byT = new Map();
   recs.forEach(r => { if(!byT.has(r.tSort)) byT.set(r.tSort,{l:r.tLabel,v:[]}); byT.get(r.tSort).v.push(r.dias); });
@@ -1174,6 +1311,466 @@ function exportAllPdf(summaryOnly){
 }
 window.addEventListener("beforeprint", resizeAllCharts);
 window.addEventListener("afterprint", endExportAll);
+
+/* =========================================================================
+   ABA SÍNTESE — INFOGRÁFICO
+   Reaproveita os dados e as réguas das outras abas (statusOf, classifyMedianaSLA,
+   indicacaoTrimestres, summaryX...) — nenhum critério novo de cor/meta. Cada bloco
+   só aparece se a planilha correspondente foi carregada. Gráficos = SVG (formas) +
+   HTML (texto), para o PNG/PDF sair idêntico ao que está na tela.
+   ========================================================================= */
+const INFO_W = 1120;
+const IC = {navy:"#203B5A", blue:"#3874AF", cyan:"#00A4D0", ok:"#1E8A5F", warn:"#C77A08", bad:"#C63B2A", track:"#E8ECF1", soft:"#A9C3DE"};
+const toneColor = t => t==="good" ? IC.ok : (t==="warn" ? IC.warn : (t==="bad" ? IC.bad : IC.blue));
+const fmtDelta = (n, unit) => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + " " + unit;
+// texto com os números de cenário/variação coloridos: queda em vermelho, alta em verde
+function iRich(s){
+  return escapeHtml(s)
+    .replace(/((?:pode ficar|fica) entre )(\d[\d.,]*%)( e )(\d[\d.,]*%)/g, (m,a,lo,b,hi) => `${a}<b style="color:${IC.bad}">${lo}</b>${b}<b style="color:${IC.ok}">${hi}</b>`)
+    .replace(/([+−])(\d[\d.,]* p\.p\.)/g, (m,sg,rest) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>`);
+}
+const safeSec = fn => { try { return fn(); } catch(e){ console.error("Síntese:", e); return null; } };
+
+function iDonut(segs, size, stroke){
+  const r = (size-stroke)/2, c = 2*Math.PI*r, m = size/2;
+  const tot = segs.reduce((s,x)=>s+x.v,0) || 1;
+  let off = 0, arcs = "";
+  segs.forEach(s => {
+    const len = c*s.v/tot;
+    if (len > 0.5) arcs += `<circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${len.toFixed(2)} ${(c-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`;
+    off += len;
+  });
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><g transform="rotate(-90 ${m} ${m})"><circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="${IC.track}" stroke-width="${stroke}"/>${arcs}</g></svg>`;
+}
+function iDonutBlock(center, segs, size, stroke){
+  return `<div class="i-donut" style="width:${size}px;height:${size}px">${iDonut(segs,size,stroke)}<div class="i-donut-c">${center}</div></div>`;
+}
+const iPctDonut = (p, color, size, stroke, center) => iDonutBlock(center, [{v:Math.max(0,Math.min(100,p)),color},{v:Math.max(0,100-p),color:"transparent"}], size, stroke);
+function iBar(label, v, text, color, mark){
+  const w = Math.max(1, Math.min(100, v)).toFixed(1);
+  return `<div class="i-brow"><div class="i-bl">${escapeHtml(label)}</div><div class="i-bt"><i style="width:${w}%;background:${color}"></i>${mark!=null?`<u style="left:${mark}%"></u>`:""}</div><div class="i-bv" style="color:${color}">${text}</div></div>`;
+}
+function iStack(segs){   // segs: [{v, color, label, text?, lt?}]
+  const on = segs.filter(s => s.v > 0);
+  return `<div class="i-stack">${on.map(s => `<div style="flex:${s.v};background:${s.color}">${s.text!==undefined ? s.text : s.v}</div>`).join("")}</div>` +
+    `<div class="i-leg">${segs.map(s => `<span><i class="i-dot" style="background:${s.color}"></i>${escapeHtml(s.label)}: <b>${s.lt!==undefined ? s.lt : s.v}</b></span>`).join("")}</div>`;
+}
+function iCols(items){   // items: [{label, v, text, color}]
+  const max = Math.max(...items.map(i => i.v), 0.0001);
+  return `<div class="i-cols">${items.map(i => `<div class="i-col"><span class="i-cv">${i.text}</span><i style="height:${Math.max(6, i.v/max*92).toFixed(0)}px;background:${i.color}"></i><span class="i-cl">${escapeHtml(i.label)}</span></div>`).join("")}</div>`;
+}
+const iList = (rows, tone) => rows.map(r => `<div class="i-li t-${r.tone||tone}"><span>${escapeHtml(r.label)}</span><b>${r.text}</b></div>`).join("");
+function iMonth(m){
+  const mi = monthIndex(m);
+  return mi === null ? String(m).slice(0,8) : `${MESES_ABREV[mi%12]}/${String(Math.floor(mi/12)).slice(-2)}`;
+}
+const iSeries = rows => {   // série mensal ordenada (por calendário quando os meses são reconhecidos)
+  const pts = (rows||[]).filter(r => r.pct !== undefined && r.pct !== "").map((r,i) => ({m:String(r.mes), p:toPctValue(r.pct), mi:monthIndex(r.mes), i}));
+  return pts.every(x => x.mi !== null) ? pts.sort((a,b)=>a.mi-b.mi) : pts;
+};
+
+/* ---- 1) Comparecimento (abas Visão geral + Comparecimento por clínica) ---- */
+function infoSecComparecimento(){
+  let comp, falt, ag;
+  if (comparecimentoData){ comp = comparecimentoData.compareceu; falt = comparecimentoData.faltou; ag = comparecimentoData.aguardando; }
+  else if (CLINICA_RECORDS.length){ const s = specStats(CLINICA_RECORDS); comp = s.comp; falt = s.f; ag = s.ag; }
+  else return null;
+  const den = comp + falt;
+  if (!den && !ag) return null;
+  const p = den>0 ? comp/den*100 : 0, tone = statusOf(p), col = toneColor(tone), sc = compScenarios(comp, falt, ag);
+
+  // por especialidade: as primárias + as extras que o usuário marcou no filtro (mesmo estado do ranking da Visão geral)
+  const specKeys = DEFAULT_RANKING_SPECS.concat([...especialidadeExtraSelected].filter(s => !DEFAULT_RANKING_SPECS.includes(s)));
+  let specs = [];
+  if (especialidadeData){
+    specs = specKeys.filter(s => especialidadeData.has(s)).map(s => { const d = especialidadeData.get(s), dn = d.compareceu + d.faltou; return {label:prettyName(s), p:dn>0 ? d.compareceu/dn*100 : 0, dn}; });
+  } else if (CLINICA_BY_SPEC.size){
+    specs = specKeys.filter(s => CLINICA_BY_SPEC.has(s)).map(s => { const st = specStats(CLINICA_BY_SPEC.get(s)); return {label:prettyName(s), p:st.p, dn:st.a}; });
+  }
+  specs = specs.filter(r => r.dn > 0).sort((a,b) => b.p-a.p);
+  const tipos = comparecimentoData ? [...comparecimentoData.byTipo.entries()].map(([k,v]) => { const dn = v.compareceu + v.faltou; return {label:prettyName(k), p:dn>0 ? v.compareceu/dn*100 : 0, dn}; }).filter(r => r.dn > 0).sort((a,b) => b.p-a.p).slice(0,4) : [];
+  const barsOf = rows => rows.map(r => iBar(r.label, r.p, fmtPct(r.p), toneColor(statusOf(r.p)), 70)).join("");
+
+  // clínica x especialidade (mesma regra do slide de síntese: alto volume quando existir)
+  const all = CLINICA_RECORDS.filter(r => r.a > 0).map(r => ({p:pct(r.a,r.f), total:r.a+(r.ag||0), e:r.e, label:`${cleanName(r.c)} · ${prettyName(r.e)}`, spec:prettyName(r.e), clinic:cleanName(r.c)}));
+  let pool = all.filter(r => r.total >= HIGH_VOLUME_MIN);
+  const hv = pool.length > 0; if (!hv) pool = all;
+  const good = pool.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total);
+  const warn = pool.filter(r => r.p>=60 && r.p<70).sort((a,b) => a.p-b.p);
+  const bad  = pool.filter(r => r.p<60).sort((a,b) => a.p-b.p || b.total-a.total);
+
+  // listas "top 5": só as especialidades primárias (+ as extras marcadas no filtro), alto volume quando existir
+  const allowed = new Set(specKeys);
+  const restr = all.filter(r => allowed.has(r.e));
+  let poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN); if (!poolL.length) poolL = restr;
+  const topBest = poolL.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
+  const topAttn = poolL.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
+  const iListSpec = rows => rows.map(r => `<div class="i-li2 t-${statusOf(r.p)}"><div><strong>${escapeHtml(r.spec)}</strong><span>${escapeHtml(r.clinic)}</span></div><b>${fmtPct(r.p)}</b></div>`).join("");
+
+  let row2 = "";
+  if (pool.length){
+    row2 = `<div class="i-row2">
+      <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?"alto volume":"todas"} · todas as especialidades</span></p>
+      ${iStack([{v:good.length,color:IC.ok,label:"70% ou mais"},{v:warn.length,color:IC.warn,label:"60% a 69%"},{v:bad.length,color:IC.bad,label:"Abaixo de 60%"}])}
+      <div class="i-g" style="grid-template-columns:1fr 1fr;gap:26px;margin-top:20px">
+        <div><p class="i-sub">Maiores comparecimentos<span class="i-hint">top 5 · especialidades primárias</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
+        <div><p class="i-sub">Principais pontos de atenção<span class="i-hint">top 5 · especialidades primárias</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
+      </div>
+    </div>`;
+  }
+
+  const body = `<div class="i-g" style="grid-template-columns:300px 1fr">
+    <div class="i-hero">
+      ${iPctDonut(p, col, 200, 26, `<div class="i-dn" style="color:${col}">${fmtPct(p)}</div><div class="i-dl">compareceram</div>`)}
+      <div class="i-trio t-neutral"><div class="t-good"><b>${fmtInt(comp)}</b><span>vieram</span></div><div class="t-bad"><b>${fmtInt(falt)}</b><span>faltaram</span></div><div class="t-warn"><b>${fmtInt(ag)}</b><span>aguardando</span></div></div>
+      ${sc.ag ? `<div class="i-note">Quando as ${fmtInt(sc.ag)} consultas aguardando retorno fecharem, o % pode ficar entre <b style="color:${IC.bad}">${fmtPct(sc.worst)}</b> e <b style="color:${IC.ok}">${fmtPct(sc.best)}</b>.</div>` : ""}
+    </div>
+    <div>
+      ${specs.length ? `<p class="i-sub">Por especialidade<span class="i-hint">a linha marca 70%</span></p>${barsOf(specs)}` : ""}
+      ${tipos.length ? `<p class="i-sub" style="margin-top:${specs.length?18:0}px">Por tipo de agendamento</p>${barsOf(tipos)}` : ""}
+    </div>
+  </div>${row2}`;
+
+  const actions = [];
+  if (bad.length) actions.push({prio:"alta", text:`Priorizar as ${bad.length} ${plural(bad.length,"combinação","combinações")} de clínica e especialidade com comparecimento abaixo de 60% (começando por ${bad.slice(0,2).map(r=>r.label).join("; ")}): descobrir o motivo das faltas e reforçar a confirmação da consulta.`});
+  if (warn.length) actions.push({prio:"média", text:`Acompanhar as ${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69% (a mais perto de cair: ${warn[0].label}) antes que passem para a faixa vermelha.`});
+  if (sc.ag) actions.push({prio:"média", text:`Fechar o desfecho das ${fmtInt(sc.ag)} consultas aguardando retorno: dependendo do resultado, o comparecimento geral fica entre ${fmtPct(sc.worst)} e ${fmtPct(sc.best)}.`});
+
+  return {
+    title:"Os pacientes estão vindo às consultas?",
+    take:`De cada 100 consultas com desfecho, cerca de ${Math.round(p)} compareceram e ${100-Math.round(p)} faltaram (${tone==="good"?"70% ou mais":(tone==="warn"?"entre 60% e 69%":"abaixo de 60%")}).`,
+    body, actions,
+    kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas`, chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone}
+  };
+}
+
+/* ---- 2) Cancelamentos (aba Visão geral) ---- */
+function infoSecCancelamentos(){
+  const c = cancelamentoData, rec = (recuperacaoRows && recuperacaoRows.length) ? recuperacaoRows : null;
+  if (!c && !rec) return null;
+  const has = v => v !== undefined && v !== "";
+  const last = rec ? rec[rec.length-1] : null;
+  const mes = last ? iMonth(last.mes) : "";
+  const cp = last && has(last.pct_conversao) ? toPctValue(last.pct_conversao) : null;
+  const pp = last && has(last.pct_perdidos) ? toPctValue(last.pct_perdidos) : null;
+
+  let left = "", motivos = "";
+  const motivoTop = c ? [...c.byMotivo.entries()].sort((a,b) => b[1]-a[1]) : [];
+  if (c){
+    const sh = n => c.total>0 ? n/c.total*100 : 0;
+    left = `<div class="i-hero">
+      ${iDonutBlock(`<div class="i-dn" style="color:${IC.navy}">${fmtInt(c.total)}</div><div class="i-dl">cancelamentos</div>`, [{v:c.paciente,color:IC.blue},{v:c.clinica,color:IC.bad}], 200, 26)}
+      <div class="i-leg" style="justify-content:center;flex-direction:column;align-items:flex-start;gap:6px;margin-top:0;font-size:14px">
+        <span><i class="i-dot" style="background:${IC.blue}"></i>Pelo paciente: <b>${fmtInt(c.paciente)}</b> (${fmtPct(sh(c.paciente))})</span>
+        <span><i class="i-dot" style="background:${IC.bad}"></i>Pela clínica: <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
+      </div></div>`;
+    const top4 = motivoTop.slice(0,4), mx = Math.max(...top4.map(m => m[1]), 1);
+    motivos = `<p class="i-sub">Principais motivos<span class="i-hint">% do total de cancelamentos</span></p>` +
+      top4.map(([k,v]) => iBar(prettyName(k), v/mx*100, fmtPct(sh(v)), IC.blue)).join("");
+  }
+  let recup = "";
+  if (last){
+    const mini = (p, color, big, small) => `<div class="i-mini-it">${iPctDonut(p, color, 92, 14, `<div class="i-dn" style="font-size:20px;color:${color}">${fmtPct(p)}</div>`)}<div class="i-mini-t"><b>${big}</b>${small}</div></div>`;
+    const t = toNum(last.total);
+    recup = `<div${c?' style="margin-top:20px"':''}><p class="i-sub">Recuperação em ${escapeHtml(mes)}<span class="i-hint">o que aconteceu depois do cancelamento</span></p>
+      <div class="i-mini">
+        ${cp!==null ? mini(cp, IC.cyan, "Reagendados e convertidos", t?`de ${fmtInt(t)} cancelamentos`:"dos cancelamentos") : ""}
+        ${pp!==null ? mini(pp, IC.navy, "Perdidos", "sem novo agendamento") : ""}
+      </div></div>`;
+  }
+  const body = `<div class="i-g" style="grid-template-columns:${c?"300px 1fr":"1fr"}">${left}<div>${motivos}${recup}</div></div>`;
+
+  const actions = [];
+  if (c && c.clinica) actions.push({prio:"alta", text:`Revisar os ${fmtInt(c.clinica)} cancelamentos por solicitação da clínica (${fmtPct(c.clinica/c.total*100)} do total) e reagendar esses pacientes com prioridade.`});
+  if (c && motivoTop[0]) actions.push({prio:"média", text:`Investigar o principal motivo de cancelamento — ${prettyName(motivoTop[0][0])} (${fmtPct(motivoTop[0][1]/c.total*100)}) — e definir o que dá para evitar antes de o paciente cancelar.`});
+  if (pp !== null && pp > 0) actions.push({prio:"média", text:`Recuperar mais cancelamentos: em ${mes}, ${fmtPct(pp)} foram perdidos sem novo agendamento${cp!==null?` e só ${fmtPct(cp)} viraram reagendamento convertido`:""}.`});
+
+  const share = c && c.total>0 ? c.clinica/c.total*100 : 0;
+  return {
+    title:"Quantos cancelam e por quê?",
+    take: c ? `${fmtInt(c.total)} cancelamentos no período; ${fmtPct(share)} foram pedidos pela própria clínica.${last&&cp!==null?` Em ${mes}, ${fmtPct(cp)} dos cancelamentos viraram reagendamento convertido.`:""}`
+            : `Em ${mes}, ${cp!==null?fmtPct(cp)+" dos cancelamentos viraram reagendamento convertido":"veja a recuperação pós-cancelamento abaixo"}.`,
+    body, actions,
+    kpi: c ? {tone:"bad", label:"Cancelamentos", num:fmtInt(c.total), sub:c.clinica ? `${fmtPct(share)} pedidos pela clínica` : `${fmtInt(c.paciente)} pedidos pelo paciente`, chip:null}
+           : {tone:"neutral", label:"Reagendamentos convertidos", num:cp!==null?fmtPct(cp):"—", sub:`dos cancelamentos de ${mes}`, chip:null}
+  };
+}
+
+/* ---- 3) Mediana cirúrgica ---- */
+function infoSecMediana(){
+  if (!MEDIANA_RECORDS.length) return null;
+  const recs = getFilteredMedianaRecords();   // respeita os filtros de Especialidade/Clínica da aba Mediana
+  if (!recs.length) return null;
+  const fEsp = [...medianaMsEsp.selected].map(prettyName), fCli = [...medianaMsCli.selected].map(c => cleanName(c));
+  const filtered = fEsp.length > 0 || fCli.length > 0;
+  const filtTxt = [fEsp.length ? "Especialidade: " + fEsp.join(", ") : "", fCli.length ? "Clínica: " + fCli.join(", ") : ""].filter(Boolean).join(" · ");
+  const cur = Math.max(...recs.map(r => r.tSort));
+  const atual = recs.filter(r => r.tSort === cur), tLabel = atual[0].tLabel;
+  const combos = atual.map(r => ({...r, sla:classifyMedianaSLA(r.dias, r.especialidade), label:`${cleanName(r.clinica)} · ${prettyName(r.especialidade)}`}));
+  const withSla = combos.filter(c => c.sla);
+  const okc = withSla.filter(c => c.sla.tier==="good"), mid = withSla.filter(c => c.sla.tier==="warn");
+  const crit = withSla.filter(c => c.sla.tier==="bad").sort((a,b) => b.dias-a.dias);
+  const semMeta = combos.length - withSla.length;
+
+  const byT = new Map();
+  recs.forEach(r => { if (!byT.has(r.tSort)) byT.set(r.tSort, {l:r.tLabel, v:[]}); byT.get(r.tSort).v.push(r.dias); });
+  const med = [...byT.keys()].sort((a,b) => a-b).map(k => ({label:byT.get(k).l, v:median(byT.get(k).v)}));
+  const mb = med[med.length-1].v, prev = med.length>1 ? med[med.length-2] : null;
+  const d = prev ? mb - prev.v : null;
+  const dTone = d===null || Math.abs(d)<0.05 ? "neutral" : (d<0 ? "good" : "bad");
+  const shown = med.slice(-6);
+  const cols = iCols(shown.map((m,i) => ({label:m.label, v:m.v, text:fmtDias(m.v), color: i===shown.length-1 ? IC.blue : IC.soft})));
+
+  const rowsOf = a => a.map(c => ({label:c.label, text:fmtDias(c.dias)+" dias", tone:c.sla ? c.sla.tier : "neutral"}));
+  const fast = combos.slice().sort((a,b) => a.dias-b.dias).slice(0,3);
+  const slow = combos.slice().sort((a,b) => b.dias-a.dias).slice(0,3);
+
+  const body = `<div class="i-g" style="grid-template-columns:300px 1fr">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:8px"><span class="i-dn" style="font-size:60px;color:${IC.navy}">${fmtDias(mb)}</span><span style="font-size:18px;font-weight:700;color:${IC.navy}">dias</span></div>
+      <div class="i-note" style="margin:2px 0 14px">mediana geral em ${escapeHtml(tLabel)}${d!==null?` · <b style="color:${toneColor(dTone)}">${fmtDelta(d,"dias")}</b> vs. ${escapeHtml(prev.label)}`:""}</div>
+      ${med.length>1 ? `<p class="i-sub">Mediana por trimestre</p>${cols}` : ""}
+    </div>
+    <div>
+      ${withSla.length ? `<p class="i-sub">Clínicas por especialidade, frente à meta de dias<span class="i-hint">${escapeHtml(tLabel)}</span></p>${iStack([{v:okc.length,color:IC.ok,label:"Dentro da meta"},{v:mid.length,color:IC.warn,label:"Intermediário"},{v:crit.length,color:IC.bad,label:"Crítico"}])}${semMeta?`<div class="i-note">${semMeta} ${plural(semMeta,"combinação","combinações")} sem meta definida (especialidades terciárias).</div>`:""}` : ""}
+      <div class="i-g" style="grid-template-columns:1fr 1fr;margin-top:${withSla.length?20:0}px;gap:20px">
+        <div><p class="i-sub">Menor tempo até a cirurgia</p>${iList(rowsOf(fast),"good")}</div>
+        <div><p class="i-sub">Maior tempo até a cirurgia</p>${iList(rowsOf(slow),"bad")}</div>
+      </div>
+    </div>
+  </div>`;
+
+  const actions = [];
+  if (crit.length) actions.push({prio:"alta", text:`Escalar com as ${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel} (as mais lentas: ${crit.slice(0,2).map(c=>`${c.label}, ${fmtDias(c.dias)} dias`).join("; ")}) para encurtar o tempo até a cirurgia.`});
+  if (mid.length) actions.push({prio:"média", text:`Acompanhar as ${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário — acima da meta, ainda não críticas — para não virarem críticas.`});
+  if (d !== null && d > 0.05) actions.push({prio:"média", text:`A mediana geral subiu de ${fmtDias(prev.v)} para ${fmtDias(mb)} dias: entender o que atrasou as cirurgias neste trimestre.`});
+
+  return {
+    title:"Quanto tempo até a cirurgia?",
+    take:`Em geral, o paciente espera ${fmtDias(mb)} dias entre a consulta e a 1ª cirurgia (${tLabel})${withSla.length?`; ${okc.length} de ${withSla.length} combinações estão dentro da meta`:""}.${filtered ? " Filtro aplicado — " + filtTxt + "." : ""}`,
+    body, actions,
+    kpi:{tone:"neutral", label: filtered ? "Mediana geral das especialidades do filtro" : "Mediana geral das especialidades", num:fmtDias(mb), unit:"dias",
+      sub:`entre a consulta e a 1ª cirurgia · ${tLabel}${filtered ? " · " + filtTxt : ""}`,
+      chip:d!==null && Math.abs(d)>=0.05 ? `${fmtDelta(d,"dias")} vs. ${prev.label}` : null, chipTone:dTone}
+  };
+}
+
+/* ---- 4) Indicações ---- */
+function infoSecIndicacoes(){
+  const tri = indicacaoTrimestres(indConsultasRows);
+  const serie = iSeries(indConsultasRows).slice(-6);
+  const camp = campanhaData && campanhaData.totalComp>0 ? campanhaData : null;
+  const cir = iSeries(indCirurgiasRows);
+  if (!tri && !camp && !cir.length) return null;
+
+  const d = tri && tri.prev ? tri.cur.p - tri.prev.p : null;
+  const dTone = d===null || Math.abs(d)<=0.05 ? "neutral" : (d>0 ? "good" : "bad");
+  const dTxt = d===null ? "" : `<b style="color:${toneColor(dTone)}">${fmtPP(d)}</b> vs. ${fmtPct(tri.prev.p)} nos 3 meses anteriores`;
+
+  let campHtml = "", niShare = 0, indShare = null;
+  if (camp){
+    const entries = [...camp.map.entries()], tot = camp.totalComp;
+    const ind = entries.filter(([k]) => isIndicacao(k)).reduce((s,[,v]) => s+v, 0);
+    const ni = (entries.find(([k]) => normKey(k)==="nao informado") || [0,0])[1];
+    const out = Math.max(0, tot - ind - ni);
+    niShare = ni/tot*100; indShare = ind/tot*100;
+    const seg = (v,color,label) => ({v, color, label, text: v/tot>=0.08 ? fmtPct(v/tot*100) : "", lt: fmtPct(v/tot*100)});
+    campHtml = `<p class="i-sub">De onde vieram os pacientes<span class="i-hint">comparecimentos por origem</span></p>` +
+      iStack([seg(ind,IC.ok,"Indicação"), seg(out,IC.blue,"Outras origens"), seg(ni,IC.bad,"Não informado")]) +
+      (ni ? `<div class="i-note">"Não informado" quer dizer que o campo Campanha ficou em branco no agendamento — não dá para saber de onde veio o paciente.</div>` : "");
+  }
+  let cirHtml = "", cirD = null, cirLast = null;
+  if (cir.length){
+    cirLast = cir[cir.length-1]; const pv = cir.length>1 ? cir[cir.length-2] : null;
+    cirD = pv ? cirLast.p - pv.p : null;
+    cirHtml = `<div class="i-li t-${cirD===null||Math.abs(cirD)<=0.05?"neutral":(cirD>0?"good":"bad")}" style="margin-top:16px"><span>Indicação nas 1ªs cirurgias · ${escapeHtml(iMonth(cirLast.m))}</span><b>${fmtPct(cirLast.p)}${cirD!==null?` (${fmtPP(cirD)})`:""}</b></div>`;
+  }
+
+  const cols = serie.length>1 ? `<p class="i-sub">Indicação em consultas, mês a mês</p>` + iCols(serie.map((s,i) => ({label:iMonth(s.m), v:s.p, text:fmtPct(s.p).replace(",0%","%"), color:i===serie.length-1?IC.blue:IC.soft}))) : "";
+  const hero = tri ? `<div class="i-hero">${iPctDonut(tri.cur.p, IC.blue, 170, 22, `<div class="i-dn" style="font-size:38px;color:${IC.blue}">${fmtPct(tri.cur.p)}</div><div class="i-dl">últimos 3 meses</div>`)}<div class="i-note" style="margin:0">${dTxt || "Sem 3 meses anteriores para comparar."}</div></div>` : "";
+  const cells = [];
+  if (hero) cells.push({w:"250px", h:hero});
+  if (cols) cells.push({w:"1fr", h:`<div>${cols}</div>`});
+  if (campHtml || cirHtml) cells.push({w:"1fr", h:`<div>${campHtml}${cirHtml}</div>`});
+  const body = `<div class="i-g" style="grid-template-columns:${cells.map(c => c.w).join(" ")}">${cells.map(c => c.h).join("")}</div>`;
+
+  const actions = [];
+  if (d !== null && d < -0.05) actions.push({prio:"alta", text:`A indicação caiu ${fmtPP(Math.abs(d)).replace(/^\+/,"")} frente aos 3 meses anteriores: reforçar o convite de indicação junto aos pacientes já atendidos.`});
+  if (niShare >= 10) actions.push({prio:"alta", text:`Cobrar o preenchimento do campo Campanha no agendamento: ${fmtPct(niShare)} dos comparecimentos estão como "Não informado" e não dá para saber de onde vieram.`});
+  if (cirD !== null && cirD < -0.05) actions.push({prio:"média", text:`A indicação nas 1ªs cirurgias caiu ${fmtPP(Math.abs(cirD)).replace(/^\+/,"")} em ${iMonth(cirLast.m)}: acompanhar se a queda se repete no mês seguinte.`});
+
+  return {
+    title:"De onde vêm os pacientes?",
+    take: tri ? `Em média, ${fmtPct(tri.cur.p)} das consultas dos últimos 3 meses vieram de indicação${d!==null?` (${d>0.05?"mais":(d<-0.05?"menos":"igual")} que nos 3 meses anteriores)`:""}.`
+              : (camp ? "Veja de onde vieram os pacientes que compareceram." : "Evolução da indicação nas 1ªs cirurgias."),
+    body, actions,
+    kpi: tri ? {tone:"neutral", label:"Indicação", num:fmtPct(tri.cur.p), sub:"das consultas, média dos últimos 3 meses", chip:d!==null && Math.abs(d)>0.05 ? `${fmtPP(d)} vs. 3 meses antes` : null, chipTone:dTone}
+             : (cirLast ? {tone:"neutral", label:"Indicação em 1ªs cirurgias", num:fmtPct(cirLast.p), sub:iMonth(cirLast.m), chip:null}
+             : {tone:"neutral", label:"Indicação", num:fmtPct(indShare), sub:"dos comparecimentos do período", chip:null})
+  };
+}
+
+/* ---- semáforo: destaques / atenção / negativos (as mesmas frases do slide de síntese) ---- */
+function infoSemaforo(){
+  const TAGS = ["Visão geral","Por clínica","Mediana","Indicações"];
+  const LIST_RE = /^(Maiores comparecimentos|Menores comparecimentos|Mais próximas de 60%|Menor tempo|Maior tempo):/;   // rankings: já aparecem nos gráficos
+  const cols = {g:[], w:[], b:[]}, notes = [];
+  SUMMARY_THEMES.forEach((t,i) => {
+    if (!t.has()) return;
+    const r = safeSec(() => t.fn()); if (!r) return;
+    ["g","w","b"].forEach(k => r[k].filter(s => !LIST_RE.test(s)).forEach(s => cols[k].push({tag:TAGS[i], s, note:(r.notes||{})[s]})));
+  });
+  // frases que falam de "N combinações" ganham um asterisco; quais são vai na nota de rodapé
+  const item = x => {
+    let mark = "";
+    if (x.note){ const n = notes.length + 1; notes.push({n, ...x.note}); mark = `<sup class="i-sup">*${n}</sup>`; }
+    return `<div class="i-sem-it"><span class="i-tag">${x.tag}</span>${iRich(x.s)}${mark}</div>`;
+  };
+  const col = (k, title, tone) => `<div class="i-sem-c t-${tone}"><div class="i-sem-h">${title}</div>` +
+    (cols[k].length ? cols[k].slice(0,5).map(item).join("") : '<div class="i-sem-none">Nada a registrar.</div>') + `</div>`;
+  const grid = `<div class="i-sem">${col("g","Pontos positivos","good")}${col("w","Pontos de atenção","warn")}${col("b","Pontos negativos","bad")}</div>`;
+  const MAXN = 12;
+  const fn = notes.length ? `<div class="i-fn">${notes.map(x => `<p><b>*${x.n}</b> ${escapeHtml(x.title)}: ${escapeHtml(x.items.slice(0,MAXN).join("; "))}${x.items.length>MAXN ? ` e mais ${x.items.length-MAXN}` : ""}.</p>`).join("")}</div>` : "";
+  return grid + fn;
+}
+
+function infoMissingText(){
+  const miss = [];
+  if (!comparecimentoData && !CLINICA_RECORDS.length) miss.push("comparecimento");
+  if (!cancelamentoData) miss.push("cancelamentos por motivo");
+  if (!(recuperacaoRows && recuperacaoRows.length)) miss.push("recuperação pós-cancelamento");
+  if (!MEDIANA_RECORDS.length) miss.push("mediana cirúrgica");
+  if (!indConsultasRows) miss.push("indicação em consultas");
+  if (!indCirurgiasRows) miss.push("indicação em cirurgias");
+  const msgs = [];
+  if (miss.length) msgs.push("Para completar o infográfico, ainda falta carregar: " + miss.join(", ") + ".");
+  if (COMPARECIMENTO_ROWS && !comparecimentoPeriodo()) msgs.push('A planilha de comparecimento não tem a coluna "Data da consulta" (ou as datas não foram reconhecidas), então o período não aparece no topo.');
+  if (MEDIANA_RECORDS.length && (medianaMsEsp.selected.size || medianaMsCli.selected.size)) msgs.push("A mediana está usando os filtros da aba Mediana cirúrgica.");
+  return msgs.join(" ");
+}
+function renderInfoSpecFilter(show){
+  const el = document.getElementById("infoSpecFilter");
+  const keys = especialidadeData ? [...especialidadeData.keys()] : [...CLINICA_BY_SPEC.keys()];
+  const extras = keys.filter(s => !DEFAULT_RANKING_SPECS.includes(s)).sort();
+  el.classList.toggle("hidden", !show || !extras.length);
+  el.innerHTML = extras.length ? `<span class="filter-hint" style="margin-right:6px"><b>Incluir outras especialidades</b> no gráfico por especialidade e nas listas top 5:</span>` +
+    extras.map(s => `<button type="button" class="spec-toggle${especialidadeExtraSelected.has(s)?" active":""}" onclick="toggleInfoSpec(${escapeHtml(JSON.stringify(s))})">${escapeHtml(prettyName(s))}</button>`).join("") : "";
+}
+function toggleInfoSpec(s){   // mesmo estado do ranking da Visão geral: marcar aqui marca lá também
+  if (especialidadeExtraSelected.has(s)) especialidadeExtraSelected.delete(s); else especialidadeExtraSelected.add(s);
+  renderEspecialidadeRanking();
+  renderInfographic();
+}
+
+/* ---- período filtrado: menor e maior "Data da consulta" da planilha de comparecimento ---- */
+function parseDataConsulta(v){
+  if (v instanceof Date) return isNaN(v) ? null : v.getTime();
+  if (typeof v === "number") return v > 20000 && v < 80000 ? Math.round((v - 25569) * 86400000) : null;   // data serial do Excel
+  const s = String(v==null ? "" : v).trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return Date.UTC(+m[3], +m[2]-1, +m[1]);   // 31/10/2026
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return Date.UTC(+m[1], +m[2]-1, +m[3]);           // 2026-10-31
+  return /^\d{5}$/.test(s) ? parseDataConsulta(+s) : null;
+}
+function comparecimentoPeriodo(){
+  if (!COMPARECIMENTO_ROWS) return null;
+  let lo = Infinity, hi = -Infinity, n = 0;
+  for (const r of COMPARECIMENTO_ROWS){
+    if (r.data_consulta === undefined) continue;
+    const t = parseDataConsulta(r.data_consulta);
+    if (t === null) continue;
+    n++; if (t < lo) lo = t; if (t > hi) hi = t;
+  }
+  if (!n) return null;
+  const f = t => new Date(t).toLocaleDateString("pt-BR", {timeZone:"UTC"});
+  return {de:f(lo), ate:f(hi), n};
+}
+
+function renderInfographic(){
+  const root = document.getElementById("infoRoot"), stage = document.getElementById("infoStage");
+  const secs = [infoSecComparecimento, infoSecCancelamentos, infoSecMediana, infoSecIndicacoes].map(safeSec).filter(Boolean);
+  document.getElementById("infoEmpty").classList.toggle("hidden", secs.length > 0);
+  stage.classList.toggle("hidden", !secs.length);
+  document.getElementById("infoMissing").textContent = infoMissingText();
+  renderInfoSpecFilter(secs.length > 0);
+  if (!secs.length){ root.innerHTML = ""; return; }
+
+  const today = new Date().toLocaleDateString("pt-BR");
+  const per = comparecimentoPeriodo();
+  const kpis = secs.map(s => s.kpi).filter(Boolean);
+  const kpiHtml = `<div class="i-kpis" style="grid-template-columns:repeat(4,1fr)">` + kpis.map(k =>
+    `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n">${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
+  const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo.</div>${infoSemaforo()}</section>`;
+  const secHtml = secs.map((s,i) =>
+    `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}</div>${s.body}</section>`).join("");
+
+  const acts = secs.flatMap(s => s.actions).sort((a,b) => (a.prio==="alta"?0:1) - (b.prio==="alta"?0:1)).slice(0,6);
+  const actHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${secs.length+2}</div><div class="i-sec-t">O que fazer agora</div></div><div class="i-take">Ações sugeridas a partir dos números deste período, da mais urgente para a menos urgente.</div>` +
+    (acts.length ? acts.map((a,i) => `<div class="i-act${i===0?" first":""} t-${a.prio==="alta"?"bad":"warn"}"><div class="i-act-n">${i+1}</div><div class="i-act-t">${iRich(a.text)}</div><div class="i-prio">Prioridade ${a.prio}</div></div>`).join("")
+      : `<div class="i-act first t-good"><div class="i-act-n">1</div><div class="i-act-t">Nenhuma ação urgente identificada neste período. Manter o acompanhamento mensal.</div></div>`) + `</section>`;
+
+  root.innerHTML =
+    `<div class="i-head"><div class="i-head-top"><div class="i-brand">cdv</div><div class="i-date">Painel de CX · gerado em ${today}</div></div>
+       <div class="i-title">Relatório de comparecimento</div>
+       ${per ? `<div class="i-per">${per.de === per.ate ? "Consultas em " + per.de : "Consultas de " + per.de + " a " + per.ate} · data da consulta</div>` : ""}
+       <div class="i-lead">Um retrato rápido da jornada do paciente: quem vem às consultas, quem cancela, quanto tempo leva até a cirurgia e de onde os pacientes vêm.</div></div>` +
+    kpiHtml + semHtml + secHtml + actHtml +
+    `<div class="i-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Alto volume: ${HIGH_VOLUME_MIN} ou mais consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span><span style="white-space:nowrap">cdv · ${today}</span></div>`;
+  fitInfographic();
+}
+// escala o infográfico (largura fixa) para caber na tela; no download volta a 100%
+function fitInfographic(){
+  const stage = document.getElementById("infoStage"), root = document.getElementById("infoRoot");
+  if (stage.classList.contains("hidden")) return;
+  const k = Math.min(1, stage.parentElement.clientWidth / INFO_W);
+  root.style.transform = k < 1 ? `scale(${k})` : "";
+  stage.style.height = Math.ceil(root.offsetHeight * k) + "px";
+}
+window.addEventListener("resize", fitInfographic);
+
+async function downloadInfographic(kind){
+  const root = document.getElementById("infoRoot");
+  const btns = [document.getElementById("infoPngBtn"), document.getElementById("infoPdfBtn")];
+  if (!root.innerHTML) return;
+  if (typeof html2canvas === "undefined" || (kind === "pdf" && !(window.jspdf && window.jspdf.jsPDF))){
+    showBanner("error", "Não consegui carregar a biblioteca de exportação (precisa de internet na primeira carga). Recarregue a página e tente de novo.");
+    return;
+  }
+  btns.forEach(b => b.disabled = true);
+  const old = btns.map(b => b.innerHTML);
+  btns[kind==="png"?0:1].textContent = "Gerando...";
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = await html2canvas(root, {
+      scale:2, backgroundColor:"#EAF0F6", useCORS:true, logging:false, windowWidth:Math.max(window.innerWidth, INFO_W+40),
+      onclone: doc => {   // no clone, tira a escala da tela para capturar em 100%
+        const r = doc.getElementById("infoRoot"), s = doc.getElementById("infoStage");
+        r.style.transform = "none"; s.style.height = "auto"; s.style.overflow = "visible"; s.style.borderRadius = "0";
+      }
+    });
+    const stamp = new Date().toISOString().slice(0,10), name = `relatorio-comparecimento-${stamp}`;
+    if (kind === "png"){
+      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+      saveBlob(blob, name + ".png");
+    } else {
+      const w = canvas.width/2, h = canvas.height/2;   // página única do tamanho do infográfico
+      const pdf = new window.jspdf.jsPDF({orientation: w>h?"l":"p", unit:"px", format:[w,h], hotfixes:["px_scaling"], compress:true});
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h, undefined, "FAST");
+      pdf.save(name + ".pdf");
+    }
+  } catch(err){
+    console.error(err);
+    showBanner("error", "Não foi possível gerar o arquivo: " + escapeHtml(err.message || String(err)));
+  } finally {
+    btns.forEach((b,i) => { b.innerHTML = old[i]; });
+    updateExportAvailability();
+  }
+}
+function saveBlob(blob, filename){
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
 
 /* =========================================================================
    PLANILHA COMPARTILHADA DE COMPARECIMENTO
