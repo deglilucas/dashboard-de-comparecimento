@@ -325,6 +325,30 @@ body.on-sintese .toolbar{display:none}
 .infog *{box-sizing:border-box}
 .infog .t-good{--tc:var(--c-ok);--tb:var(--c-ok-bg)} .infog .t-warn{--tc:var(--c-warn);--tb:var(--c-warn-bg)}
 .infog .t-bad{--tc:var(--c-bad);--tb:var(--c-bad-bg)} .infog .t-neutral{--tc:var(--c-blue);--tb:var(--c-neu-bg)}
+.infog .t-crit{--tc:#9E2415;--tb:#F6D3CE} .infog .t-alta{--tc:var(--c-bad);--tb:var(--c-bad-bg)}
+.infog .t-media{--tc:var(--c-warn);--tb:var(--c-warn-bg)} .infog .t-baixa{--tc:#4A6A8A;--tb:var(--c-neu-bg)}
+.i-acs{display:flex;flex-direction:column;gap:12px}
+.i-ac{display:flex;border:1px solid var(--c-line);border-radius:16px;overflow:hidden;background:#fff}
+.i-ac-bar{flex:0 0 8px;background:var(--tc)}
+.i-ac-b{flex:1;min-width:0;padding:14px 18px 14px}
+.i-ac-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.i-ac-n{width:28px;height:28px;border-radius:50%;background:var(--tb);color:var(--tc);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.i-ac-n.sm{width:24px;height:24px;font-size:13px}
+.i-pill{padding:2px 10px;border-radius:99px;background:var(--c-neu-bg);color:var(--c-navy);font-size:12.5px;font-weight:700}
+.i-pill.o{background:#fff;border:1px solid var(--c-line);color:var(--c-body)}
+.i-sev{margin-left:auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:13px;font-weight:700}
+.i-ac-t{font-size:18.5px;font-weight:700;color:var(--c-navy);line-height:1.25;margin:9px 0 3px}
+.i-ac-t.sm{font-size:16px;margin:7px 0 2px}
+.i-ac-w{font-size:14.5px;line-height:1.45;color:var(--c-body)}
+.i-ac-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+.i-st{background:#F2F6FA;border-radius:12px;padding:9px 13px 10px;font-size:14px;line-height:1.4}
+.i-st b{display:block;font-size:12.5px;color:var(--c-navy);margin-bottom:2px}
+.i-ac-cs{margin-top:9px;font-size:13.5px;line-height:1.4;color:var(--c-muted)}
+.i-ac-cs b{color:var(--c-navy)}
+.i-acs2{display:flex;flex-direction:column;gap:9px}
+.i-ac2{border-left:6px solid var(--tc);border-radius:12px;background:#F6F8FB;padding:10px 16px 11px}
+.i-ac2-next{margin-top:5px;font-size:13.5px;line-height:1.4;color:var(--c-body)}
+.i-ac2-next b{color:var(--c-navy)}
 .i-head{background:linear-gradient(135deg,#3874AF 0%,#00A4D0 100%);border-radius:24px;color:#fff;padding:26px 32px 26px}
 .i-head-top{display:flex;justify-content:space-between;align-items:center}
 .i-brand{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
@@ -348,7 +372,8 @@ body.on-sintese .toolbar{display:none}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
 .i-hint{font-size:12.5px;font-weight:400;color:var(--c-muted);margin-left:4px}
 .i-note{font-size:13px;color:var(--c-muted);margin-top:8px;line-height:1.4}
-.i-brow{display:grid;grid-template-columns:200px 1fr 62px;align-items:center;gap:10px;margin-bottom:10px}
+.infog .i-ac-steps > *,.infog .i-g > *,.infog .i-sem > *,.infog .i-kpis > *,.infog .i-trio > *,.infog .i-brow > *{min-width:0}   /* sem isto uma coluna 1fr não encolhe e o conteúdo vaza da página */
+.i-brow{display:grid;grid-template-columns:260px 1fr 62px;align-items:center;gap:10px;margin-bottom:10px}
 .i-bl{font-size:14px;line-height:1.2;color:var(--c-body)}
 .i-bt{height:14px;border-radius:99px;background:var(--c-line);position:relative}
 .i-bt i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
@@ -368,12 +393,12 @@ body.on-sintese .toolbar{display:none}
 .i-trio b{display:block;font-size:22px;color:var(--tc);line-height:1.1}
 .i-trio span{font-size:12.5px;color:var(--c-body)}
 .i-li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--tb);margin-bottom:7px}
-.i-li span{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.i-li span{font-size:14px;line-height:1.25;min-width:0}
 .i-li b{color:var(--tc);font-size:15px;white-space:nowrap}
 .i-li2{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--tb);margin-bottom:7px}
 .i-li2 div{min-width:0}
-.i-li2 strong{display:block;font-size:15.5px;font-weight:700;color:var(--c-navy);line-height:1.2}
-.i-li2 span{display:block;font-size:12.5px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.i-li2 strong{display:block;font-size:16.5px;font-weight:700;color:var(--c-navy);line-height:1.2}
+.i-li2 span{display:block;font-size:15px;font-weight:600;color:var(--c-body);line-height:1.25;margin-top:1px}
 .i-li2 b{color:var(--tc);font-size:16px;white-space:nowrap}
 .i-fn{margin-top:14px;padding-top:12px;border-top:1px solid var(--c-line);font-size:11.5px;line-height:1.5;color:var(--c-muted)}
 .i-fn p{margin:0 0 5px}
@@ -1099,6 +1124,13 @@ function markEmptySections(tabEl, marked){
    (>=70 bom, 60–69 atenção, <60 ruim) e do SLA de mediana (classifyMedianaSLA). */
 const SUM_MAX = 3; // no máximo 3 frases por bloco, para caber num slide
 const fmtPP = n => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + " p.p.";
+const fmtRel = n => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%";   // variação relativa
+/* regra de variação (definida pelo usuário, 2026-11): piora RELATIVA ao período anterior —
+   a partir de 5% = ponto de atenção · a partir de 10% = ponto ruim · acima de 15% = crítico.
+   Melhora = ponto positivo. Vale para mediana geral e indicação (comparecimento tem faixas próprias: 70% / 60%). */
+const VAR_ATENCAO = 5, VAR_RUIM = 10, VAR_CRITICA = 15;
+const varSev = rel => rel > VAR_CRITICA ? 3 : (rel >= VAR_RUIM ? 2 : (rel >= VAR_ATENCAO ? 1 : 0));   // rel = piora relativa em % (0 = sem ação)
+const varBucket = worse => worse < -0.5 ? "g" : (worse >= VAR_RUIM ? "b" : "w");                      // worse > 0 = piorou
 const sumBucket = p => p>=70 ? "g" : (p>=60 ? "w" : "b");
 const cleanName = c => parseClinic(c).nome;
 
@@ -1113,25 +1145,25 @@ function summaryVisaoGeral(){
     const tipos = [...d.byTipo.entries()].map(([k,v]) => ({k, den:v.compareceu+v.faltou, p:(v.compareceu+v.faltou)>0 ? v.compareceu/(v.compareceu+v.faltou)*100 : 0})).filter(t=>t.den>=10).sort((a,b)=>b.p-a.p);
     if (tipos.length > 1){
       const best = tipos[0], worst = tipos[tipos.length-1];
-      if (best.p >= 70) o.g.push(`Melhor desempenho em tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
+      if (best.p >= 70) o.g.push(`Benchmark em tipo de agendamento:${prettyName(best.k)} (${fmtPct(best.p)})`);
       if (worst.p < 70) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Menor comparecimento por tipo: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
     }
   }
   if (especialidadeData){
     const rows = DEFAULT_RANKING_SPECS.filter(s=>especialidadeData.has(s)).map(s => {
       const d = especialidadeData.get(s), den = d.compareceu + d.faltou;
-      return {s, den, p: den>0 ? d.compareceu/den*100 : 0};
-    }).filter(r=>r.den>0).sort((a,b)=>b.p-a.p);
+      return {s, den, tot:den + d.aguardando, p: den>0 ? d.compareceu/den*100 : 0};
+    }).filter(r=>r.den>0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b)=>b.p-a.p);   // benchmark: só com 10+ consultas
     if (rows.length > 1){
       const best = rows[0], worst = rows[rows.length-1];
-      if (best.p >= 70) o.g.push(`Melhor desempenho em especialidade: ${prettyName(best.s)} (${fmtPct(best.p)})`);
+      if (best.p >= 70) o.g.push(`Benchmark em especialidade:${prettyName(best.s)} (${fmtPct(best.p)})`);
       o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Menor comparecimento por especialidade: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
     }
   }
   if (cancelamentoData){
     const c = cancelamentoData, top = [...c.byMotivo.entries()].sort((a,b)=>b[1]-a[1])[0];
     if (top) o.w.push(`${fmtInt(c.total)} cancelamentos; principal motivo: ${prettyName(top[0])} (${fmtPct(top[1]/c.total*100)})`);
-    if (c.clinica) o.b.push(`${fmtInt(c.clinica)} cancelamentos por solicitação da clínica (${fmtPct(c.clinica/c.total*100)})`);
+    if (c.clinica) o.b.push(`${fmtInt(c.clinica)} cancelamentos tombados pela clínica (${fmtPct(c.clinica/c.total*100)})`);
   }
   if (recuperacaoRows && recuperacaoRows.length){
     const last = recuperacaoRows[recuperacaoRows.length-1];
@@ -1153,7 +1185,7 @@ function summaryComparecimento(){
   const bad = pool.filter(r=>r.p<60).sort((a,b)=>a.p-b.p || b.total-a.total);
   const list = arr => arr.slice(0,3).map(r=>`${r.label} (${fmtPct(r.p)})`).join("; ");
   o.g.push(note(`${good.length} de ${pool.length} ${scope} com comparecimento ≥ 70%`, `Combinações com comparecimento de 70% ou mais`, good));
-  if (good.length) o.g.push(`Maiores comparecimentos: ${list(good)}`);
+  if (good.length) o.g.push(`Benchmark de comparecimento: ${list(good)}`);
   if (warn.length) o.w.push(note(`${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69%`, `Combinações entre 60% e 69%`, warn), `Mais próximas de 60%: ${list(warn)}`);
   if (bad.length) o.b.push(note(`${bad.length} ${plural(bad.length,"combinação","combinações")} abaixo de 60%`, `Combinações abaixo de 60%`, bad), `Menores comparecimentos: ${list(bad)}`);
   const bySpec = [...CLINICA_BY_SPEC.entries()].map(([s,rows]) => ({s, st:specStats(rows)})).filter(x=>x.st.a>=HIGH_VOLUME_MIN);
@@ -1161,7 +1193,7 @@ function summaryComparecimento(){
     bySpec.sort((a,b)=>a.st.p-b.st.p);
     const w = bySpec[0], bst = bySpec[bySpec.length-1];
     o[sumBucket(w.st.p)==="g"?"w":sumBucket(w.st.p)].push(`Especialidade com menor comparecimento: ${prettyName(w.s)} (${fmtPct(w.st.p)})`);
-    if (bst.st.p >= 70) o.g.push(`Especialidade com maior comparecimento: ${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
+    if (bst.st.p >= 70) o.g.push(`Benchmark entre especialidades:${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
   }
   return o;
 }
@@ -1180,7 +1212,7 @@ function summaryMediana(){
   const crit = withSla.filter(c=>c.sla.tier==="bad").sort((a,b)=>b.dias-a.dias);
   if (withSla.length){
     o.g.push(note(`${okc.length} de ${withSla.length} combinações dentro da meta em ${tLabel}`, `Combinações dentro da meta em ${tLabel}`, okc));
-    if (okc.length) o.g.push(`Menor tempo: ${fmt(okc)}`);
+    if (okc.length) o.g.push(`Benchmark de tempo: ${fmt(okc)}`);
     if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário (acima da meta, ainda não críticas)`, `Combinações em nível intermediário em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
     if (crit.length) o.b.push(note(`${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel}`, `Combinações críticas em ${tLabel}`, crit), `Maior tempo: ${fmt(crit)}`);
   }
@@ -1189,8 +1221,8 @@ function summaryMediana(){
   const ts = [...byT.keys()].sort((a,b)=>a-b);
   if (ts.length > 1){
     const a = byT.get(ts[ts.length-2]), b = byT.get(ts[ts.length-1]), ma = median(a.v), mb = median(b.v);
-    const msg = `Mediana geral: ${fmtDias(mb)} dias em ${b.l} (${a.l}: ${fmtDias(ma)})`;
-    if (mb < ma) o.g.push(msg); else if (mb > ma) o.b.push(msg); else o.w.push(msg);
+    const rel = ma ? (mb-ma)/ma*100 : 0;   // dias subindo = piora
+    o[varBucket(rel)].push(`Mediana geral: ${fmtDias(mb)} dias em ${b.l} (${fmtRel(rel)} vs. ${a.l}: ${fmtDias(ma)})`);
   }
   return o;
 }
@@ -1198,9 +1230,9 @@ function summaryIndicacoes(){
   const o = {g:[],w:[],b:[]};
   const tri = indicacaoTrimestres(indConsultasRows);
   if (tri){
-    const d = tri.prev ? tri.cur.p - tri.prev.p : null;
-    const msg = `Indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
-    (d === null || Math.abs(d) <= 0.05 ? o.w : (d > 0 ? o.g : o.b)).push(msg);
+    const d = tri.prev ? tri.cur.p - tri.prev.p : null, rel = tri.prev && tri.prev.p ? d/tri.prev.p*100 : null;
+    const msg = `Indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)}, ${fmtRel(rel)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
+    o[rel === null ? "w" : varBucket(-rel)].push(msg);
   }
   if (campanhaData){
     const entries = [...campanhaData.map.entries()], tot = campanhaData.totalComp;
@@ -1217,8 +1249,8 @@ function summaryIndicacoes(){
     const last = vals[vals.length-1];
     if (vals.length < 2){ o.w.push(`${nome}: ${fmtPct(last.p)} em ${last.m}`); return; }
     const prev = vals[vals.length-2], d = last.p - prev.p;
-    const msg = `${nome}: ${fmtPct(last.p)} em ${last.m} (${fmtPP(d)} vs. ${prev.m})`;
-    if (d > 0.05) o.g.push(msg); else if (d < -0.05) o.b.push(msg); else o.w.push(msg);
+    const rel = prev.p ? d/prev.p*100 : 0;
+    o[varBucket(-rel)].push(`${nome}: ${fmtPct(last.p)} em ${last.m} (${fmtPP(d)}, ${fmtRel(rel)} vs. ${prev.m})`);
     const low = vals.reduce((a,b)=>b.p<a.p?b:a);
     if (low !== last && low.p < last.p*0.6) o.w.push(`${nome}: menor mês foi ${low.m} (${fmtPct(low.p)})`);
   };
@@ -1321,13 +1353,24 @@ window.addEventListener("afterprint", endExportAll);
    ========================================================================= */
 const INFO_W = 1120;
 const IC = {navy:"#203B5A", blue:"#3874AF", cyan:"#00A4D0", ok:"#1E8A5F", warn:"#C77A08", bad:"#C63B2A", track:"#E8ECF1", soft:"#A9C3DE"};
+IC.badSoft = "#E39A91";   // tom claro da paleta negativa (cancelamentos pelo paciente)
+/* faixas de cor da recuperação pós-cancelamento (definidas pelo usuário em 2026-11):
+   reagendados e convertidos: <50% vermelho · 50–69,9% laranja · ≥70% verde
+   perdidos (quanto menor, melhor): <40% verde · 40–59,9% laranja · ≥60% vermelho */
+const REC_CONV = {red:50, green:70}, REC_PERD = {green:40, red:60};
+const recConvTone = p => p >= REC_CONV.green ? "good" : (p >= REC_CONV.red ? "warn" : "bad");
+const recPerdTone = p => p >= REC_PERD.red ? "bad" : (p >= REC_PERD.green ? "warn" : "good");
 const toneColor = t => t==="good" ? IC.ok : (t==="warn" ? IC.warn : (t==="bad" ? IC.bad : IC.blue));
 const fmtDelta = (n, unit) => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + " " + unit;
 // texto com os números de cenário/variação coloridos: queda em vermelho, alta em verde
 function iRich(s){
   return escapeHtml(s)
     .replace(/((?:pode ficar|fica) entre )(\d[\d.,]*%)( e )(\d[\d.,]*%)/g, (m,a,lo,b,hi) => `${a}<b style="color:${IC.bad}">${lo}</b>${b}<b style="color:${IC.ok}">${hi}</b>`)
-    .replace(/([+−])(\d[\d.,]* p\.p\.)/g, (m,sg,rest) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>`);
+    .replace(/(Recuperação em [^:]+: )(\d[\d.,]*%)( de conversão em reagendamentos e )(\d[\d.,]*%)/g, (m,a,cv,b,pd) =>   // faixas de REC_CONV / REC_PERD
+      `${a}<b style="color:${toneColor(recConvTone(toNum(cv)))}">${cv}</b>${b}<b style="color:${toneColor(recPerdTone(toNum(pd)))}">${pd}</b>`)
+    .replace(/([+−])(\d[\d.,]* p\.p\.)/g, (m,sg,rest) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>`)
+    .replace(/(Mediana geral: [^(]*\()([+−])(\d[\d.,]*%)/g, (m,a,sg,rest) => `${a}<b style="color:${sg==="+"?IC.bad:IC.ok}">${sg}${rest}</b>`)   // mediana: mais dias = pior
+    .replace(/([+−])(\d[\d.,]*%)( vs\.)/g, (m,sg,rest,t) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>${t}`);   // variação relativa "(−5,5% vs. …)" (mediana: subir = ruim, ver iRichDias)
 }
 const safeSec = fn => { try { return fn(); } catch(e){ console.error("Síntese:", e); return null; } };
 
@@ -1357,8 +1400,10 @@ function iStack(segs){   // segs: [{v, color, label, text?, lt?}]
 }
 function iCols(items){   // items: [{label, v, text, color}]
   const max = Math.max(...items.map(i => i.v), 0.0001);
-  return `<div class="i-cols">${items.map(i => `<div class="i-col"><span class="i-cv">${i.text}</span><i style="height:${Math.max(6, i.v/max*92).toFixed(0)}px;background:${i.color}"></i><span class="i-cl">${escapeHtml(i.label)}</span></div>`).join("")}</div>`;
+  return `<div class="i-cols">${items.map(i => `<div class="i-col"><span class="i-cv"${i.tc?` style="color:${i.tc}"`:""}>${i.text}</span><i style="height:${Math.max(6, i.v/max*92).toFixed(0)}px;background:${i.color}"></i><span class="i-cl">${escapeHtml(i.label)}</span></div>`).join("")}</div>`;
 }
+// lista em duas linhas: especialidade em destaque, nome da clínica logo abaixo (rows: {spec, clinic, text, tone})
+const iListTwo = rows => rows.map(r => `<div class="i-li2 t-${r.tone}"><div><strong>${escapeHtml(r.spec)}</strong><span>${escapeHtml(r.clinic)}</span></div><b>${r.text}</b></div>`).join("");
 const iList = (rows, tone) => rows.map(r => `<div class="i-li t-${r.tone||tone}"><span>${escapeHtml(r.label)}</span><b>${r.text}</b></div>`).join("");
 function iMonth(m){
   const mi = monthIndex(m);
@@ -1368,6 +1413,14 @@ const iSeries = rows => {   // série mensal ordenada (por calendário quando os
   const pts = (rows||[]).filter(r => r.pct !== undefined && r.pct !== "").map((r,i) => ({m:String(r.mes), p:toPctValue(r.pct), mi:monthIndex(r.mes), i}));
   return pts.every(x => x.mi !== null) ? pts.sort((a,b)=>a.mi-b.mi) : pts;
 };
+
+/* ---- ações sugeridas: auxiliares ----
+   Cada ação = {theme, owner, sev, impact, title, why(html), curto[], medio[], cs?}.
+   sev: 0 baixa · 1 média (ponto de atenção) · 2 alta (ponto ruim) · 3 crítica. Ordem: gravidade, depois impacto. */
+const TOMBAMENTO_MAX = 3, TOMBAMENTO_MIN_CANC = 10;   // % aceitável de tombamento por clínica (tombados ÷ cancelamentos da clínica) e mínimo de cancelamentos para avaliar
+const SEV_LABEL = ["Baixa","Média","Alta","Crítica"], SEV_CLASS = ["baixa","media","alta","crit"];
+const cB = (txt, tone) => `<b style="color:${toneColor(tone)}">${txt}</b>`;   // trecho colorido pela faixa
+const f1 = n => n.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
 
 /* ---- 1) Comparecimento (abas Visão geral + Comparecimento por clínica) ---- */
 function infoSecComparecimento(){
@@ -1383,12 +1436,13 @@ function infoSecComparecimento(){
   const specKeys = DEFAULT_RANKING_SPECS.concat([...especialidadeExtraSelected].filter(s => !DEFAULT_RANKING_SPECS.includes(s)));
   let specs = [];
   if (especialidadeData){
-    specs = specKeys.filter(s => especialidadeData.has(s)).map(s => { const d = especialidadeData.get(s), dn = d.compareceu + d.faltou; return {label:prettyName(s), p:dn>0 ? d.compareceu/dn*100 : 0, dn}; });
+    specs = specKeys.filter(s => especialidadeData.has(s)).map(s => { const d = especialidadeData.get(s), dn = d.compareceu + d.faltou; return {label:prettyName(s), p:dn>0 ? d.compareceu/dn*100 : 0, dn, tot:dn + d.aguardando}; });
   } else if (CLINICA_BY_SPEC.size){
-    specs = specKeys.filter(s => CLINICA_BY_SPEC.has(s)).map(s => { const st = specStats(CLINICA_BY_SPEC.get(s)); return {label:prettyName(s), p:st.p, dn:st.a}; });
+    specs = specKeys.filter(s => CLINICA_BY_SPEC.has(s)).map(s => { const st = specStats(CLINICA_BY_SPEC.get(s)); return {label:prettyName(s), p:st.p, dn:st.a, tot:st.total}; });
   }
-  specs = specs.filter(r => r.dn > 0).sort((a,b) => b.p-a.p);
-  const tipos = comparecimentoData ? [...comparecimentoData.byTipo.entries()].map(([k,v]) => { const dn = v.compareceu + v.faltou; return {label:prettyName(k), p:dn>0 ? v.compareceu/dn*100 : 0, dn}; }).filter(r => r.dn > 0).sort((a,b) => b.p-a.p).slice(0,4) : [];
+  // ranking só com quem tem volume para servir de benchmark: pelo menos HIGH_VOLUME_MIN (10) consultas
+  specs = specs.filter(r => r.dn > 0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b) => b.p-a.p);
+  const tipos = comparecimentoData ? [...comparecimentoData.byTipo.entries()].map(([k,v]) => { const dn = v.compareceu + v.faltou; return {label:prettyName(k), p:dn>0 ? v.compareceu/dn*100 : 0, dn, tot:dn + v.aguardando}; }).filter(r => r.dn > 0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b) => b.p-a.p).slice(0,4) : [];
   const barsOf = rows => rows.map(r => iBar(r.label, r.p, fmtPct(r.p), toneColor(statusOf(r.p)), 70)).join("");
 
   // clínica x especialidade (mesma regra do slide de síntese: alto volume quando existir)
@@ -1402,10 +1456,10 @@ function infoSecComparecimento(){
   // listas "top 5": só as especialidades primárias (+ as extras marcadas no filtro), alto volume quando existir
   const allowed = new Set(specKeys);
   const restr = all.filter(r => allowed.has(r.e));
-  let poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN); if (!poolL.length) poolL = restr;
+  const poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN);   // só combinações com 10+ consultas entram no ranking
   const topBest = poolL.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
   const topAttn = poolL.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
-  const iListSpec = rows => rows.map(r => `<div class="i-li2 t-${statusOf(r.p)}"><div><strong>${escapeHtml(r.spec)}</strong><span>${escapeHtml(r.clinic)}</span></div><b>${fmtPct(r.p)}</b></div>`).join("");
+  const iListSpec = rows => iListTwo(rows.map(r => ({spec:r.spec, clinic:r.clinic, text:fmtPct(r.p), tone:statusOf(r.p)})));
 
   let row2 = "";
   if (pool.length){
@@ -1413,8 +1467,8 @@ function infoSecComparecimento(){
       <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?"alto volume":"todas"} · todas as especialidades</span></p>
       ${iStack([{v:good.length,color:IC.ok,label:"70% ou mais"},{v:warn.length,color:IC.warn,label:"60% a 69%"},{v:bad.length,color:IC.bad,label:"Abaixo de 60%"}])}
       <div class="i-g" style="grid-template-columns:1fr 1fr;gap:26px;margin-top:20px">
-        <div><p class="i-sub">Maiores comparecimentos<span class="i-hint">top 5 · especialidades primárias</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
-        <div><p class="i-sub">Principais pontos de atenção<span class="i-hint">top 5 · especialidades primárias</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
+        <div><p class="i-sub">Benchmark de comparecimento<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
+        <div><p class="i-sub">Principais pontos de atenção<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
       </div>
     </div>`;
   }
@@ -1426,21 +1480,49 @@ function infoSecComparecimento(){
       ${sc.ag ? `<div class="i-note">Quando as ${fmtInt(sc.ag)} consultas aguardando retorno fecharem, o % pode ficar entre <b style="color:${IC.bad}">${fmtPct(sc.worst)}</b> e <b style="color:${IC.ok}">${fmtPct(sc.best)}</b>.</div>` : ""}
     </div>
     <div>
-      ${specs.length ? `<p class="i-sub">Por especialidade<span class="i-hint">a linha marca 70%</span></p>${barsOf(specs)}` : ""}
-      ${tipos.length ? `<p class="i-sub" style="margin-top:${specs.length?18:0}px">Por tipo de agendamento</p>${barsOf(tipos)}` : ""}
+      ${specs.length ? `<p class="i-sub">Por especialidade<span class="i-hint">a linha marca 70% · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${barsOf(specs)}` : ""}
+      ${tipos.length ? `<p class="i-sub" style="margin-top:${specs.length?18:0}px">Por tipo de agendamento<span class="i-hint">mín. ${HIGH_VOLUME_MIN} consultas</span></p>${barsOf(tipos)}` : ""}
     </div>
   </div>${row2}`;
 
   const actions = [];
-  if (bad.length) actions.push({prio:"alta", text:`Priorizar as ${bad.length} ${plural(bad.length,"combinação","combinações")} de clínica e especialidade com comparecimento abaixo de 60% (começando por ${bad.slice(0,2).map(r=>r.label).join("; ")}): descobrir o motivo das faltas e reforçar a confirmação da consulta.`});
-  if (warn.length) actions.push({prio:"média", text:`Acompanhar as ${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69% (a mais perto de cair: ${warn[0].label}) antes que passem para a faixa vermelha.`});
-  if (sc.ag) actions.push({prio:"média", text:`Fechar o desfecho das ${fmtInt(sc.ag)} consultas aguardando retorno: dependendo do resultado, o comparecimento geral fica entre ${fmtPct(sc.worst)} e ${fmtPct(sc.best)}.`});
+  // quanto cada clínica "puxa para baixo": faltas acima do que haveria com 70% de comparecimento
+  const byC = new Map(); let totA = 0;
+  CLINICA_RECORDS.forEach(r => { if (!(r.a > 0)) return; totA += r.a;
+    const o = byC.get(r.c) || {a:0, f:0, ag:0, specs:new Map()}; byC.set(r.c, o);
+    o.a += r.a; o.f += r.f; o.ag += (r.ag||0); o.specs.set(r.e, (o.specs.get(r.e)||0) + (r.f - 0.3*r.a)); });
+  const totF = [...byC.values()].reduce((s,o) => s+o.f, 0);
+  const drag = [...byC].filter(([,o]) => o.a + o.ag >= HIGH_VOLUME_MIN)   // ranking de clínicas: só com 10+ consultas
+    .map(([c,o]) => ({name:cleanName(c), p:pct(o.a,o.f), f:o.f, excess:o.f-0.3*o.a, shareF:totF>0 ? o.f/totF*100 : 0, gain:totA>0 ? (o.f-0.3*o.a)/totA*100 : 0,
+      spec:([...o.specs].sort((x,y) => y[1]-x[1])[0] || [""])[0]})).filter(x => x.p < 70 && x.excess > 0).sort((a,b) => b.excess-a.excess);
+  if (drag.length && (tone !== "good" || drag[0].p < 60)){
+    const top = drag.slice(0,3);
+    actions.push({theme:"Comparecimento", owner:"CX e CS", sev:Math.max(tone==="bad" ? 2 : (tone==="warn" ? 1 : 0), drag[0].p < 60 ? 2 : 1),   // vale a faixa pior: a geral ou a da clínica que mais pesa
+      impact:top.reduce((s,x) => s+x.excess, 0),
+      title:"Reduzir as faltas nas clínicas que mais puxam o comparecimento para baixo",
+      why:`Comparecimento geral de ${cB(fmtPct(p),tone)}. Maior peso na queda: ` + top.map(x => `<b>${escapeHtml(x.name)}</b> (${cB(fmtPct(x.p), statusOf(x.p))}; ${fmtInt(x.f)} faltas, ${fmtPct(x.shareF)} do total; chegando a 70%, o geral subiria ${f1(x.gain)} p.p.)`).join("; ") + ".",
+      curto:[`CX levanta com ${top.map(x => x.name).join(", ")} os principais motivos das faltas (confirmação da consulta, perfil do lead, horário)${top[0].spec ? ", começando por " + prettyName(top[0].spec) : ""}.`],
+      medio:["Se a clínica seguir abaixo de 70%: evitar novos agendamentos nessa região ou clínica, ou investigar o perfil dos leads que estão chegando."],
+      cs:"Observar o perfil dos leads e a qualidade dos agendamentos (dados completos, interesse confirmado) das praças dessas clínicas."});
+  }
+  if (warn.length) actions.push({theme:"Comparecimento", owner:"CX", sev:1, impact:warn.length,
+    title:"Acompanhar as combinações entre 60% e 69%",
+    why:`${warn.length} ${plural(warn.length,"combinação","combinações")} de clínica e especialidade na faixa de atenção; a mais próxima de 60%: <b>${escapeHtml(warn[0].label)}</b> (${cB(fmtPct(warn[0].p),"warn")}).`,
+    curto:["CX acompanha essas combinações toda semana para evitar que caiam abaixo de 60%."],
+    medio:["Se alguma ficar abaixo de 60%, tratá-la como as clínicas da ação de faltas."]});
+  if (sc.ag) actions.push({theme:"Comparecimento", owner:"CX", sev:0, impact:sc.ag,
+    title:"Fechar o desfecho das consultas aguardando retorno",
+    why:`${fmtInt(sc.ag)} consultas sem desfecho: o comparecimento geral pode ficar entre ${cB(fmtPct(sc.worst),"bad")} e ${cB(fmtPct(sc.best),"good")}.`,
+    curto:["CX atualiza o status dessas consultas (compareceu ou faltou) para fechar o percentual."],
+    medio:["Rever a rotina de atualização de status para o aguardando retorno não acumular."]});
 
   return {
-    title:"Os pacientes estão vindo às consultas?",
+    title:"Comparecimento por especialidade e tipo de agendamento",
     take:`De cada 100 consultas com desfecho, cerca de ${Math.round(p)} compareceram e ${100-Math.round(p)} faltaram (${tone==="good"?"70% ou mais":(tone==="warn"?"entre 60% e 69%":"abaixo de 60%")}).`,
     body, actions,
-    kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas`, chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone}
+    kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas`, chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone,
+      // mesma leitura da Visão geral: o que acontece com o % quando os "aguardando retorno" fecharem
+      extra: sc.ag ? `<div class="i-kpi-s" style="margin-top:8px;font-size:12.5px"><b>${fmtInt(sc.ag)} aguardando retorno</b><br>se todos comparecerem: <b style="color:${IC.ok}">sobe para ${fmtPct(sc.best)}</b><br>se todos faltarem: <b style="color:${IC.bad}">cai para ${fmtPct(sc.worst)}</b></div>` : ""}
   };
 }
 
@@ -1459,39 +1541,67 @@ function infoSecCancelamentos(){
   if (c){
     const sh = n => c.total>0 ? n/c.total*100 : 0;
     left = `<div class="i-hero">
-      ${iDonutBlock(`<div class="i-dn" style="color:${IC.navy}">${fmtInt(c.total)}</div><div class="i-dl">cancelamentos</div>`, [{v:c.paciente,color:IC.blue},{v:c.clinica,color:IC.bad}], 200, 26)}
+      ${iDonutBlock(`<div class="i-dn" style="color:${IC.bad}">${fmtInt(c.total)}</div><div class="i-dl">cancelamentos</div>`, [{v:c.paciente,color:IC.badSoft},{v:c.clinica,color:IC.bad}], 200, 26)}
       <div class="i-leg" style="justify-content:center;flex-direction:column;align-items:flex-start;gap:6px;margin-top:0;font-size:14px">
-        <span><i class="i-dot" style="background:${IC.blue}"></i>Pelo paciente: <b>${fmtInt(c.paciente)}</b> (${fmtPct(sh(c.paciente))})</span>
-        <span><i class="i-dot" style="background:${IC.bad}"></i>Pela clínica: <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
+        <span><i class="i-dot" style="background:${IC.badSoft}"></i>Pelo paciente: <b>${fmtInt(c.paciente)}</b> (${fmtPct(sh(c.paciente))})</span>
+        <span><i class="i-dot" style="background:${IC.bad}"></i>Tombados pela clínica: <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
       </div></div>`;
     const top4 = motivoTop.slice(0,4), mx = Math.max(...top4.map(m => m[1]), 1);
     motivos = `<p class="i-sub">Principais motivos<span class="i-hint">% do total de cancelamentos</span></p>` +
-      top4.map(([k,v]) => iBar(prettyName(k), v/mx*100, fmtPct(sh(v)), IC.blue)).join("");
+      top4.map(([k,v]) => iBar(prettyName(k), v/mx*100, fmtPct(sh(v)), IC.bad)).join("");
   }
   let recup = "";
   if (last){
-    const mini = (p, color, big, small) => `<div class="i-mini-it">${iPctDonut(p, color, 92, 14, `<div class="i-dn" style="font-size:20px;color:${color}">${fmtPct(p)}</div>`)}<div class="i-mini-t"><b>${big}</b>${small}</div></div>`;
+    const mini = (p, tone, big, small) => { const color = toneColor(tone); return `<div class="i-mini-it">${iPctDonut(p, color, 92, 14, `<div class="i-dn" style="font-size:17px;color:${color}">${fmtPct(p)}</div>`)}<div class="i-mini-t"><b>${big}</b>${small}</div></div>`; };
     const t = toNum(last.total);
     recup = `<div${c?' style="margin-top:20px"':''}><p class="i-sub">Recuperação em ${escapeHtml(mes)}<span class="i-hint">o que aconteceu depois do cancelamento</span></p>
       <div class="i-mini">
-        ${cp!==null ? mini(cp, IC.cyan, "Reagendados e convertidos", t?`de ${fmtInt(t)} cancelamentos`:"dos cancelamentos") : ""}
-        ${pp!==null ? mini(pp, IC.navy, "Perdidos", "sem novo agendamento") : ""}
+        ${cp!==null ? mini(cp, recConvTone(cp), "Reagendados e convertidos", t?`de ${fmtInt(t)} cancelamentos`:"dos cancelamentos") : ""}
+        ${pp!==null ? mini(pp, recPerdTone(pp), "Perdidos", "sem novo agendamento") : ""}
       </div></div>`;
   }
   const body = `<div class="i-g" style="grid-template-columns:${c?"300px 1fr":"1fr"}">${left}<div>${motivos}${recup}</div></div>`;
 
   const actions = [];
-  if (c && c.clinica) actions.push({prio:"alta", text:`Revisar os ${fmtInt(c.clinica)} cancelamentos por solicitação da clínica (${fmtPct(c.clinica/c.total*100)} do total) e reagendar esses pacientes com prioridade.`});
-  if (c && motivoTop[0]) actions.push({prio:"média", text:`Investigar o principal motivo de cancelamento — ${prettyName(motivoTop[0][0])} (${fmtPct(motivoTop[0][1]/c.total*100)}) — e definir o que dá para evitar antes de o paciente cancelar.`});
-  if (pp !== null && pp > 0) actions.push({prio:"média", text:`Recuperar mais cancelamentos: em ${mes}, ${fmtPct(pp)} foram perdidos sem novo agendamento${cp!==null?` e só ${fmtPct(cp)} viraram reagendamento convertido`:""}.`});
+  const cl = (p, tone) => cB(fmtPct(p), tone);   // % com a cor da faixa
+  if (c && c.byClinica){   // tombamento: até 3% por clínica é o aceitável; acima disso, ligar para a gestão das agendas dos médicos
+    const over = [...c.byClinica].filter(([,v]) => v.total >= TOMBAMENTO_MIN_CANC && v.tombados/v.total*100 > TOMBAMENTO_MAX)
+      .map(([k,v]) => ({name:cleanName(k), pc:v.tombados/v.total*100, tomb:v.tombados, total:v.total})).sort((a,b) => b.pc-a.pc || b.tomb-a.tomb);
+    if (over.length) actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:2, impact:over.reduce((s,x) => s+x.tomb, 0),
+      title:`Reduzir o tombamento de agenda nas clínicas acima de ${TOMBAMENTO_MAX}%`,
+      why:`${over.length} ${plural(over.length,"clínica","clínicas")} acima do limite de ${TOMBAMENTO_MAX}% (tombados ÷ cancelamentos da clínica): ` +
+        over.slice(0,3).map(x => `<b>${escapeHtml(x.name)}</b> (${cl(x.pc,"bad")}; ${fmtInt(x.tomb)} de ${fmtInt(x.total)})`).join("; ") + (over.length > 3 ? ` e mais ${over.length-3}` : "") + ".",
+      curto:["CX liga para a gestão das agendas dos médicos dessas clínicas e entende o que motivou os tombamentos."],
+      medio:["Combinar antecedência mínima para bloqueio de agenda e acompanhar o % de cada clínica no mês seguinte."],
+      cs:"Antes de oferecer horário, confirmar que a agenda do médico dessa praça está liberada."});
+  }
+  if (c && motivoTop[0]){
+    const [mk, mv] = motivoTop[0], semMotivo = normKey(mk) === "nao informado";
+    actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:1, impact:mv,
+      title: semMotivo ? "Tabular o motivo dos cancelamentos que estão sem motivo" : `Atacar o principal motivo de cancelamento: ${prettyName(mk)}`,
+      why:`${prettyName(mk)} responde por ${cB(fmtPct(mv/c.total*100),"warn")} dos ${fmtInt(c.total)} cancelamentos do período.`,
+      curto:[semMotivo ? "CX tabula o motivo desses cancelamentos para saber o que realmente acontece." : "CX investiga nos casos recentes o que está por trás desse motivo."],
+      medio:["Definir com o CS o que dá para evitar antes de o paciente cancelar."],
+      cs: semMotivo ? "Registrar o motivo no momento do cancelamento." : "Reforçar com o paciente a data e o interesse no momento do agendamento."});
+  }
+  if (last && (cp !== null || pp !== null)){
+    const tc = cp !== null ? recConvTone(cp) : "good", tp = pp !== null ? recPerdTone(pp) : "good";
+    const sev = (tc==="bad" || tp==="bad") ? 2 : ((tc==="warn" || tp==="warn") ? 1 : -1);
+    if (sev >= 0) actions.push({theme:"Cancelamentos", owner:"CX e CS", sev, impact:toNum(last.perdidos) || 0,
+      title:"Recuperar os cancelamentos que ficaram sem novo agendamento",
+      why:`Em ${escapeHtml(mes)}: ${cp !== null ? `${cl(cp,tc)} dos cancelamentos viraram reagendamento convertido` : ""}${cp !== null && pp !== null ? " e " : ""}${pp !== null ? `${cl(pp,tp)} foram perdidos` : ""}.`,
+      curto:["CX reabordar os pacientes cujo cancelamento não gerou novo agendamento no mês."],
+      medio:["Rever a abordagem de reconquista e acompanhar a conversão no mês seguinte."],
+      cs:"Oferecer o reagendamento já no momento do cancelamento."});
+  }
 
   const share = c && c.total>0 ? c.clinica/c.total*100 : 0;
   return {
-    title:"Quantos cancelam e por quê?",
-    take: c ? `${fmtInt(c.total)} cancelamentos no período; ${fmtPct(share)} foram pedidos pela própria clínica.${last&&cp!==null?` Em ${mes}, ${fmtPct(cp)} dos cancelamentos viraram reagendamento convertido.`:""}`
+    title:"Principais motivos de cancelamento",
+    take: c ? `${fmtInt(c.total)} cancelamentos no período; ${fmtPct(share)} foram tombados pelas clínicas.${last&&cp!==null?` Em ${mes}, ${fmtPct(cp)} dos cancelamentos viraram reagendamento convertido.`:""}`
             : `Em ${mes}, ${cp!==null?fmtPct(cp)+" dos cancelamentos viraram reagendamento convertido":"veja a recuperação pós-cancelamento abaixo"}.`,
     body, actions,
-    kpi: c ? {tone:"bad", label:"Cancelamentos", num:fmtInt(c.total), sub:c.clinica ? `${fmtPct(share)} pedidos pela clínica` : `${fmtInt(c.paciente)} pedidos pelo paciente`, chip:null}
+    kpi: c ? {tone:"bad", label:"Cancelamentos", num:fmtInt(c.total), sub:c.clinica ? `${fmtPct(share)} tombados pelas clínicas` : `${fmtInt(c.paciente)} pedidos pelo paciente`, chip:null}
            : {tone:"neutral", label:"Reagendamentos convertidos", num:cp!==null?fmtPct(cp):"—", sub:`dos cancelamentos de ${mes}`, chip:null}
   };
 }
@@ -1518,40 +1628,65 @@ function infoSecMediana(){
   const mb = med[med.length-1].v, prev = med.length>1 ? med[med.length-2] : null;
   const d = prev ? mb - prev.v : null;
   const dTone = d===null || Math.abs(d)<0.05 ? "neutral" : (d<0 ? "good" : "bad");
+  // cor do número = faixa da meta de dias. A meta é por especialidade; para a mediana geral usa-se a faixa padrão
+  // (a da Blefaroplastia só quando ela é a única especialidade na conta; sem meta, ex. só terciárias, fica neutro)
+  const specsIn = [...new Set(atual.map(r => r.especialidade))];
+  const metaSpec = specsIn.every(s => s === "BLEFAROPLASTIA") ? "BLEFAROPLASTIA" : (specsIn.some(s => getMedianaSLA(s)) ? "CATARATA" : null);
+  const mTone = metaSpec ? classifyMedianaSLA(mb, metaSpec).tier : "neutral";
+  const mColor = toneColor(mTone);
   const shown = med.slice(-6);
-  const cols = iCols(shown.map((m,i) => ({label:m.label, v:m.v, text:fmtDias(m.v), color: i===shown.length-1 ? IC.blue : IC.soft})));
+  // número de cada trimestre também na cor da faixa da meta (mesma regra do número grande)
+  const cols = iCols(shown.map((m,i) => ({label:m.label, v:m.v, text:fmtDias(m.v), color: i===shown.length-1 ? IC.blue : IC.soft,
+    tc: toneColor(metaSpec ? classifyMedianaSLA(m.v, metaSpec).tier : "neutral")})));
 
-  const rowsOf = a => a.map(c => ({label:c.label, text:fmtDias(c.dias)+" dias", tone:c.sla ? c.sla.tier : "neutral"}));
-  const fast = combos.slice().sort((a,b) => a.dias-b.dias).slice(0,3);
-  const slow = combos.slice().sort((a,b) => b.dias-a.dias).slice(0,3);
+  const rowsOf = a => iListTwo(a.map(c => ({spec:prettyName(c.especialidade), clinic:cleanName(c.clinica), text:fmtDias(c.dias)+" dias", tone:c.sla ? c.sla.tier : "neutral"})));
+  const fast = combos.slice().sort((a,b) => a.dias-b.dias).slice(0,5);
+  const slow = combos.slice().sort((a,b) => b.dias-a.dias).slice(0,5);
 
   const body = `<div class="i-g" style="grid-template-columns:300px 1fr">
     <div>
-      <div style="display:flex;align-items:baseline;gap:8px"><span class="i-dn" style="font-size:60px;color:${IC.navy}">${fmtDias(mb)}</span><span style="font-size:18px;font-weight:700;color:${IC.navy}">dias</span></div>
+      <div style="display:flex;align-items:baseline;gap:8px"><span class="i-dn" style="font-size:60px;color:${mColor}">${fmtDias(mb)}</span><span style="font-size:18px;font-weight:700;color:${mColor}">dias</span></div>
       <div class="i-note" style="margin:2px 0 14px">mediana geral em ${escapeHtml(tLabel)}${d!==null?` · <b style="color:${toneColor(dTone)}">${fmtDelta(d,"dias")}</b> vs. ${escapeHtml(prev.label)}`:""}</div>
       ${med.length>1 ? `<p class="i-sub">Mediana por trimestre</p>${cols}` : ""}
     </div>
     <div>
       ${withSla.length ? `<p class="i-sub">Clínicas por especialidade, frente à meta de dias<span class="i-hint">${escapeHtml(tLabel)}</span></p>${iStack([{v:okc.length,color:IC.ok,label:"Dentro da meta"},{v:mid.length,color:IC.warn,label:"Intermediário"},{v:crit.length,color:IC.bad,label:"Crítico"}])}${semMeta?`<div class="i-note">${semMeta} ${plural(semMeta,"combinação","combinações")} sem meta definida (especialidades terciárias).</div>`:""}` : ""}
       <div class="i-g" style="grid-template-columns:1fr 1fr;margin-top:${withSla.length?20:0}px;gap:20px">
-        <div><p class="i-sub">Menor tempo até a cirurgia</p>${iList(rowsOf(fast),"good")}</div>
-        <div><p class="i-sub">Maior tempo até a cirurgia</p>${iList(rowsOf(slow),"bad")}</div>
+        <div><p class="i-sub">Benchmark de tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(fast)}</div>
+        <div><p class="i-sub">Maior tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(slow)}</div>
       </div>
     </div>
   </div>`;
 
   const actions = [];
-  if (crit.length) actions.push({prio:"alta", text:`Escalar com as ${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel} (as mais lentas: ${crit.slice(0,2).map(c=>`${c.label}, ${fmtDias(c.dias)} dias`).join("; ")}) para encurtar o tempo até a cirurgia.`});
-  if (mid.length) actions.push({prio:"média", text:`Acompanhar as ${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário — acima da meta, ainda não críticas — para não virarem críticas.`});
-  if (d !== null && d > 0.05) actions.push({prio:"média", text:`A mediana geral subiu de ${fmtDias(prev.v)} para ${fmtDias(mb)} dias: entender o que atrasou as cirurgias neste trimestre.`});
+  const relM = prev && prev.v ? (mb-prev.v)/prev.v*100 : 0, sevV = varSev(relM);   // piora relativa da mediana geral (5/10/15%)
+  const critP = crit.filter(c => DEFAULT_RANKING_SPECS.includes(c.especialidade)), critO = crit.filter(c => !DEFAULT_RANKING_SPECS.includes(c.especialidade));
+  const slowTxt = a => a.slice(0,3).map(c => `<b>${escapeHtml(c.label)}</b> (${cB(fmtDias(c.dias)+" dias","bad")})`).join("; ");
+  const varTxt = prev ? ` A mediana geral foi de ${fmtDias(prev.v)} para ${fmtDias(mb)} dias (${cB(fmtRel(relM), relM > 0 ? "bad" : "good")}).` : "";
+  if (critP.length || sevV > 0) actions.push({theme:"Mediana cirúrgica", owner:"CX e CS", sev:Math.max(critP.length ? 2 : 0, sevV), impact:critP.length + Math.max(0, relM),
+    title: critP.length ? "Reduzir o tempo até a cirurgia nas combinações críticas" : "Entender por que a mediana até a cirurgia subiu",
+    why:(critP.length ? `${critP.length} ${plural(critP.length,"combinação crítica","combinações críticas")} nas especialidades primárias em ${escapeHtml(tLabel)}; com maior tempo: ${slowTxt(critP)}.` : "") + varTxt + " Paciente esperando para operar e receita represada para a clínica e para a CDV.",
+    curto:["CX contata as clínicas dessas combinações e localiza o gargalo (agenda cirúrgica, exames, aprovação)."],
+    medio:["Acompanhar a mediana de cada uma no próximo trimestre e priorizar vagas cirúrgicas nas críticas."],
+    cs:"Alinhar com o paciente, no agendamento, a expectativa de prazo até a cirurgia nessas praças."});
+  if (critO.length) actions.push({theme:"Mediana cirúrgica", owner:"CX", sev:1, impact:critO.length,
+    title:"Verificar as outras especialidades com mediana crítica",
+    why:`${critO.length} ${plural(critO.length,"combinação crítica","combinações críticas")} fora das especialidades primárias em ${escapeHtml(tLabel)}; com maior tempo: ${slowTxt(critO)}.`,
+    curto:["CX avalia se elas pesam no resultado da clínica; se pesarem, tratá-las como as primárias."],
+    medio:["Acompanhar a mediana delas no próximo trimestre."]});
+  if (mid.length) actions.push({theme:"Mediana cirúrgica", owner:"CX", sev:0, impact:mid.length,
+    title:"Acompanhar as combinações em nível intermediário",
+    why:`${mid.length} ${plural(mid.length,"combinação","combinações")} acima da meta de dias, ainda não críticas, em ${escapeHtml(tLabel)}.`,
+    curto:["CX acompanha essas combinações para não virarem críticas."],
+    medio:["Se alguma se tornar crítica, tratá-la como as combinações críticas."]});
 
   return {
-    title:"Quanto tempo até a cirurgia?",
+    title:"Tempo entre a consulta e a cirurgia (mediana cirúrgica)",
     take:`Em geral, o paciente espera ${fmtDias(mb)} dias entre a consulta e a 1ª cirurgia (${tLabel})${withSla.length?`; ${okc.length} de ${withSla.length} combinações estão dentro da meta`:""}.${filtered ? " Filtro aplicado — " + filtTxt + "." : ""}`,
     body, actions,
     kpi:{tone:"neutral", label: filtered ? "Mediana geral das especialidades do filtro" : "Mediana geral das especialidades", num:fmtDias(mb), unit:"dias",
       sub:`entre a consulta e a 1ª cirurgia · ${tLabel}${filtered ? " · " + filtTxt : ""}`,
-      chip:d!==null && Math.abs(d)>=0.05 ? `${fmtDelta(d,"dias")} vs. ${prev.label}` : null, chipTone:dTone}
+      chip:d!==null && Math.abs(d)>=0.05 ? `${fmtDelta(d,"dias")} vs. ${prev.label}` : null, chipTone:dTone, numColor:mColor}
   };
 }
 
@@ -1595,12 +1730,28 @@ function infoSecIndicacoes(){
   const body = `<div class="i-g" style="grid-template-columns:${cells.map(c => c.w).join(" ")}">${cells.map(c => c.h).join("")}</div>`;
 
   const actions = [];
-  if (d !== null && d < -0.05) actions.push({prio:"alta", text:`A indicação caiu ${fmtPP(Math.abs(d)).replace(/^\+/,"")} frente aos 3 meses anteriores: reforçar o convite de indicação junto aos pacientes já atendidos.`});
-  if (niShare >= 10) actions.push({prio:"alta", text:`Cobrar o preenchimento do campo Campanha no agendamento: ${fmtPct(niShare)} dos comparecimentos estão como "Não informado" e não dá para saber de onde vieram.`});
-  if (cirD !== null && cirD < -0.05) actions.push({prio:"média", text:`A indicação nas 1ªs cirurgias caiu ${fmtPP(Math.abs(cirD)).replace(/^\+/,"")} em ${iMonth(cirLast.m)}: acompanhar se a queda se repete no mês seguinte.`});
+  const relI = tri && tri.prev && tri.prev.p ? (tri.prev.p - tri.cur.p)/tri.prev.p*100 : 0;   // piora relativa (%)
+  if (varSev(relI) > 0) actions.push({theme:"Indicações", owner:"CX e CS", sev:varSev(relI), impact:relI,
+    title:"Reverter a queda da indicação",
+    why:`Indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)} contra ${fmtPct(tri.prev.p)} nos 3 anteriores (${cB(fmtPP(d),"bad")}; ${cB(fmtRel(-relI),"bad")} em termos relativos).`,
+    curto:["CX e CS conferem se o convite de indicação está sendo feito aos pacientes atendidos."],
+    medio:["Reforçar a ação de indicação nas praças com mais pacientes atendidos e acompanhar a variação no trimestre seguinte."],
+    cs:"Convidar para indicar no atendimento e registrar a origem corretamente."});
+  if (niShare > 0) actions.push({theme:"Indicações", owner:"CX e CS", sev:niShare >= 10 ? 2 : 0, impact:niShare,
+    title:"Tabular a origem dos pacientes que estão em branco",
+    why:`${cB(fmtPct(niShare), niShare >= 10 ? "bad" : "warn")} dos comparecimentos estão sem campanha ("Não informado"): não dá para saber de onde vieram.`,
+    curto:["CX tabula no Farol a origem desses pacientes."],
+    medio:["CS passa a preencher a campanha no momento do agendamento."],
+    cs:"Preencher o campo Campanha em todo agendamento."});
+  const relC = cirD !== null && cir.length > 1 && cir[cir.length-2].p ? (cir[cir.length-2].p - cirLast.p)/cir[cir.length-2].p*100 : 0;
+  if (varSev(relC) > 0) actions.push({theme:"Indicações", owner:"CX", sev:varSev(relC), impact:relC,
+    title:"Acompanhar a queda da indicação nas 1ªs cirurgias",
+    why:`Indicação nas 1ªs cirurgias em ${escapeHtml(iMonth(cirLast.m))}: ${fmtPct(cirLast.p)} (${cB(fmtPP(cirD),"bad")}; ${cB(fmtRel(-relC),"bad")} em termos relativos).`,
+    curto:["CX confere no mês seguinte se a queda se repete."],
+    medio:["Se a queda se repetir, tratar junto com a ação de indicação em consultas."]});
 
   return {
-    title:"De onde vêm os pacientes?",
+    title:"Indicações e campanhas - de onde os pacientes conheceram a Central",
     take: tri ? `Em média, ${fmtPct(tri.cur.p)} das consultas dos últimos 3 meses vieram de indicação${d!==null?` (${d>0.05?"mais":(d<-0.05?"menos":"igual")} que nos 3 meses anteriores)`:""}.`
               : (camp ? "Veja de onde vieram os pacientes que compareceram." : "Evolução da indicação nas 1ªs cirurgias."),
     body, actions,
@@ -1613,7 +1764,7 @@ function infoSecIndicacoes(){
 /* ---- semáforo: destaques / atenção / negativos (as mesmas frases do slide de síntese) ---- */
 function infoSemaforo(){
   const TAGS = ["Visão geral","Por clínica","Mediana","Indicações"];
-  const LIST_RE = /^(Maiores comparecimentos|Menores comparecimentos|Mais próximas de 60%|Menor tempo|Maior tempo):/;   // rankings: já aparecem nos gráficos
+  const LIST_RE = /^(Benchmark de comparecimento|Menores comparecimentos|Mais próximas de 60%|Benchmark de tempo|Maior tempo):/;   // rankings: já aparecem nos gráficos
   const cols = {g:[], w:[], b:[]}, notes = [];
   SUMMARY_THEMES.forEach((t,i) => {
     if (!t.has()) return;
@@ -1686,6 +1837,29 @@ function comparecimentoPeriodo(){
   return {de:f(lo), ate:f(hi), n};
 }
 
+/* ---- seção "O que fazer agora": 5 ações principais (cartão completo) + 5 secundárias (compactas) ---- */
+function infoActionsHtml(all, num){
+  const sorted = all.slice().sort((a,b) => b.sev-a.sev || b.impact-a.impact);
+  const main = sorted.slice(0,5), sec = sorted.slice(5,10);
+  const pills = a => `<span class="i-pill">${a.theme}</span><span class="i-pill o">${a.owner}</span><span class="i-sev">${SEV_LABEL[a.sev]}</span>`;
+  const mainHtml = main.map((a,i) => `<div class="i-ac t-${SEV_CLASS[a.sev]}"><div class="i-ac-bar"></div><div class="i-ac-b">
+      <div class="i-ac-top"><span class="i-ac-n">${i+1}</span>${pills(a)}</div>
+      <div class="i-ac-t">${escapeHtml(a.title)}</div>
+      <div class="i-ac-w">${a.why}</div>
+      <div class="i-ac-steps"><div class="i-st"><b>Curto prazo</b>${a.curto.map(escapeHtml).join(" ")}</div><div class="i-st"><b>Médio prazo</b>${a.medio.map(escapeHtml).join(" ")}</div></div>
+      ${a.cs ? `<div class="i-ac-cs"><b>Para o CS:</b> ${escapeHtml(a.cs)}</div>` : ""}</div></div>`).join("");
+  const secHtml = sec.map((a,i) => `<div class="i-ac2 t-${SEV_CLASS[a.sev]}">
+      <div class="i-ac-top"><span class="i-ac-n sm">${i+6}</span>${pills(a)}</div>
+      <div class="i-ac-t sm">${escapeHtml(a.title)}</div>
+      <div class="i-ac-w">${a.why}</div>
+      <div class="i-ac2-next"><b>Próximo passo:</b> ${a.curto.map(escapeHtml).join(" ")}</div></div>`).join("");
+  return `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${num}</div><div class="i-sec-t">Tomadas de ações</div></div>
+    <div class="i-take">${all.length ? "As cinco ações principais e as secundárias, da maior para a menor prioridade. O CX investiga o que já aconteceu e sinaliza ao CS o perfil de pacientes e a qualidade de agendamento que estão chegando de cada praça." : "Sem ações pendentes neste período."}</div>` +
+    (all.length ? `<div class="i-acs">${mainHtml}</div>` + (sec.length ? `<p class="i-sub" style="margin:22px 0 10px">Ações secundárias<span class="i-hint">menor prioridade</span></p><div class="i-acs2">${secHtml}</div>` : "")
+                : `<div class="i-li t-good"><span>Nenhuma ação identificada. Manter o acompanhamento mensal.</span></div>`) +
+    `<div class="i-note" style="margin-top:14px">Gravidade: comparecimento pelas faixas de 70% e 60%; mediana e indicação pela piora relativa ao período anterior (a partir de ${VAR_ATENCAO}% atenção, ${VAR_RUIM}% ruim, acima de ${VAR_CRITICA}% crítica); tombamento acima de ${TOMBAMENTO_MAX}% por clínica (tombados ÷ cancelamentos da clínica). Entre ações de mesma gravidade, vem primeiro a de maior impacto.</div></section>`;
+}
+
 function renderInfographic(){
   const root = document.getElementById("infoRoot"), stage = document.getElementById("infoStage");
   const secs = [infoSecComparecimento, infoSecCancelamentos, infoSecMediana, infoSecIndicacoes].map(safeSec).filter(Boolean);
@@ -1699,15 +1873,12 @@ function renderInfographic(){
   const per = comparecimentoPeriodo();
   const kpis = secs.map(s => s.kpi).filter(Boolean);
   const kpiHtml = `<div class="i-kpis" style="grid-template-columns:repeat(4,1fr)">` + kpis.map(k =>
-    `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n">${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
+    `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n"${k.numColor?` style="color:${k.numColor}"`:""}>${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.extra||""}${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
   const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo.</div>${infoSemaforo()}</section>`;
   const secHtml = secs.map((s,i) =>
     `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}</div>${s.body}</section>`).join("");
 
-  const acts = secs.flatMap(s => s.actions).sort((a,b) => (a.prio==="alta"?0:1) - (b.prio==="alta"?0:1)).slice(0,6);
-  const actHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${secs.length+2}</div><div class="i-sec-t">O que fazer agora</div></div><div class="i-take">Ações sugeridas a partir dos números deste período, da mais urgente para a menos urgente.</div>` +
-    (acts.length ? acts.map((a,i) => `<div class="i-act${i===0?" first":""} t-${a.prio==="alta"?"bad":"warn"}"><div class="i-act-n">${i+1}</div><div class="i-act-t">${iRich(a.text)}</div><div class="i-prio">Prioridade ${a.prio}</div></div>`).join("")
-      : `<div class="i-act first t-good"><div class="i-act-n">1</div><div class="i-act-t">Nenhuma ação urgente identificada neste período. Manter o acompanhamento mensal.</div></div>`) + `</section>`;
+  const actHtml = infoActionsHtml(secs.flatMap(s => s.actions), secs.length + 2);
 
   root.innerHTML =
     `<div class="i-head"><div class="i-head-top"><div class="i-brand">cdv</div><div class="i-date">Painel de CX · gerado em ${today}</div></div>
@@ -2255,6 +2426,7 @@ document.getElementById("fileCancelamentos").addEventListener("change", function
     let total=0, clinica=0, paciente=0;
     const byMotivo = new Map();
     const byEspClinica = new Map(); // especialidade -> Map(clinica -> qtd)
+    const byClinica = new Map();    // clinica -> {total, tombados} — base da regra "tombamento acima de 3% por clínica"
     for (const r of rows){
       const qtd = toNum(r.qtd) || 1;
       const motivo = normKey(r.motivo);
@@ -2267,13 +2439,16 @@ document.getElementById("fileCancelamentos").addEventListener("change", function
 
       const cli = String(r.clinica||"").trim();
       if (cli){
+        const bc = byClinica.get(cli) || {total:0, tombados:0};
+        bc.total += qtd; if (motivo.includes("solicitacao da clinica")) bc.tombados += qtd;
+        byClinica.set(cli, bc);
         const esp = normSpecName(r.especialidade||"NÃO INFORMADA") || "NÃO INFORMADA";
         if (!byEspClinica.has(esp)) byEspClinica.set(esp, new Map());
         const m = byEspClinica.get(esp);
         m.set(cli, (m.get(cli)||0) + qtd);
       }
     }
-    cancelamentoData = {total, clinica, paciente, byMotivo, byEspClinica};
+    cancelamentoData = {total, clinica, paciente, byMotivo, byEspClinica, byClinica};
     setUploadStatus("statusCancelamentos","ok",`"${f.name}" carregado · ${fmtInt(total)} cancelamentos`);
     showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(total)} cancelamentos no período &middot; ${fmtInt(paciente)} pelo paciente &middot; ${fmtInt(clinica)} pela clínica.`);
     renderKpis();
