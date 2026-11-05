@@ -7,12 +7,12 @@ Painel estático (`index.html`) com indicadores de comparecimento, faltas, cance
 ## Arquitetura
 
 - **Arquivo único**: `index.html` — HTML + CSS + JS puro, sem build step, sem backend, sem banco de dados.
-- **Uma página, cinco abas**: a navegação entre "Visão geral & cancelamentos", "Comparecimento por clínica", "Mediana cirúrgica", "Indicações" e "Síntese (infográfico)" é feita 100% em JavaScript (`switchTab()`, troca de classe `.hidden`) — não são páginas HTML separadas nem há reload. Isso existe porque as abas dividem a mesma planilha de comparecimento (ver abaixo); com páginas separadas, cada uma pedia a planilha de novo.
+- **Uma página, seis abas**: a navegação entre "Visão geral & cancelamentos", "Comparecimento por clínica", "Mediana cirúrgica", "Indicações", "Síntese (infográfico)" e "Comparar períodos" é feita 100% em JavaScript (`switchTab()`, troca de classe `.hidden`) — não são páginas HTML separadas nem há reload. Isso existe porque as abas dividem a mesma planilha de comparecimento (ver abaixo); com páginas separadas, cada uma pedia a planilha de novo.
 - Bibliotecas via CDN: [SheetJS](https://sheetjs.com/) (`xlsx.full.min.js`) para ler `.xlsx`/`.xls`/`.csv`, [Chart.js](https://www.chartjs.org/) para os gráficos das abas Visão geral/Mediana/Indicações, e [html2canvas](https://html2canvas.hertzen.com/) + [jsPDF](https://github.com/parallax/jsPDF) só para baixar o infográfico da aba Síntese em PNG/PDF. Únicas dependências externas — o painel precisa de internet na primeira carga (o navegador cacheia depois).
 - **Todo o processamento acontece no navegador de quem abre a página.** Cada pessoa sobe suas próprias planilhas; nada é enviado para servidor nenhum, nada é compartilhado entre usuários.
 - **Não há dado real embutido no código.** O repositório pode ficar público com segurança — os números só aparecem depois que alguém sobe a planilha, e planilhas nunca são commitadas (ver `.gitignore`, que ignora `*.xlsx`/`*.xls`/`*.csv`).
 
-## As 5 abas e suas planilhas
+## As 6 abas e suas planilhas
 
 Um mesmo tipo de planilha pode alimentar mais de uma aba — por isso o botão de upload correspondente aparece duplicado (mesmo `<input>`/handler, elementos diferentes) no final de cada aba que precisa dele, em vez de pedir a mesma planilha de novo.
 
@@ -23,6 +23,7 @@ Um mesmo tipo de planilha pode alimentar mais de uma aba — por isso o botão d
 | **Mediana cirúrgica** | Dias entre consulta e 1ª cirurgia, por clínica/especialidade/trimestre, com destaques e metas | Mediana cirúrgica (própria, não compartilhada) |
 | **Indicações** | Comparecimento por origem/campanha + evolução mensal de indicação em consultas e em cirurgias | Comparecimento (compartilhada) + evolução de indicação em consultas + evolução de indicação em cirurgias |
 | **Síntese (infográfico)** | Uma página só que junta o essencial das outras 4 abas em formato de infográfico, com botões **Baixar PNG** / **Baixar PDF** | Nenhuma própria — usa o que já foi carregado nas outras abas (ver "Aba Síntese" abaixo) |
+| **Comparar períodos** | Até 6 períodos lado a lado (indicadores, especialidade, tipo, clínica, cancelamentos, tombamento, mediana) | Arquivos JSON salvos na aba Síntese (ver "Comparar períodos" abaixo) |
 
 ### Planilha de comparecimento (compartilhada)
 
@@ -127,6 +128,20 @@ Ordem do infográfico: cabeçalho → 4 cartões de números-chave (comparecimen
 - **Download** (`downloadInfographic('png'|'pdf')`): `html2canvas` em escala 2 (PNG ~2–3 MB). O PDF é **uma página única** do tamanho do infográfico (jsPDF com a imagem), não paginado — diferente do relatório completo, que continua usando `window.print()`. Os botões ficam desabilitados enquanto nenhuma planilha foi carregada, e os botões de PDF do topo somem nessa aba (`body.on-sintese`).
 - ⚠️ A classe CSS do infográfico é `.infog` (não `.info`): `.info` já é a variante azul do aviso de upload (`.banner.info`) e deformava o banner.
 - O "Exportar só a síntese" / último slide do relatório completo (slide 16:9 em texto, `buildSummaryHtml()`) continua existindo, sem mudanças.
+
+## Comparar períodos (aba 6)
+
+Compara de **1 a 6 períodos** lado a lado (`CMP_MAX`), sem precisar recarregar as 6 planilhas de cada mês. Funciona em dois passos:
+
+1. **Salvar** — na aba Síntese: **"Salvar dados do período (JSON)"** (`saveSnapshot('json')`, arquivo `relatorio-cx-AAAA-MM-DD_AAAA-MM-DD.json`) e, opcionalmente, **"Tabela do período (Excel)"** (tabela longa: Período · Indicador · Recorte · Valor · Unidade, mais uma aba "Informações"; serve só para conferir, a aba de comparação não lê Excel).
+2. **Comparar** — na aba "Comparar períodos", carregar os JSON (vários de uma vez).
+
+**O arquivo de dados** (`buildSnapshot()`, `SNAP_SCHEMA = 1`) guarda só números agregados (nada de paciente): comparecimento geral/por especialidade/tipo/clínica, origem (campanha), cancelamentos (total, motivos, tombados por clínica), recuperação, mediana (geral, por trimestre, por especialidade, combinações) e indicação. É sempre **completo e sem filtros de tela** (filtros só ficam anotados em `anotacoes`), para dois períodos nunca serem comparados com recortes diferentes. ⚠️ Mudou a estrutura do arquivo? Aumentar `SNAP_SCHEMA` e tratar em `cmpValidate()`. O `.gitignore` ignora `relatorio-cx-*.json` (têm números por clínica).
+
+**Proteções contra misturar dados**: o período e o rótulo (ex.: "out/26") vêm de **dentro** do arquivo (menor/maior "Data da consulta"), não do nome; ordem cronológica automática; arquivo repetido (mesmo período ou mesmo `geradoEm`), JSON inválido, arquivo de outro painel ou de outra versão e o 7º arquivo são **recusados com aviso**; períodos sobrepostos, sem data ou sem alguma planilha geram aviso, e o indicador ausente aparece como "—" (nunca como zero). Sem coluna "Data da consulta", o botão pede um nome para o período.
+
+**O que aparece**: resumo "O que mudou" (dois últimos períodos: indicadores com piora/melhora de 5% ou mais, clínicas com maiores quedas/altas, clínicas que cruzaram os 3% de tombamento), indicadores gerais, comparecimento por especialidade / tipo de agendamento / clínica (ordenável), motivos de cancelamento, tombamento por clínica e mediana por especialidade. Regras: **10+ consultas** no período para entrar em ranking (senão "—"); cores do comparecimento, recuperação e mediana pelas faixas já definidas; **variação pela regra de piora relativa 5/10/15%** (atenção/ruim/crítica; melhora em verde); consultas e faltas ficam sem cor porque dependem do volume.
+- Limitações: só compara períodos já salvos (para um mês antigo, carregar as planilhas dele e salvar); a comparação não é exportada em PNG/PDF (o botão "Exportar esta aba" imprime a tela); os arquivos ficam com o usuário, nada é guardado no navegador.
 
 ## Exportação em PDF
 

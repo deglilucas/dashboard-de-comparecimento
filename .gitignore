@@ -2,6 +2,8 @@
 *.xlsx
 *.xls
 *.csv
+# arquivos de dados por período salvos pelo painel (têm números por clínica)
+relatorio-cx-*.json
 
 .DS_Store
 Thumbs.db
