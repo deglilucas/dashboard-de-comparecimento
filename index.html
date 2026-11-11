@@ -6,10 +6,10 @@
 <title>Painel de comparecimento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-NrKB+u6Ts6AtkIhwPixiKTzgSKNblyhlk0Sohlgar9UHUBzai/sgnNNWWd291xqt" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
 <style>
 :root{
   --bg:#f4f6f8;
@@ -1023,10 +1023,13 @@ function toNum(v){
     if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g,"").replace(",",".");
     else s = s.replace(/,/g,"");
   } else if (hasComma){
-    // só vírgula: é o separador decimal (planilha/CSV em formato BR, ex. "40,5")
-    s = s.replace(",",".");
+    // várias vírgulas em grupos de 3 dígitos ("1,234,567") = milhar; uma vírgula só é o decimal (CSV em formato BR, ex. "40,5")
+    s = /^-?\d{1,3}(,\d{3}){2,}$/.test(s) ? s.replace(/,/g,"") : s.replace(",",".");
+  } else if (hasDot && /^-?[1-9]\d{0,2}(\.\d{3})+$/.test(s)){
+    // ponto em grupos de 3 dígitos ("1.234", "12.345") = milhar em formato BR; "0.625" continua decimal
+    s = s.replace(/\./g,"");
   }
-  // só ponto, ou nenhum separador: já está no formato que parseFloat espera
+  // senão: já está no formato que parseFloat espera
   const n = parseFloat(s.replace(/[^\d.-]/g,""));
   return isNaN(n) ? 0 : n;
 }
@@ -1042,7 +1045,11 @@ function toPctValue(v){
 function fmtInt(n){ return Math.round(n).toLocaleString("pt-BR"); }
 function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}); }
 function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
-function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
+// faixas de comparecimento (os textos "70% ou mais", "60% a 69%" e "abaixo de 60%" estão escritos nas telas: mudou a meta, ajustar os textos junto)
+const CHAVE_NAO_INFORMADO = "nao informado", ROTULO_NAO_INFORMADO = "NÃO INFORMADO";   // campanha/motivo/tipo em branco (a chave já vem sem acento e em minúsculas)
+const CHAVE_MOTIVO_CLINICA = "solicitacao da clinica";                                 // motivo de cancelamento "tombado" pela clínica
+const META_COMP_BOM = 70, META_COMP_ATENCAO = 60;
+function statusOf(p){ return p >= META_COMP_BOM ? "good" : (p >= META_COMP_ATENCAO ? "warn" : "bad"); }
 
 /* ---- cenários dos "aguardando retorno" -------------------------------------
    O % de comparecimento oficial só olha quem já tem desfecho (compareceu +
@@ -1369,7 +1376,15 @@ const varSev = rel => rel > VAR_CRITICA ? 3 : (rel >= VAR_RUIM ? 2 : (rel >= VAR
 // melhora = positivo · piora de 5% a <10% = atenção · 10% ou mais = negativo · entre os dois (estável) = fica fora do semáforo
 const varBucket = worse => worse <= -0.5 ? "g" : (worse >= VAR_RUIM ? "b" : (worse >= VAR_ATENCAO ? "w" : null));
 const pushVar = (o, worse, msg) => { const k = varBucket(worse); if (k) o[k].push(msg); };                      // worse > 0 = piorou
-const sumBucket = p => p>=70 ? "g" : (p>=60 ? "w" : "b");
+// combinações clínica x especialidade por faixa: bom (maior primeiro), atenção (mais perto de 60% primeiro) e ruim (pior primeiro)
+function faixasClinicaEspecialidade(pool){
+  return {
+    good: pool.filter(r => r.p >= META_COMP_BOM).sort((a,b) => b.p-a.p || b.total-a.total),
+    warn: pool.filter(r => r.p >= META_COMP_ATENCAO && r.p < META_COMP_BOM).sort((a,b) => a.p-b.p),
+    bad:  pool.filter(r => r.p < META_COMP_ATENCAO).sort((a,b) => a.p-b.p || b.total-a.total)
+  };
+}
+const sumBucket = p => ({good:"g", warn:"w", bad:"b"})[statusOf(p)];
 const cleanName = c => parseClinic(c).nome;
 
 function summaryVisaoGeral(){
@@ -1380,12 +1395,12 @@ function summaryVisaoGeral(){
     const sc = compScenarios(d.compareceu, d.faltou, d.aguardando);
     o[sumBucket(p)].push(`Comparecimento geral de ${fmtPct(p)} em ${fmtInt(sc.total)} consultas`);
     if (sc.ag) o.w.push(`${fmtInt(sc.ag)} consultas aguardando retorno: o % pode ficar entre ${fmtPct(sc.worst)} e ${fmtPct(sc.best)}`);
-    if (d.faltou && p < 70) o[sumBucket(p)].push(`${fmtInt(d.faltou)} faltas (${fmtPct(100-p)} das consultas com desfecho)`);
+    if (d.faltou && p < META_COMP_BOM) o[sumBucket(p)].push(`${fmtInt(d.faltou)} faltas (${fmtPct(100-p)} das consultas com desfecho)`);
     const tipos = [...d.byTipo.entries()].map(([k,v]) => ({k, den:v.compareceu+v.faltou, p:(v.compareceu+v.faltou)>0 ? v.compareceu/(v.compareceu+v.faltou)*100 : 0})).filter(t=>t.den>=10).sort((a,b)=>b.p-a.p);
     if (tipos.length > 1){
       const best = tipos[0], worst = tipos[tipos.length-1];
-      if (best.p >= 70) o.g.push(`Benchmark de comparecimento por tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
-      if (worst.p < 70) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Tipo de agendamento com menor comparecimento: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
+      if (best.p >= META_COMP_BOM) o.g.push(`Benchmark de comparecimento por tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
+      if (worst.p < META_COMP_BOM) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Tipo de agendamento com menor comparecimento: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
     }
   }
   if (especialidadeData){
@@ -1395,7 +1410,7 @@ function summaryVisaoGeral(){
     }).filter(r=>r.den>0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b)=>b.p-a.p);   // benchmark: só com 10+ consultas
     if (rows.length > 1){
       const best = rows[0], worst = rows[rows.length-1];
-      if (best.p >= 70) o.g.push(`Benchmark de comparecimento entre as especialidades primárias: ${prettyName(best.s)} (${fmtPct(best.p)})`);
+      if (best.p >= META_COMP_BOM) o.g.push(`Benchmark de comparecimento entre as especialidades primárias: ${prettyName(best.s)} (${fmtPct(best.p)})`);
       o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Especialidade primária com menor comparecimento: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
     }
   }
@@ -1419,9 +1434,7 @@ function summaryComparecimento(){
   let pool = all.filter(r=>r.total >= HIGH_VOLUME_MIN);
   const scope = "combinações de clínica e especialidade", vol = pool.length ? ` (${HIGH_VOLUME_MIN}+ consultas)` : "";
   if (!pool.length) pool = all;
-  const good = pool.filter(r=>r.p>=70).sort((a,b)=>b.p-a.p || b.total-a.total);
-  const warn = pool.filter(r=>r.p>=60 && r.p<70).sort((a,b)=>a.p-b.p);
-  const bad = pool.filter(r=>r.p<60).sort((a,b)=>a.p-b.p || b.total-a.total);
+  const {good, warn, bad} = faixasClinicaEspecialidade(pool);
   const list = arr => arr.slice(0,3).map(r=>`${r.label} (${fmtPct(r.p)})`).join("; ");
   o.g.push(note(`${good.length} de ${pool.length} ${scope}${vol} com comparecimento de 70% ou mais`, `Combinações com comparecimento de 70% ou mais`, good));
   if (good.length) o.g.push(`Benchmark de comparecimento por clínica e especialidade: ${list(good)}`);
@@ -1432,7 +1445,7 @@ function summaryComparecimento(){
     bySpec.sort((a,b)=>a.st.p-b.st.p);
     const w = bySpec[0], bst = bySpec[bySpec.length-1];
     o[sumBucket(w.st.p)==="g"?"w":sumBucket(w.st.p)].push(`Menor comparecimento entre todas as especialidades: ${prettyName(w.s)} (${fmtPct(w.st.p)})`);
-    if (bst.st.p >= 70) o.g.push(`Benchmark de comparecimento entre todas as especialidades: ${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
+    if (bst.st.p >= META_COMP_BOM) o.g.push(`Benchmark de comparecimento entre todas as especialidades: ${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
   }
   return o;
 }
@@ -1475,8 +1488,7 @@ function summaryIndicacoes(){
   }
   if (campanhaData){
     const entries = [...campanhaData.map.entries()], tot = campanhaData.totalComp;
-    const ind = entries.filter(([k])=>isIndicacao(k)).reduce((s,[,v])=>s+v,0);
-    const ni = entries.find(([k])=>normKey(k)==="nao informado");
+    const ni = entries.find(([k])=>normKey(k) === CHAVE_NAO_INFORMADO);
     if (ni && tot>0){
       const s = ni[1]/tot*100;
       o[s>=10?"b":"w"].push(`${fmtPct(s)} dos comparecimentos sem campanha preenchida ("Não informado")`);
@@ -1609,7 +1621,7 @@ function iRich(s){
       `${a}<b style="color:${toneColor(recConvTone(toNum(cv)))}">${cv}</b>${b}<b style="color:${toneColor(recPerdTone(toNum(pd)))}">${pd}</b>`)
     .replace(/([+−])(\d[\d.,]* p\.p\.)/g, (m,sg,rest) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>`)
     .replace(/(Mediana geral[^(]*\()([+−])(\d[\d.,]*%)/g, (m,a,sg,rest) => `${a}<b style="color:${sg==="+"?IC.bad:IC.ok}">${sg}${rest}</b>`)   // mediana: mais dias = pior
-    .replace(/([+−])(\d[\d.,]*%)( vs\.)/g, (m,sg,rest,t) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>${t}`);   // variação relativa "(−5,5% vs. …)" (mediana: subir = ruim, ver iRichDias)
+    .replace(/([+−])(\d[\d.,]*%)( vs\.)/g, (m,sg,rest,t) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>${t}`);   // variação relativa "(−5,5% vs. …)" (mediana: subir = ruim; tratado na linha acima)
 }
 const safeSec = fn => { try { return fn(); } catch(e){ console.error("Síntese:", e); return null; } };
 
@@ -1652,7 +1664,6 @@ const INFO_SPEC_TOP = 3;   // clínicas por lista em cada cartão de especialida
 // especialidades que ganham cartão: as primárias + as extras marcadas no filtro da Síntese
 const infoSpecKeys = () => DEFAULT_RANKING_SPECS.concat([...especialidadeExtraSelected].filter(s => !DEFAULT_RANKING_SPECS.includes(s)));
 const iListTwo = rows => rows.map(r => `<div class="i-li2 t-${r.tone}"><div><strong>${escapeHtml(r.spec)}</strong><span>${escapeHtml(r.clinic)}</span></div><b>${r.text}</b></div>`).join("");
-const iList = (rows, tone) => rows.map(r => `<div class="i-li t-${r.tone||tone}"><span>${escapeHtml(r.label)}</span><b>${r.text}</b></div>`).join("");
 function iMonth(m){
   const mi = monthIndex(m);
   return mi === null ? String(m).slice(0,8) : `${MESES_ABREV[mi%12]}/${String(Math.floor(mi/12)).slice(-2)}`;
@@ -1701,16 +1712,14 @@ function infoSecComparecimento(){
   const all = CLINICA_RECORDS.filter(r => r.a > 0).map(r => ({p:pct(r.a,r.f), a:r.a, f:r.f, total:r.a+(r.ag||0), e:r.e, label:`${cleanName(r.c)} · ${prettyName(r.e)}`, spec:prettyName(r.e), clinic:cleanName(r.c)}));
   let pool = all.filter(r => r.total >= HIGH_VOLUME_MIN);
   const hv = pool.length > 0; if (!hv) pool = all;
-  const good = pool.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total);
-  const warn = pool.filter(r => r.p>=60 && r.p<70).sort((a,b) => a.p-b.p);
-  const bad  = pool.filter(r => r.p<60).sort((a,b) => a.p-b.p || b.total-a.total);
+  const {good, warn, bad} = faixasClinicaEspecialidade(pool);
 
   // listas "top 5": só as especialidades primárias (+ as extras marcadas no filtro), alto volume quando existir
   const allowed = new Set(specKeys);
   const restr = all.filter(r => allowed.has(r.e));
   const poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN);   // só combinações com 10+ consultas entram no ranking
-  const topBest = poolL.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
-  const topAttn = poolL.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
+  const topBest = poolL.filter(r => r.p >= META_COMP_BOM).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
+  const topAttn = poolL.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
   // um cartão por especialidade: maiores (70% ou mais) e menores (abaixo de 70%), só clínicas com 10+ consultas
   const bySpecL = new Map(); poolL.forEach(r => { if (!bySpecL.has(r.e)) bySpecL.set(r.e, []); bySpecL.get(r.e).push(r); });
   const cRow = r => ({clinic:r.clinic, text:fmtPct(r.p) + `<small>${r.total} ${plural(r.total,"consulta","consultas")}</small>`, tone:statusOf(r.p)});
@@ -1723,11 +1732,11 @@ function infoSecComparecimento(){
   });
   const compCards = compInfo.map(({k, A, min, fallback, H, L}) => {
     const cov = sumK(A, "a") > 0 ? Math.round(sumK(H, "a") / sumK(A, "a") * 100) : 0;
-    const lowBad = L.filter(r => r.p < 70).sort((a,b) => a.p-b.p || b.total-a.total);
+    const lowBad = L.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total);
     const foot = lowBad.length ? `<b>Fora do ranking (menos de ${min} consultas), abaixo de 70%:</b> ${lowBad.slice(0,4).map(r => `${escapeHtml(r.clinic)} ${fmtPct(r.p)} (${r.total})`).join("; ")}${lowBad.length > 4 ? ` e mais ${lowBad.length - 4}` : ""}.` : "";
     return iSpecCard(prettyName(k), [
-      {label:"Benchmark (maiores)", rows:H.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? "Nenhuma clínica com 70% ou mais." : `Nenhuma clínica com ${min}+ consultas.`},
-      {label:"Menores (abaixo de 70%)", rows:H.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? `Nenhuma das clínicas com ${min}+ consultas está abaixo de 70%.` : `Nenhuma clínica com ${min}+ consultas.`}],
+      {label:"Benchmark (maiores)", rows:H.filter(r => r.p >= META_COMP_BOM).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? "Nenhuma clínica com 70% ou mais." : `Nenhuma clínica com ${min}+ consultas.`},
+      {label:"Menores (abaixo de 70%)", rows:H.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? `Nenhuma das clínicas com ${min}+ consultas está abaixo de 70%.` : `Nenhuma clínica com ${min}+ consultas.`}],
       `${H.length} de ${A.length} ${plural(A.length,"clínica","clínicas")} com ${min}+ consultas (entram no ranking); elas somam ${cov}% das consultas com desfecho da especialidade` +
         (fallback ? ` <b>Nenhuma clínica tem ${HIGH_VOLUME_MIN}+ consultas nesta especialidade, então o corte aqui é ${min}+.</b>` : ""), foot); });
   // cobertura geral: o que os rankings por especialidade enxergam e o que deixam de fora
@@ -1765,14 +1774,14 @@ function infoSecComparecimento(){
   const byC = new Map(); let totA = 0;
   CLINICA_RECORDS.forEach(r => { if (!(r.a > 0)) return; totA += r.a;
     const o = byC.get(r.c) || {a:0, f:0, ag:0, specs:new Map()}; byC.set(r.c, o);
-    o.a += r.a; o.f += r.f; o.ag += (r.ag||0); o.specs.set(r.e, (o.specs.get(r.e)||0) + (r.f - 0.3*r.a)); });
+    o.a += r.a; o.f += r.f; o.ag += (r.ag||0); o.specs.set(r.e, (o.specs.get(r.e)||0) + (r.f - (1 - META_COMP_BOM/100)*r.a)); });
   const totF = [...byC.values()].reduce((s,o) => s+o.f, 0);
   const drag = [...byC].filter(([,o]) => o.a + o.ag >= HIGH_VOLUME_MIN)   // ranking de clínicas: só com 10+ consultas
-    .map(([c,o]) => ({name:cleanName(c), p:pct(o.a,o.f), f:o.f, excess:o.f-0.3*o.a, shareF:totF>0 ? o.f/totF*100 : 0, gain:totA>0 ? (o.f-0.3*o.a)/totA*100 : 0,
-      spec:([...o.specs].sort((x,y) => y[1]-x[1])[0] || [""])[0]})).filter(x => x.p < 70 && x.excess > 0).sort((a,b) => b.excess-a.excess);
-  if (drag.length && (tone !== "good" || drag[0].p < 60)){
+    .map(([c,o]) => ({name:cleanName(c), p:pct(o.a,o.f), f:o.f, excess:o.f-(1 - META_COMP_BOM/100)*o.a, shareF:totF>0 ? o.f/totF*100 : 0, gain:totA>0 ? (o.f-(1 - META_COMP_BOM/100)*o.a)/totA*100 : 0,
+      spec:([...o.specs].sort((x,y) => y[1]-x[1])[0] || [""])[0]})).filter(x => x.p < META_COMP_BOM && x.excess > 0).sort((a,b) => b.excess-a.excess);
+  if (drag.length && (tone !== "good" || drag[0].p < META_COMP_ATENCAO)){
     const top = drag.slice(0,3);
-    actions.push({theme:"Comparecimento", owner:"CX e CS", sev:Math.max(tone==="bad" ? 2 : (tone==="warn" ? 1 : 0), drag[0].p < 60 ? 2 : 1),   // vale a faixa pior: a geral ou a da clínica que mais pesa
+    actions.push({theme:"Comparecimento", owner:"CX e CS", sev:Math.max(tone==="bad" ? 2 : (tone==="warn" ? 1 : 0), drag[0].p < META_COMP_ATENCAO ? 2 : 1),   // vale a faixa pior: a geral ou a da clínica que mais pesa
       impact:top.reduce((s,x) => s+x.excess, 0),
       title:"Reduzir as faltas nas clínicas que mais puxam o comparecimento para baixo",
       why:`Comparecimento geral de ${cB(fmtPct(p),tone)}. Maior peso na queda: ` + top.map(x => `<b>${escapeHtml(x.name)}</b> (${cB(fmtPct(x.p), statusOf(x.p))}; ${fmtInt(x.f)} faltas, ${fmtPct(x.shareF)} do total; chegando a 70%, o geral subiria ${f1(x.gain)} p.p.)`).join("; ") + ".",
@@ -1861,7 +1870,7 @@ function infoSecCancelamentos(){
       cs:"Antes de oferecer horário, confirmar que a agenda do médico dessa praça está liberada."});
   }
   if (c && motivoTop[0]){
-    const [mk, mv] = motivoTop[0], semMotivo = normKey(mk) === "nao informado";
+    const [mk, mv] = motivoTop[0], semMotivo = normKey(mk) === CHAVE_NAO_INFORMADO;
     actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:1, impact:mv,
       title: semMotivo ? "Tabular o motivo dos cancelamentos que estão sem motivo" : `Atacar o principal motivo de cancelamento: ${prettyName(mk)}`,
       why:`${escapeHtml(prettyName(mk))} responde por ${cB(fmtPct(mv/c.total*100),"warn")} dos ${fmtInt(c.total)} cancelamentos do período.`,
@@ -2004,7 +2013,7 @@ function infoSecIndicacoes(){
   if (camp){
     const entries = [...camp.map.entries()], tot = camp.totalComp;
     const ind = entries.filter(([k]) => isIndicacao(k)).reduce((s,[,v]) => s+v, 0);
-    const ni = (entries.find(([k]) => normKey(k)==="nao informado") || [0,0])[1];
+    const ni = (entries.find(([k]) => normKey(k) === CHAVE_NAO_INFORMADO) || [0,0])[1];
     const out = Math.max(0, tot - ind - ni);
     niShare = ni/tot*100; indShare = ind/tot*100;
     const seg = (v,color,label) => ({v, color, label, text: v/tot>=0.08 ? fmtPct(v/tot*100) : "", lt: fmtPct(v/tot*100)});
@@ -2131,8 +2140,9 @@ function parseDataConsulta(v){
   if (typeof v === "number") return v > 20000 && v < 80000 ? Math.round((v - 25569) * 86400000) : null;   // data serial do Excel
   const s = String(v==null ? "" : v).trim();
   if (!s) return null;
-  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return Date.UTC(+m[3], +m[2]-1, +m[1]);   // 31/10/2026
-  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return Date.UTC(+m[1], +m[2]-1, +m[3]);           // 2026-10-31
+  const valida = (a, mes, d) => { const t = Date.UTC(a, mes-1, d), x = new Date(t); return (mes >= 1 && mes <= 12 && d >= 1 && x.getUTCMonth() === mes-1 && x.getUTCDate() === d) ? t : null; };
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return valida(+m[3], +m[2], +m[1]);   // 31/10/2026
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return valida(+m[1], +m[2], +m[3]);           // 2026-10-31
   return /^\d{5}$/.test(s) ? parseDataConsulta(+s) : null;
 }
 function comparecimentoPeriodo(){
@@ -2453,7 +2463,7 @@ function buildSnapshot(labelOverride){
     s.porClinica = [...byC.values()];
     if (campanhaData){
       const ent = [...campanhaData.map];
-      s.campanhas = {totalComp:campanhaData.totalComp, indicacao:ent.filter(([k]) => isIndicacao(k)).reduce((a,[,v]) => a+v, 0), naoInformado:(ent.find(([k]) => normKey(k)==="nao informado") || [0,0])[1]};
+      s.campanhas = {totalComp:campanhaData.totalComp, indicacao:ent.filter(([k]) => isIndicacao(k)).reduce((a,[,v]) => a+v, 0), naoInformado:(ent.find(([k]) => normKey(k) === CHAVE_NAO_INFORMADO) || [0,0])[1]};
     }
   }
   if (cancelamentoData){
@@ -2505,8 +2515,15 @@ document.getElementById("fileSnapLoad").addEventListener("change", async e => { 
 async function restoreSnapshotFile(file){
   let s; try { s = JSON.parse(await file.text()); } catch(err){ showBanner("error", `"${escapeHtml(file.name)}" não é um JSON válido.`); return; }
   const why = cmpValidate(s); if (why){ showBanner("error", `"${escapeHtml(file.name)}": ${escapeHtml(why)}`); return; }
-  const b = s.bruto, src = b ? {comparecimento:unpackRows(b.comparecimento), cancelamentos:unpackRows(b.cancelamentos), recuperacao:unpackRows(b.recuperacao),
-    indConsultas:unpackRows(b.indConsultas), indCirurgias:unpackRows(b.indCirurgias), mediana:unpackRows(b.mediana)} : null;
+  let src = null;
+  try {
+    const b = s.bruto;
+    src = b ? {comparecimento:unpackRows(b.comparecimento), cancelamentos:unpackRows(b.cancelamentos), recuperacao:unpackRows(b.recuperacao),
+      indConsultas:unpackRows(b.indConsultas), indCirurgias:unpackRows(b.indCirurgias), mediana:unpackRows(b.mediana)} : null;
+  } catch(err){
+    showBanner("error", `"${escapeHtml(file.name)}" tem linhas de planilha fora do formato esperado e não foi recarregado. Salve o período de novo pelo painel.`);
+    return;
+  }
   if (!src || !Object.values(src).some(Boolean)){
     showBanner("error", `"${escapeHtml(file.name)}" foi salvo por uma versão anterior do painel e só tem os totais (serve para a aba Comparar períodos, mas não para recarregar). Carregue as planilhas desse período mais uma vez e salve de novo.`);
     return;
@@ -2601,12 +2618,28 @@ function cmpValidate(s){
   if (!s.rotulo || !s.fontes) return "arquivo incompleto.";
   return null;
 }
+// deixa o arquivo no formato que a comparação espera (listas vazias no lugar de campos ausentes ou de tipo errado)
+function cmpNormalizar(s){
+  const lista = v => Array.isArray(v) ? v : [];
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  s.fontes = obj(s.fontes) || {};
+  s.porEspecialidade = lista(s.porEspecialidade); s.porTipo = lista(s.porTipo); s.porClinica = lista(s.porClinica);
+  s.comparecimento = obj(s.comparecimento); s.recuperacao = obj(s.recuperacao);
+  if ((s.cancelamentos = obj(s.cancelamentos))){ s.cancelamentos.porMotivo = lista(s.cancelamentos.porMotivo); s.cancelamentos.porClinica = lista(s.cancelamentos.porClinica); }
+  if ((s.mediana = obj(s.mediana))){ s.mediana.porEspecialidade = lista(s.mediana.porEspecialidade); s.mediana.porTrimestre = lista(s.mediana.porTrimestre); s.mediana.combinacoes = lista(s.mediana.combinacoes); }
+  if ((s.indicacao = obj(s.indicacao))){ s.indicacao.serie = lista(s.indicacao.serie); s.indicacao.cirurgias = lista(s.indicacao.cirurgias); }
+  const iso = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v));
+  s.periodo = obj(s.periodo) && iso(s.periodo.de) && iso(s.periodo.ate) ? s.periodo : null;
+  if (typeof s.geradoEm !== "string" || isNaN(Date.parse(s.geradoEm))) s.geradoEm = new Date().toISOString();
+  return s;
+}
 async function cmpAddFiles(files){
   const msgs = [];
   for (const f of files){
     if (CMP.length >= CMP_MAX){ msgs.push(`Limite de ${CMP_MAX} períodos: "${escapeHtml(f.name)}" ficou de fora.`); continue; }
     let s; try { s = JSON.parse(await f.text()); } catch(err){ msgs.push(`"${escapeHtml(f.name)}" não é um JSON válido.`); continue; }
     const why = cmpValidate(s); if (why){ msgs.push(`"${escapeHtml(f.name)}": ${escapeHtml(why)}`); continue; }
+    cmpNormalizar(s);
     s.__file = f.name; delete s.bruto;   // a comparação só usa os totais
     const dup = CMP.find(x => x.geradoEm === s.geradoEm || (s.periodo && x.periodo && s.periodo.de === x.periodo.de && s.periodo.ate === x.periodo.ate) || (!s.periodo && !x.periodo && x.rotulo === s.rotulo));
     if (dup){ msgs.push(`"${escapeHtml(f.name)}" repete o período de "${escapeHtml(dup.__file)}" (${escapeHtml(dup.rotulo)}) e não foi adicionado.`); continue; }
@@ -3196,7 +3229,7 @@ function aggregateTipoAgendamento(canonRows){
   let compareceu=0, faltou=0, aguardando=0, outro=0;
   for (const r of rows){
     const cls = classifyStatus(r.status);
-    const tipo = String(r.tipo_agendamento||"NÃO INFORMADO").trim().toUpperCase() || "NÃO INFORMADO";
+    const tipo = String(r.tipo_agendamento|| ROTULO_NAO_INFORMADO).trim().toUpperCase() || ROTULO_NAO_INFORMADO;
     if (!byTipo.has(tipo)) byTipo.set(tipo, {compareceu:0, faltou:0, aguardando:0});
     const t = byTipo.get(tipo);
     if (cls === "compareceu"){ compareceu++; t.compareceu++; }
@@ -3293,22 +3326,22 @@ function applyCancelRows(rows, fileName){
       const qtd = toNum(r.qtd) || 1;
       const motivo = normKey(r.motivo);
       total += qtd;
-      if (motivo.includes("solicitacao da clinica")) clinica += qtd;
+      if (motivo.includes(CHAVE_MOTIVO_CLINICA)) clinica += qtd;
       else paciente += qtd;
 
-      const motivoLabel = String(r.motivo||"NÃO INFORMADO").trim().toUpperCase() || "NÃO INFORMADO";
+      const motivoLabel = String(r.motivo|| ROTULO_NAO_INFORMADO).trim().toUpperCase() || ROTULO_NAO_INFORMADO;
       byMotivo.set(motivoLabel, (byMotivo.get(motivoLabel)||0) + qtd);
 
       const cli = String(r.clinica||"").trim();
       if (cli){
         const bc = byClinica.get(cli) || {total:0, tombados:0};
-        bc.total += qtd; if (motivo.includes("solicitacao da clinica")) bc.tombados += qtd;
+        bc.total += qtd; if (motivo.includes(CHAVE_MOTIVO_CLINICA)) bc.tombados += qtd;
         byClinica.set(cli, bc);
         const esp = normSpecName(r.especialidade||"NÃO INFORMADA") || "NÃO INFORMADA";
         if (!byEspClinica.has(esp)) byEspClinica.set(esp, new Map());
         const m = byEspClinica.get(esp);
         m.set(cli, (m.get(cli)||0) + qtd);
-        if (motivo.includes("solicitacao da clinica")){
+        if (motivo.includes(CHAVE_MOTIVO_CLINICA)){
           if (!byEspClinicaTomb.has(esp)) byEspClinicaTomb.set(esp, new Map());
           const tm = byEspClinicaTomb.get(esp); tm.set(cli, (tm.get(cli)||0) + qtd);
         }
@@ -3677,7 +3710,7 @@ function aggregateCampanha(canonRows){
   for (const r of rows){
     if (classifyStatus(r.status) !== "compareceu") continue;
     totalComp++;
-    const camp = String(r.campanha||"").trim().toUpperCase() || "NÃO INFORMADO";
+    const camp = String(r.campanha||"").trim().toUpperCase() || ROTULO_NAO_INFORMADO;
     map.set(camp, (map.get(camp)||0) + 1);
   }
   return {map, totalComp, totalRows: rows.length};
@@ -3737,6 +3770,10 @@ function toggleDataTable(tableId, btn){
    — se a planilha tiver menos que 3 meses nesse período, usa os que existirem. */
 const MESES_ABREV = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 function monthIndex(label){
+  if (typeof label === "number" || /^\d{5}$/.test(String(label).trim())){   // data serial do Excel
+    const t = parseDataConsulta(+label);
+    if (t !== null){ const d = new Date(t); return d.getUTCFullYear()*12 + d.getUTCMonth(); }
+  }
   const s = normKey(String(label));
   let m = s.match(/(\d{4})\D+(\d{1,2})\b/);                 // 2026/10, 2026-10, 2026-10-01
   if (m && +m[2] >= 1 && +m[2] <= 12) return (+m[1])*12 + (+m[2]-1);
@@ -3794,7 +3831,7 @@ function renderCampanha(){
     return;
   }
   const entries = [...campanhaData.map.entries()].sort((a,b)=>b[1]-a[1]);
-  const isNaoInformado = k => normKey(k) === "nao informado";
+  const isNaoInformado = k => normKey(k) === CHAVE_NAO_INFORMADO;
   const hasNaoInformado = entries.some(([k])=>isNaoInformado(k));
 
   block.innerHTML = `
