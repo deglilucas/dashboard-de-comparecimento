@@ -1104,9 +1104,11 @@ function canonicalizeRow(row, lookup){
   return out;
 }
 function classifyStatus(s){
-  const n = normKey(s);
+  // tudo que não é letra/número vira um espaço: "NÃO  COMPARECEU", "NAO_COMPARECEU", "NÃO-COMPARECEU" e
+  // "N\uFFFDO COMPARECEU" (acento quebrado em CSV antigo) caem todos em "n?o compareceu"
+  const n = normKey(s).replace(/[^a-z0-9]+/g," ").trim();
   // checar negação/falta ANTES de "compareceu" — "NÃO COMPARECEU" contém "compareceu" como substring
-  if (n.includes("nao compareceu")) return "faltou";
+  if (/\bn ?a? ?o comparec/.test(n)) return "faltou";
   if (n.includes("falt")) return "faltou";
   if (n.includes("aguardando")) return "aguardando";
   if (n.includes("compareceu")) return "compareceu";
@@ -1139,8 +1141,14 @@ function readSpreadsheet(file, onRows, onError){
   const reader = new FileReader();
   reader.onload = function(e){
     try {
+      let csvText = null;
+      if (ext === "csv"){
+        try { csvText = new TextDecoder("utf-8", {fatal:true}).decode(e.target.result); }
+        catch(encErr){ csvText = new TextDecoder("windows-1252").decode(e.target.result); }   // CSV salvo pelo Excel em ANSI
+        csvText = csvText.replace(/^\uFEFF/, "");
+      }
       const wb = ext === "csv"
-        ? XLSX.read(e.target.result, {type:"string", raw:true, FS: detectCsvDelimiter(e.target.result)})
+        ? XLSX.read(csvText, {type:"string", raw:true, FS: detectCsvDelimiter(csvText)})
         : XLSX.read(e.target.result, {type:"array", codepage:65001, raw:true});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
@@ -1150,7 +1158,7 @@ function readSpreadsheet(file, onRows, onError){
     }
   };
   reader.onerror = function(){ onError(`Erro ao carregar "${escapeHtml(file.name)}".`); };
-  if (ext === "csv") reader.readAsText(file, "UTF-8"); else reader.readAsArrayBuffer(file);
+  reader.readAsArrayBuffer(file);
 }
 function showBanner(kind, html){
   const el = document.getElementById("uploadBanner");
@@ -1735,7 +1743,7 @@ function infoSecCancelamentos(){
     const [mk, mv] = motivoTop[0], semMotivo = normKey(mk) === "nao informado";
     actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:1, impact:mv,
       title: semMotivo ? "Tabular o motivo dos cancelamentos que estão sem motivo" : `Atacar o principal motivo de cancelamento: ${prettyName(mk)}`,
-      why:`${prettyName(mk)} responde por ${cB(fmtPct(mv/c.total*100),"warn")} dos ${fmtInt(c.total)} cancelamentos do período.`,
+      why:`${escapeHtml(prettyName(mk))} responde por ${cB(fmtPct(mv/c.total*100),"warn")} dos ${fmtInt(c.total)} cancelamentos do período.`,
       curto:[semMotivo ? "CX tabula o motivo desses cancelamentos para saber o que realmente acontece." : "CX investiga nos casos recentes o que está por trás desse motivo."],
       medio:["Definir com o CS o que dá para evitar antes de o paciente cancelar."],
       cs: semMotivo ? "Registrar o motivo no momento do cancelamento." : "Reforçar com o paciente a data e o interesse no momento do agendamento."});
@@ -2386,12 +2394,12 @@ function cmpValidate(s){
 async function cmpAddFiles(files){
   const msgs = [];
   for (const f of files){
-    if (CMP.length >= CMP_MAX){ msgs.push(`Limite de ${CMP_MAX} períodos: "${f.name}" ficou de fora.`); continue; }
-    let s; try { s = JSON.parse(await f.text()); } catch(err){ msgs.push(`"${f.name}" não é um JSON válido.`); continue; }
-    const why = cmpValidate(s); if (why){ msgs.push(`"${f.name}": ${why}`); continue; }
+    if (CMP.length >= CMP_MAX){ msgs.push(`Limite de ${CMP_MAX} períodos: "${escapeHtml(f.name)}" ficou de fora.`); continue; }
+    let s; try { s = JSON.parse(await f.text()); } catch(err){ msgs.push(`"${escapeHtml(f.name)}" não é um JSON válido.`); continue; }
+    const why = cmpValidate(s); if (why){ msgs.push(`"${escapeHtml(f.name)}": ${escapeHtml(why)}`); continue; }
     s.__file = f.name; delete s.bruto;   // a comparação só usa os totais
     const dup = CMP.find(x => x.geradoEm === s.geradoEm || (s.periodo && x.periodo && s.periodo.de === x.periodo.de && s.periodo.ate === x.periodo.ate) || (!s.periodo && !x.periodo && x.rotulo === s.rotulo));
-    if (dup){ msgs.push(`"${f.name}" repete o período de "${dup.__file}" (${dup.rotulo}) e não foi adicionado.`); continue; }
+    if (dup){ msgs.push(`"${escapeHtml(f.name)}" repete o período de "${escapeHtml(dup.__file)}" (${escapeHtml(dup.rotulo)}) e não foi adicionado.`); continue; }
     CMP.push(s);
   }
   cmpSort(); cmpMsgs = msgs; cmpClinSort = null; renderCompare(); updateExportAvailability();
@@ -2457,7 +2465,7 @@ function cmpDimRow(label, vals){
     return `<td class="cmp-na">—${x && x.low ? `<div class="cmp-d">menos de ${HIGH_VOLUME_MIN} consultas</div>` : ""}</td>`; }).join("")}</tr>`;
 }
 function cmpDimRows(field, keyFn, keys, labelFn){
-  return keys.map(k => ({k, vals:CMP.map(s => cmpDimVal(s, field, keyFn, k))})).filter(r => r.vals.some(x => x && okNum(x.v))).map(r => cmpDimRow(labelFn(r.k), r.vals));
+  return keys.map(k => ({k, vals:CMP.map(s => cmpDimVal(s, field, keyFn, k))})).filter(r => r.vals.some(x => x && okNum(x.v))).map(r => cmpDimRow(escapeHtml(labelFn(r.k)), r.vals));
 }
 const cmpKeys = (field, keyFn) => [...new Set(CMP.flatMap(s => (s[field]||[]).map(keyFn)))];
 
@@ -2502,7 +2510,7 @@ function cmpWarnings(){
   const w = cmpMsgs.slice();
   const noPer = CMP.filter(s => !s.periodo);
   if (noPer.length) w.push(`Sem datas de consulta (ordem pela data em que foram salvos): ${noPer.map(s => escapeHtml(s.rotulo)).join(", ")}.`);
-  for (let i = 1; i < CMP.length; i++){ const p = CMP[i-1], q = CMP[i]; if (p.periodo && q.periodo && p.periodo.ate >= q.periodo.de) w.push(`Períodos sobrepostos: <b>${escapeHtml(p.rotulo)}</b> (${cmpPer(p)}) e <b>${escapeHtml(q.rotulo)}</b> (${cmpPer(q)}). A mesma consulta pode estar nos dois.`); }
+  for (let i = 1; i < CMP.length; i++){ const p = CMP[i-1], q = CMP[i]; if (p.periodo && q.periodo && p.periodo.ate >= q.periodo.de) w.push(`Períodos sobrepostos: <b>${escapeHtml(p.rotulo)}</b> (${escapeHtml(cmpPer(p))}) e <b>${escapeHtml(q.rotulo)}</b> (${escapeHtml(cmpPer(q))}). A mesma consulta pode estar nos dois.`); }
   const names = {comparecimento:"comparecimento", cancelamentos:"cancelamentos por motivo", recuperacao:"recuperação pós-cancelamento", mediana:"mediana cirúrgica", indConsultas:"indicação em consultas", indCirurgias:"indicação em cirurgias"};
   Object.keys(names).forEach(k => { const miss = CMP.filter(s => !s.fontes[k]); if (miss.length && miss.length < CMP.length) w.push(`Sem a planilha de ${names[k]} em: ${miss.map(s => escapeHtml(s.rotulo)).join(", ")} (aparece "—" nesses indicadores).`); });
   return w;
@@ -2626,6 +2634,7 @@ function applyComparecimentoRows(canonRows, fileName){
       summaryParts.push(`${fmtInt(CLINICA_RECORDS.length)} combinações clínica/especialidade`);
       anyOk = true;
     } catch(err){
+      CLINICA_RECORDS = []; CLINICA_BY_SPEC = new Map();   // senão a planilha anterior continuaria na Síntese, no PDF e no JSON
       setEmptyStateComparecimento(true);
       summaryParts.push(`comparecimento por clínica indisponível (${err.message})`);
     }
@@ -3119,7 +3128,13 @@ document.getElementById("fileRecuperacao").addEventListener("change", function(e
   });
 });
 
+// linhas mensais em ordem de calendário quando todos os meses são reconhecidos; senão fica a ordem da planilha
+function sortRowsByMonth(rows){
+  const mi = rows.map(r => monthIndex(r.mes));
+  return mi.every(x => x !== null) ? rows.map((r,i) => ({r, k:mi[i], i})).sort((a,b) => a.k-b.k || a.i-b.i).map(x => x.r) : rows;
+}
 function applyRecuperacaoRows(rows, fileName){
+  rows = sortRowsByMonth(rows);
   recuperacaoRows = rows;
   setUploadStatus("statusRecuperacao","ok",`"${fileName}" carregado · ${rows.length} meses`);
   showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
@@ -3455,6 +3470,7 @@ function aggregateCampanha(canonRows){
 const TEMPORAL_APPLY = {};   // inputId -> (rows, fileName): aplica linhas já canonicalizadas (planilha ou período salvo)
 function makeTemporalHandler(inputId, statusId, aliasMap, storeSetter, onDone){
   TEMPORAL_APPLY[inputId] = (rows, fileName) => {
+    rows = sortRowsByMonth(rows);
     storeSetter(rows);
     setUploadStatus(statusId,"ok",`"${fileName}" carregado · ${rows.length} meses`);
     showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
@@ -3675,9 +3691,19 @@ function classifyMedianaSLA(dias, especialidade){
   return { tier:"bad", emoji:"⚠️", label:"crítico" };
 }
 function trimestreKey(t){
-  const m = String(t).match(/T?\s*(\d)\D+(\d{4})/i);
-  if (!m) return {sort: 0, label: String(t)};
-  const q = parseInt(m[1],10), y = parseInt(m[2],10);
+  // aceita "T4, 2026", "T4 2026", "4T2026", "4º tri/2026", "2026-T4" e também uma data (dd/mm/aaaa, aaaa-mm-dd
+  // ou data do Excel), de onde sai o trimestre. Devolve null quando não reconhece: a linha é descartada com aviso,
+  // em vez de virar "T0" ou de juntar trimestres diferentes num valor só.
+  const str = String(t==null?"":t).trim();
+  let q = null, y = null;
+  let m = str.match(/t\s*([1-4])\D{0,3}(\d{4})/i) || str.match(/^([1-4])\s*[ºo°]?\s*t[a-z]*\D{0,4}(\d{4})/i);
+  if (m){ q = +m[1]; y = +m[2]; }
+  else if ((m = str.match(/(\d{4})\D{0,3}t\s*([1-4])\b/i))){ q = +m[2]; y = +m[1]; }
+  else {
+    const ms = parseDataConsulta(t);
+    if (ms !== null && !isNaN(ms)){ const d = new Date(ms); y = d.getUTCFullYear(); q = Math.floor(d.getUTCMonth()/3) + 1; }
+  }
+  if (!q || !y || y < 2000 || y > 2100) return null;
   return {sort: y*4+q, label: `T${q}, ${y}`};
 }
 
@@ -3691,10 +3717,19 @@ function processMedianaRows(json){
   if (!rows.length){
     throw new Error('Não encontrei colunas de "nome_clinica", "especialidade", trimestre e "dias_consulta_1cirurgia" reconhecíveis.');
   }
-  const parsed = rows.map(r => {
+  let semDias = 0, semTrimestre = 0;
+  const parsed = [];
+  for (const r of rows){
     const tk = trimestreKey(r.trimestre);
-    return { clinica: String(r.clinica).trim(), especialidade: normSpecName(r.especialidade), tSort: tk.sort, tLabel: tk.label, dias: toNum(r.dias) };
-  });
+    if (!tk){ semTrimestre++; continue; }
+    // célula de dias em branco não é "0 dias": a linha fica de fora (senão liderava o benchmark e puxava a mediana para baixo)
+    const dias = (r.dias === undefined || String(r.dias).trim() === "") ? NaN : toNum(r.dias);
+    if (!(dias > 0)){ semDias++; continue; }
+    parsed.push({ clinica: String(r.clinica).trim(), especialidade: normSpecName(r.especialidade), tSort: tk.sort, tLabel: tk.label, dias });
+  }
+  if (!parsed.length){
+    throw new Error(`Nenhuma linha válida: ${semTrimestre} sem trimestre reconhecido (ex.: "T4, 2026") e ${semDias} sem dias preenchidos.`);
+  }
   // "Consulta refrativa" e "Refrativa" viram a mesma especialidade; se a mesma clínica tiver as duas
   // no mesmo trimestre, sobra um valor só: a média dos dois (a mediana já vem calculada na planilha,
   // não dá para recalcular a partir das consultas).
@@ -3704,7 +3739,9 @@ function processMedianaRows(json){
     if (!merged.has(key)) merged.set(key, {...r, vals:[r.dias]});
     else merged.get(key).vals.push(r.dias);
   }
-  return [...merged.values()].map(({vals, ...r}) => ({...r, dias: vals.reduce((s,v)=>s+v,0)/vals.length}));
+  const out = [...merged.values()].map(({vals, ...r}) => ({...r, dias: vals.reduce((s,v)=>s+v,0)/vals.length}));
+  out.ignoradas = {semDias, semTrimestre};   // onMedianaLoaded avisa quantas linhas ficaram de fora
+  return out;
 }
 function setEmptyStateMediana(show){
   document.getElementById("emptyStateMediana").classList.toggle("hidden", !show);
@@ -3907,7 +3944,10 @@ function onMedianaLoaded(rows, fileName){
   const specs = new Set(MEDIANA_RECORDS.map(r=>r.especialidade)).size;
   const clinicas = new Set(MEDIANA_RECORDS.map(r=>r.clinica)).size;
   setUploadStatus("statusMediana","ok",`"${fileName}" carregado · ${MEDIANA_RECORDS.length} linhas`);
-  showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(MEDIANA_RECORDS.length)} linha(s) &middot; ${fmtInt(clinicas)} clínicas &middot; ${fmtInt(specs)} especialidades.`);
+  const ign = rows.ignoradas || {semDias:0, semTrimestre:0};
+  const ignTxt = [ign.semDias ? `${fmtInt(ign.semDias)} sem dias preenchidos` : "", ign.semTrimestre ? `${fmtInt(ign.semTrimestre)} sem trimestre reconhecido` : ""].filter(Boolean).join(" e ");
+  if (ignTxt) setUploadStatus("statusMediana","ok",`"${fileName}" carregado · ${MEDIANA_RECORDS.length} linhas · ${ign.semDias + ign.semTrimestre} ignoradas`);
+  showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(MEDIANA_RECORDS.length)} linha(s) &middot; ${fmtInt(clinicas)} clínicas &middot; ${fmtInt(specs)} especialidades.` + (ignTxt ? ` <b>Linhas ignoradas:</b> ${ignTxt}.` : ""));
   setEmptyStateMediana(false);
   updateExportAvailability();
 }
