@@ -427,8 +427,21 @@ body.on-sintese .toolbar{display:none}
 .i-sec-t{font-size:26px;font-weight:700;color:var(--c-navy);letter-spacing:-.02em;line-height:1.1}
 .i-take{font-size:16.5px;margin:8px 0 20px 52px;color:var(--c-body)}
 .i-g{display:grid;gap:28px}
+.i-sp{display:grid;gap:12px;margin-top:10px}
+.i-spc{border:1px solid var(--c-line);border-radius:14px;padding:12px 14px 10px;background:#fff}
+.i-spc-t{font-size:16.5px;font-weight:700;color:var(--c-navy);margin-bottom:6px}
+.i-spc-g{display:grid;gap:16px}
+.i-spc-l{font-size:12.5px;font-weight:700;color:var(--c-muted);margin-bottom:3px}
+.i-spr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14.5px;padding:4px 0;border-top:1px solid var(--c-line)}
+.i-spr span{min-width:0;color:var(--c-body);font-weight:600;line-height:1.25}
+.i-spr b{color:var(--tc);white-space:nowrap}
+.i-spc-s{font-size:13px;color:var(--c-muted);margin:-3px 0 8px;line-height:1.35}
+.i-spc-f{font-size:12.5px;color:var(--c-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--c-line);line-height:1.4}
+.i-spr small{font-weight:600;color:var(--c-muted);font-size:12px;margin-left:5px}
+.i-spc-n{font-size:13px;color:var(--c-muted);padding:4px 0;border-top:1px solid var(--c-line)}
 .i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
+.i-when{display:block;margin-top:6px;font-size:13.5px;font-weight:600;color:var(--c-navy)}
 .i-hint{font-size:12.5px;font-weight:400;color:var(--c-muted);margin-left:4px}
 .i-note{font-size:13px;color:var(--c-muted);margin-top:8px;line-height:1.4}
 .infog .i-ac-steps > *,.infog .i-g > *,.infog .i-sem > *,.infog .i-kpis > *,.infog .i-trio > *,.infog .i-brow > *{min-width:0}   /* sem isto uma coluna 1fr não encolhe e o conteúdo vaza da página */
@@ -608,7 +621,7 @@ body.export-all .chart-wrap{height:240px !important}
     <div>
       <div class="brand"><span class="dot"></span><span class="brand-name"><b>cdv</b></span></div>
       <h1 id="pageTitle">Visão Geral &amp; Cancelamentos</h1>
-      <div class="subtitle" id="pageSubtitle">Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento</div>
+      <div class="subtitle" id="pageSubtitle">Comparecimento, faltas, aguardando retorno, cancelamentos e recuperação pós-cancelamento</div>
     </div>
     <div class="toolbar no-print">
       <button class="btn-upload" id="exportBtn" type="button" onclick="exportPdf()" disabled title="Exporta só a aba que está aberta">
@@ -646,7 +659,7 @@ body.export-all .chart-wrap{height:240px !important}
   <!-- ABA 1: VISÃO GERAL & CANCELAMENTOS                                -->
   <!-- ================================================================ -->
   <div id="tabVisaoGeral">
-    <div class="export-tab-title">Visão Geral &amp; Cancelamentos<small>Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento</small></div>
+    <div class="export-tab-title">Visão Geral &amp; Cancelamentos<small>Comparecimento, faltas, aguardando retorno, cancelamentos e recuperação pós-cancelamento</small></div>
     <div class="sec-divider" style="margin-top:8px">
       <div class="sec-title">Indicadores gerais</div>
       <div class="sec-sub">Comparecimento (planilha carregada em Referências) e cancelamentos do período</div>
@@ -1218,8 +1231,8 @@ function setUploadStatus(id, kind, text){
    NAVEGAÇÃO POR ABAS
    ========================================================================= */
 const TAB_META = {
-  comparecimento: {title:"Dashboard de Comparecimento", subtitle:"Consolidado por clínica e especialidade"},
-  visaogeral: {title:"Visão Geral & Cancelamentos", subtitle:"Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento"},
+  comparecimento: {title:"Comparecimento por clínica", subtitle:"Consolidado por clínica e especialidade"},
+  visaogeral: {title:"Visão Geral & Cancelamentos", subtitle:"Comparecimento, faltas, aguardando retorno, cancelamentos e recuperação pós-cancelamento"},
   indicacoes: {title:"Indicações", subtitle:"De onde vêm os pacientes que compareceram e operaram"},
   mediana: {title:"Mediana Cirúrgica", subtitle:"Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre"},
   sintese: {title:"Síntese do período", subtitle:"Os números das outras abas num infográfico só, com o que fazer a seguir"},
@@ -1294,18 +1307,21 @@ const fmtRel = n => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-BR",{minim
    Melhora = ponto positivo. Vale para mediana geral e indicação (comparecimento tem faixas próprias: 70% / 60%). */
 const VAR_ATENCAO = 5, VAR_RUIM = 10, VAR_CRITICA = 15;
 const varSev = rel => rel > VAR_CRITICA ? 3 : (rel >= VAR_RUIM ? 2 : (rel >= VAR_ATENCAO ? 1 : 0));   // rel = piora relativa em % (0 = sem ação)
-const varBucket = worse => worse < -0.5 ? "g" : (worse >= VAR_RUIM ? "b" : "w");                      // worse > 0 = piorou
+// melhora = positivo · piora de 5% a <10% = atenção · 10% ou mais = negativo · entre os dois (estável) = fica fora do semáforo
+const varBucket = worse => worse <= -0.5 ? "g" : (worse >= VAR_RUIM ? "b" : (worse >= VAR_ATENCAO ? "w" : null));
+const pushVar = (o, worse, msg) => { const k = varBucket(worse); if (k) o[k].push(msg); };                      // worse > 0 = piorou
 const sumBucket = p => p>=70 ? "g" : (p>=60 ? "w" : "b");
 const cleanName = c => parseClinic(c).nome;
 
 function summaryVisaoGeral(){
+  const canc = t => { (o.tags = o.tags || {})[t] = "Cancelamentos"; return t; };
   const o = {g:[],w:[],b:[]};
   if (comparecimentoData){
     const d = comparecimentoData, den = d.compareceu + d.faltou, p = den>0 ? d.compareceu/den*100 : 0;
     const sc = compScenarios(d.compareceu, d.faltou, d.aguardando);
     o[sumBucket(p)].push(`Comparecimento geral de ${fmtPct(p)} em ${fmtInt(sc.total)} consultas`);
     if (sc.ag) o.w.push(`${fmtInt(sc.ag)} consultas aguardando retorno: o % pode ficar entre ${fmtPct(sc.worst)} e ${fmtPct(sc.best)}`);
-    if (d.faltou) o.b.push(`${fmtInt(d.faltou)} faltas (${fmtPct(100-p)} das consultas com desfecho)`);
+    if (d.faltou && p < 70) o[sumBucket(p)].push(`${fmtInt(d.faltou)} faltas (${fmtPct(100-p)} das consultas com desfecho)`);
     const tipos = [...d.byTipo.entries()].map(([k,v]) => ({k, den:v.compareceu+v.faltou, p:(v.compareceu+v.faltou)>0 ? v.compareceu/(v.compareceu+v.faltou)*100 : 0})).filter(t=>t.den>=10).sort((a,b)=>b.p-a.p);
     if (tipos.length > 1){
       const best = tipos[0], worst = tipos[tipos.length-1];
@@ -1326,12 +1342,12 @@ function summaryVisaoGeral(){
   }
   if (cancelamentoData){
     const c = cancelamentoData, top = [...c.byMotivo.entries()].sort((a,b)=>b[1]-a[1])[0];
-    if (top) o.w.push(`${fmtInt(c.total)} cancelamentos; principal motivo: ${prettyName(top[0])} (${fmtPct(top[1]/c.total*100)} deles)`);
-    if (c.clinica) o.b.push(`${fmtInt(c.clinica)} cancelamentos tombados pela clínica (${fmtPct(c.clinica/c.total*100)} dos cancelamentos)`);
+    if (top) o.w.push(canc(`${fmtInt(c.total)} cancelamentos; principal motivo: ${prettyName(top[0])} (${fmtPct(top[1]/c.total*100)} deles)`));
+    if (c.clinica) o.b.push(canc(`${fmtInt(c.clinica)} consultas canceladas pela clínica, as tombadas (${fmtPct(c.clinica/c.total*100)} dos cancelamentos)`));
   }
   if (recuperacaoRows && recuperacaoRows.length){
     const last = recuperacaoRows[recuperacaoRows.length-1];
-    o.w.push(`Recuperação pós-cancelamento em ${last.mes}: ${fmtPct(toPctValue(last.pct_conversao))} dos cancelamentos foram reagendados e convertidos e ${fmtPct(toPctValue(last.pct_perdidos))} ficaram sem novo agendamento`);
+    o.w.push(canc(`Recuperação pós-cancelamento em ${iMonth(last.mes)}: ${fmtPct(toPctValue(last.pct_conversao))} dos cancelamentos foram reagendados e convertidos e ${fmtPct(toPctValue(last.pct_perdidos))} foram perdidos (sem novo agendamento)`));
   }
   return o;
 }
@@ -1377,7 +1393,7 @@ function summaryMediana(){
   if (withSla.length){
     o.g.push(note(`${okc.length} de ${withSla.length} combinações de clínica e especialidade dentro da meta de dias até a cirurgia em ${tLabel}`, `Combinações dentro da meta de dias até a cirurgia em ${tLabel}`, okc));
     if (okc.length) o.g.push(`Benchmark de tempo até a cirurgia (menos dias): ${fmt(okc)}`);
-    if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} de clínica e especialidade com tempo até a cirurgia intermediário (acima da meta de dias, ainda não crítico)`, `Combinações com tempo até a cirurgia intermediário em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
+    if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} de clínica e especialidade com tempo até a cirurgia acima da meta de dias, ainda não crítico`, `Combinações acima da meta de dias, ainda não críticas, em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
     if (crit.length) o.b.push(note(`${crit.length} ${plural(crit.length,"combinação","combinações")} de clínica e especialidade com tempo até a cirurgia crítico em ${tLabel}`, `Combinações com tempo até a cirurgia crítico em ${tLabel}`, crit), `Maior tempo até a cirurgia: ${fmt(crit)}`);
   }
   const byT = new Map();
@@ -1386,7 +1402,7 @@ function summaryMediana(){
   if (ts.length > 1){
     const a = byT.get(ts[ts.length-2]), b = byT.get(ts[ts.length-1]), ma = median(a.v), mb = median(b.v);
     const rel = ma ? (mb-ma)/ma*100 : 0;   // dias subindo = piora
-    o[varBucket(rel)].push(`Mediana geral do tempo entre a consulta e a 1ª cirurgia: ${fmtDias(mb)} dias em ${b.l} (${fmtRel(rel)} vs. ${fmtDias(ma)} dias em ${a.l})`);
+    pushVar(o, rel, `Mediana geral do tempo entre a consulta e a 1ª cirurgia: ${fmtDias(mb)} dias em ${b.l} (${fmtRel(rel)} vs. ${fmtDias(ma)} dias em ${a.l})`);
   }
   return o;
 }
@@ -1396,7 +1412,7 @@ function summaryIndicacoes(){
   if (tri){
     const d = tri.prev ? tri.cur.p - tri.prev.p : null, rel = tri.prev && tri.prev.p ? d/tri.prev.p*100 : null;
     const msg = `Consultas vindas de indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)}, ${fmtRel(rel)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
-    o[rel === null ? "w" : varBucket(-rel)].push(msg);
+    if (rel === null) o.w.push(msg); else pushVar(o, -rel, msg);
   }
   if (campanhaData){
     const entries = [...campanhaData.map.entries()], tot = campanhaData.totalComp;
@@ -1414,7 +1430,7 @@ function summaryIndicacoes(){
     if (vals.length < 2){ o.w.push(`${nome}: ${fmtPct(last.p)} em ${last.m}`); return; }
     const prev = vals[vals.length-2], d = last.p - prev.p;
     const rel = prev.p ? d/prev.p*100 : 0;
-    o[varBucket(-rel)].push(`${nome}: ${fmtPct(last.p)} em ${last.m} (${fmtPP(d)}, ${fmtRel(rel)} vs. ${prev.m})`);
+    pushVar(o, -rel, `${nome}: ${fmtPct(last.p)} em ${last.m} (${fmtPP(d)}, ${fmtRel(rel)} vs. ${prev.m})`);
     const low = vals.reduce((a,b)=>b.p<a.p?b:a);
     if (low !== last && low.p < last.p*0.6) o.w.push(`${nome}: menor mês foi ${low.m} (${fmtPct(low.p)})`);
   };
@@ -1441,7 +1457,7 @@ function buildSummaryHtml(){
       <div><div class="sum-title">Síntese do período</div>
       <div class="sum-date">Painel de CX · gerado em ${new Date().toLocaleDateString("pt-BR")}</div></div></div>
     <div class="sum-grid" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.join("")}</div>
-    <div class="sum-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Alto volume: ${HIGH_VOLUME_MIN} ou mais consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span></div>`;
+    <div class="sum-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Rankings de comparecimento: só quem tem ${HIGH_VOLUME_MIN}+ consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span></div>`;
 }
 
 function prepareExportAll(summaryOnly){
@@ -1567,6 +1583,15 @@ function iCols(items){   // items: [{label, v, text, color}]
   return `<div class="i-cols">${items.map(i => `<div class="i-col"><span class="i-cv"${i.tc?` style="color:${i.tc}"`:""}>${i.text}</span><i style="height:${Math.max(6, i.v/max*92).toFixed(0)}px;background:${i.color}"></i><span class="i-cl">${escapeHtml(i.label)}</span></div>`).join("")}</div>`;
 }
 // lista em duas linhas: especialidade em destaque, nome da clínica logo abaixo (rows: {spec, clinic, text, tone})
+// cartão por especialidade: uma ou duas listas curtas de clínicas, lado a lado. cols: [{label, rows:[{clinic,text,tone}], empty}]
+const iSpecCard = (title, cols, sub, foot) => `<div class="i-spc"><div class="i-spc-t">${escapeHtml(title)}</div>${sub ? `<div class="i-spc-s">${sub}</div>` : ""}<div class="i-spc-g" style="grid-template-columns:repeat(${cols.length},minmax(0,1fr))">` +
+  cols.map(c => `<div><div class="i-spc-l">${c.label}</div>` + (c.rows.length
+    ? c.rows.map((r,i) => `<div class="i-spr t-${r.tone}"><span>${i+1}. ${escapeHtml(r.clinic)}</span><b>${r.text}</b></div>`).join("")
+    : `<div class="i-spc-n">${c.empty}</div>`) + `</div>`).join("") + `</div>${foot ? `<div class="i-spc-f">${foot}</div>` : ""}</div>`;
+const iSpecGrid = (cards, n) => `<div class="i-sp" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${cards.join("")}</div>`;
+const INFO_SPEC_TOP = 3;   // clínicas por lista em cada cartão de especialidade
+// especialidades que ganham cartão: as primárias + as extras marcadas no filtro da Síntese
+const infoSpecKeys = () => DEFAULT_RANKING_SPECS.concat([...especialidadeExtraSelected].filter(s => !DEFAULT_RANKING_SPECS.includes(s)));
 const iListTwo = rows => rows.map(r => `<div class="i-li2 t-${r.tone}"><div><strong>${escapeHtml(r.spec)}</strong><span>${escapeHtml(r.clinic)}</span></div><b>${r.text}</b></div>`).join("");
 const iList = (rows, tone) => rows.map(r => `<div class="i-li t-${r.tone||tone}"><span>${escapeHtml(r.label)}</span><b>${r.text}</b></div>`).join("");
 function iMonth(m){
@@ -1607,10 +1632,14 @@ function infoSecComparecimento(){
   // ranking só com quem tem volume para servir de benchmark: pelo menos HIGH_VOLUME_MIN (10) consultas
   specs = specs.filter(r => r.dn > 0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b) => b.p-a.p);
   const tipos = comparecimentoData ? [...comparecimentoData.byTipo.entries()].map(([k,v]) => { const dn = v.compareceu + v.faltou; return {label:prettyName(k), p:dn>0 ? v.compareceu/dn*100 : 0, dn, tot:dn + v.aguardando}; }).filter(r => r.dn > 0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b) => b.p-a.p).slice(0,4) : [];
+  // status que o painel não conta como compareceu/faltou/aguardando (ex.: AGENDADO = consulta que ainda não aconteceu)
+  const foraMap = new Map();
+  if (comparecimentoData && COMPARECIMENTO_ROWS) COMPARECIMENTO_ROWS.forEach(r => { if (r.status === undefined || classifyStatus(r.status) !== "outro") return; const k = String(r.status).trim().toUpperCase() || "(vazio)"; foraMap.set(k, (foraMap.get(k)||0) + 1); });
+  const foraTxt = [...foraMap].sort((a,b) => b[1]-a[1]).slice(0,3).map(([k,n]) => `${fmtInt(n)} com status ${escapeHtml(k)}`).join("; ");
   const barsOf = rows => rows.map(r => iBar(r.label, r.p, fmtPct(r.p), toneColor(statusOf(r.p)), 70)).join("");
 
   // clínica x especialidade (mesma regra do slide de síntese: alto volume quando existir)
-  const all = CLINICA_RECORDS.filter(r => r.a > 0).map(r => ({p:pct(r.a,r.f), total:r.a+(r.ag||0), e:r.e, label:`${cleanName(r.c)} · ${prettyName(r.e)}`, spec:prettyName(r.e), clinic:cleanName(r.c)}));
+  const all = CLINICA_RECORDS.filter(r => r.a > 0).map(r => ({p:pct(r.a,r.f), a:r.a, f:r.f, total:r.a+(r.ag||0), e:r.e, label:`${cleanName(r.c)} · ${prettyName(r.e)}`, spec:prettyName(r.e), clinic:cleanName(r.c)}));
   let pool = all.filter(r => r.total >= HIGH_VOLUME_MIN);
   const hv = pool.length > 0; if (!hv) pool = all;
   const good = pool.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total);
@@ -1623,6 +1652,31 @@ function infoSecComparecimento(){
   const poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN);   // só combinações com 10+ consultas entram no ranking
   const topBest = poolL.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
   const topAttn = poolL.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
+  // um cartão por especialidade: maiores (70% ou mais) e menores (abaixo de 70%), só clínicas com 10+ consultas
+  const bySpecL = new Map(); poolL.forEach(r => { if (!bySpecL.has(r.e)) bySpecL.set(r.e, []); bySpecL.get(r.e).push(r); });
+  const cRow = r => ({clinic:r.clinic, text:fmtPct(r.p) + `<small>${r.total} ${plural(r.total,"consulta","consultas")}</small>`, tone:statusOf(r.p)});
+  const sumK = (arr, k) => arr.reduce((t, r) => t + r[k], 0);
+  // corte de volume POR ESPECIALIDADE: 10+ consultas; só se nenhuma clínica da especialidade chega a 10, usa 5+ (HIGH_VOLUME_FALLBACK)
+  const compInfo = specKeys.filter(k => restr.some(r => r.e === k)).map(k => {
+    const A = restr.filter(r => r.e === k);
+    const min = A.some(r => r.total >= HIGH_VOLUME_MIN) ? HIGH_VOLUME_MIN : (A.some(r => r.total >= HIGH_VOLUME_FALLBACK) ? HIGH_VOLUME_FALLBACK : HIGH_VOLUME_MIN);
+    return {k, A, min, fallback:min < HIGH_VOLUME_MIN, H:A.filter(r => r.total >= min), L:A.filter(r => r.total < min)};
+  });
+  const compCards = compInfo.map(({k, A, min, fallback, H, L}) => {
+    const cov = sumK(A, "a") > 0 ? Math.round(sumK(H, "a") / sumK(A, "a") * 100) : 0;
+    const lowBad = L.filter(r => r.p < 70).sort((a,b) => a.p-b.p || b.total-a.total);
+    const foot = lowBad.length ? `<b>Fora do ranking (menos de ${min} consultas), abaixo de 70%:</b> ${lowBad.slice(0,4).map(r => `${escapeHtml(r.clinic)} ${fmtPct(r.p)} (${r.total})`).join("; ")}${lowBad.length > 4 ? ` e mais ${lowBad.length - 4}` : ""}.` : "";
+    return iSpecCard(prettyName(k), [
+      {label:"Benchmark (maiores)", rows:H.filter(r => r.p>=70).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? "Nenhuma clínica com 70% ou mais." : `Nenhuma clínica com ${min}+ consultas.`},
+      {label:"Menores (abaixo de 70%)", rows:H.filter(r => r.p<70).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? `Nenhuma das clínicas com ${min}+ consultas está abaixo de 70%.` : `Nenhuma clínica com ${min}+ consultas.`}],
+      `${H.length} de ${A.length} ${plural(A.length,"clínica","clínicas")} com ${min}+ consultas (entram no ranking); elas somam ${cov}% das consultas com desfecho da especialidade` +
+        (fallback ? ` <b>Nenhuma clínica tem ${HIGH_VOLUME_MIN}+ consultas nesta especialidade, então o corte aqui é ${min}+.</b>` : ""), foot); });
+  // cobertura geral: o que os rankings por especialidade enxergam e o que deixam de fora
+  const inRank = compInfo.flatMap(x => x.H), fbSpecs = compInfo.filter(x => x.fallback).map(x => prettyName(x.k));
+  const covAll = sumK(restr, "a") > 0 ? Math.round(sumK(inRank, "a") / sumK(restr, "a") * 100) : 0;
+  const compSpecHtml = `<p class="i-sub" style="margin-top:22px">Benchmark por especialidade: clínicas com maior e menor comparecimento<span class="i-hint">top ${INFO_SPEC_TOP} de cada lado · clínicas com ${HIGH_VOLUME_MIN}+ consultas${fbSpecs.length ? ` (${HIGH_VOLUME_FALLBACK}+ onde nenhuma chega a ${HIGH_VOLUME_MIN})` : ""}</span></p>` +
+    `<div class="i-note"><b>O que o ranking cobre:</b> ${inRank.length} de ${restr.length} combinações de clínica e especialidade (${covAll}% das consultas com desfecho; ${sumK(inRank, "f")} das ${sumK(restr, "f")} faltas). O corte é ${HIGH_VOLUME_MIN}+ consultas por clínica${fbSpecs.length ? `; em ${escapeHtml(fbSpecs.join(", "))}, onde nenhuma clínica chega a ${HIGH_VOLUME_MIN}, é ${HIGH_VOLUME_FALLBACK}+` : ""}. As demais não entram nos rankings, mas contam no comparecimento geral. Cada cartão lista, embaixo, as que ficaram de fora com comparecimento abaixo de 70%.</div>` +
+    (compCards.length ? iSpecGrid(compCards, 2) : `<div class="i-note">Nenhuma combinação nas especialidades selecionadas.</div>`);
   const iListSpec = rows => iListTwo(rows.map(r => ({spec:r.spec, clinic:r.clinic, text:fmtPct(r.p), tone:statusOf(r.p)})));
 
   let row2 = "";
@@ -1630,10 +1684,7 @@ function infoSecComparecimento(){
     row2 = `<div class="i-row2">
       <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?`com ${HIGH_VOLUME_MIN}+ consultas`:"todas"} · todas as especialidades · faixa de comparecimento</span></p>
       ${iStack([{v:good.length,color:IC.ok,label:"70% ou mais"},{v:warn.length,color:IC.warn,label:"60% a 69%"},{v:bad.length,color:IC.bad,label:"Abaixo de 60%"}])}
-      <div class="i-g" style="grid-template-columns:1fr 1fr;gap:26px;margin-top:20px">
-        <div><p class="i-sub">Benchmark: maiores comparecimentos<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
-        <div><p class="i-sub">Menores comparecimentos (abaixo de 70%)<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
-      </div>
+      ${compSpecHtml}
     </div>`;
   }
 
@@ -1641,11 +1692,12 @@ function infoSecComparecimento(){
     <div class="i-hero">
       ${iPctDonut(p, col, 200, 26, `<div class="i-dn" style="color:${col}">${fmtPct(p)}</div><div class="i-dl">compareceram</div>`)}
       <div class="i-trio t-neutral"><div class="t-good"><b>${fmtInt(comp)}</b><span>vieram</span></div><div class="t-bad"><b>${fmtInt(falt)}</b><span>faltaram</span></div><div class="t-warn"><b>${fmtInt(ag)}</b><span>aguardando</span></div></div>
+      ${foraTxt ? `<div class="i-note"><b>Fora do cálculo:</b> ${foraTxt}</div>` : ""}
       ${sc.ag ? `<div class="i-note">Quando as ${fmtInt(sc.ag)} consultas aguardando retorno fecharem, o % pode ficar entre <b style="color:${IC.bad}">${fmtPct(sc.worst)}</b> e <b style="color:${IC.ok}">${fmtPct(sc.best)}</b>.</div>` : ""}
     </div>
     <div>
-      ${specs.length ? `<p class="i-sub">Por especialidade<span class="i-hint">a linha marca 70% · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${barsOf(specs)}` : ""}
-      ${tipos.length ? `<p class="i-sub" style="margin-top:${specs.length?18:0}px">Por tipo de agendamento<span class="i-hint">mín. ${HIGH_VOLUME_MIN} consultas</span></p>${barsOf(tipos)}` : ""}
+      ${specs.length ? `<p class="i-sub">Por especialidade<span class="i-hint">a linha marca 70% · ${HIGH_VOLUME_MIN}+ consultas</span></p>${barsOf(specs)}` : ""}
+      ${tipos.length ? `<p class="i-sub" style="margin-top:${specs.length?18:0}px">Por tipo de agendamento<span class="i-hint">${HIGH_VOLUME_MIN}+ consultas</span></p>${barsOf(tipos)}` : ""}
     </div>
   </div>${row2}`;
 
@@ -1682,9 +1734,10 @@ function infoSecComparecimento(){
 
   return {
     title:"Comparecimento por especialidade e tipo de agendamento",
+    when:(per => per ? `Período: consultas de ${per.de} a ${per.ate}` : "Período: o da planilha de comparecimento")(comparecimentoPeriodo()),
     take:`De cada 100 consultas com desfecho, cerca de ${Math.round(p)} compareceram e ${100-Math.round(p)} faltaram (${tone==="good"?"70% ou mais":(tone==="warn"?"entre 60% e 69%":"abaixo de 60%")}).`,
     body, actions,
-    kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas`, chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone,
+    kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas` + (per => per ? ` · ${per.de} a ${per.ate}` : "")(comparecimentoPeriodo()), chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone,
       // mesma leitura da Visão geral: o que acontece com o % quando os "aguardando retorno" fecharem
       extra: sc.ag ? `<div class="i-kpi-s" style="margin-top:8px;font-size:12.5px"><b>${fmtInt(sc.ag)} aguardando retorno</b><br>se todos comparecerem: <b style="color:${IC.ok}">sobe para ${fmtPct(sc.best)}</b><br>se todos faltarem: <b style="color:${IC.bad}">cai para ${fmtPct(sc.worst)}</b></div>` : ""}
   };
@@ -1708,7 +1761,7 @@ function infoSecCancelamentos(){
       ${iDonutBlock(`<div class="i-dn" style="color:${IC.bad}">${fmtInt(c.total)}</div><div class="i-dl">cancelamentos</div>`, [{v:c.paciente,color:IC.badSoft},{v:c.clinica,color:IC.bad}], 200, 26)}
       <div class="i-leg" style="justify-content:center;flex-direction:column;align-items:flex-start;gap:6px;margin-top:0;font-size:14px">
         <span><i class="i-dot" style="background:${IC.badSoft}"></i>Pelo paciente: <b>${fmtInt(c.paciente)}</b> (${fmtPct(sh(c.paciente))})</span>
-        <span><i class="i-dot" style="background:${IC.bad}"></i>Tombados pela clínica: <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
+        <span><i class="i-dot" style="background:${IC.bad}"></i>Cancelados pela clínica (tombados): <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
       </div></div>`;
     const top4 = motivoTop.slice(0,4), mx = Math.max(...top4.map(m => m[1]), 1);
     motivos = `<p class="i-sub">Principais motivos<span class="i-hint">% do total de cancelamentos</span></p>` +
@@ -1724,7 +1777,16 @@ function infoSecCancelamentos(){
         ${pp!==null ? mini(pp, recPerdTone(pp), "Perdidos", "sem novo agendamento") : ""}
       </div></div>`;
   }
-  const body = `<div class="i-g" style="grid-template-columns:${c?"300px 1fr":"1fr"}">${left}<div>${motivos}${recup}</div></div>`;
+  // um cartão por especialidade: as clínicas com mais cancelamentos (quantidade; a planilha não traz o total de agendamentos)
+  let cancSpecHtml = "";
+  if (c && c.byEspClinica && c.byEspClinica.size){
+    const cards = infoSpecKeys().filter(k => c.byEspClinica.has(k)).map(k => {
+      const m = c.byEspClinica.get(k), tm = (c.byEspClinicaTomb && c.byEspClinicaTomb.get(k)) || new Map(), tot = [...m.values()].reduce((a,b) => a+b, 0);
+      const rows = [...m].sort((a,b) => b[1]-a[1]).slice(0,INFO_SPEC_TOP).map(([cli,q]) => ({clinic:cleanName(cli), text:fmtInt(q) + (tm.get(cli) ? ` · ${fmtInt(tm.get(cli))} pela clínica` : ""), tone:"neutral"}));
+      return iSpecCard(`${prettyName(k)} · ${fmtInt(tot)} ${plural(tot,"cancelamento","cancelamentos")}`, [{label:"Clínicas com mais cancelamentos", rows, empty:""}], `top ${rows.length} de ${m.size} ${plural(m.size,"clínica","clínicas")} com cancelamento`); });
+    if (cards.length) cancSpecHtml = `<div class="i-row2"><p class="i-sub">Onde há mais cancelamentos, por especialidade<span class="i-hint">top ${INFO_SPEC_TOP} clínicas · quantidade de cancelamentos · "pela clínica" = tombados</span></p>${iSpecGrid(cards, 3)}</div>`;
+  }
+  const body = `<div class="i-g" style="grid-template-columns:${c?"300px 1fr":"1fr"}">${left}<div>${motivos}${recup}</div></div>` + cancSpecHtml;
 
   const actions = [];
   const cl = (p, tone) => cB(fmtPct(p), tone);   // % com a cor da faixa
@@ -1753,7 +1815,7 @@ function infoSecCancelamentos(){
     const sev = (tc==="bad" || tp==="bad") ? 2 : ((tc==="warn" || tp==="warn") ? 1 : -1);
     if (sev >= 0) actions.push({theme:"Cancelamentos", owner:"CX e CS", sev, impact:toNum(last.perdidos) || 0,
       title:"Recuperar os cancelamentos que ficaram sem novo agendamento",
-      why:`Em ${escapeHtml(mes)}: ${cp !== null ? `${cl(cp,tc)} dos cancelamentos viraram reagendamento convertido` : ""}${cp !== null && pp !== null ? " e " : ""}${pp !== null ? `${cl(pp,tp)} foram perdidos` : ""}.`,
+      why:`Em ${escapeHtml(mes)}: ${cp !== null ? `${cl(cp,tc)} dos cancelamentos foram reagendados e convertidos` : ""}${cp !== null && pp !== null ? " e " : ""}${pp !== null ? `${cl(pp,tp)} foram perdidos` : ""}.`,
       curto:["CX reabordar os pacientes cujo cancelamento não gerou novo agendamento no mês."],
       medio:["Rever a abordagem de reconquista e acompanhar a conversão no mês seguinte."],
       cs:"Oferecer o reagendamento já no momento do cancelamento."});
@@ -1762,10 +1824,11 @@ function infoSecCancelamentos(){
   const share = c && c.total>0 ? c.clinica/c.total*100 : 0;
   return {
     title:"Principais motivos de cancelamento",
-    take: c ? `${fmtInt(c.total)} cancelamentos no período; ${fmtPct(share)} foram tombados pelas clínicas.${last&&cp!==null?` Em ${mes}, ${fmtPct(cp)} dos cancelamentos viraram reagendamento convertido.`:""}`
-            : `Em ${mes}, ${cp!==null?fmtPct(cp)+" dos cancelamentos viraram reagendamento convertido":"veja a recuperação pós-cancelamento abaixo"}.`,
+    when: c ? `Período: o da planilha de cancelamentos${last ? " · recuperação: " + mes : ""}` : `Período: recuperação de ${mes}`,
+    take: c ? `${fmtInt(c.total)} cancelamentos no período; ${fmtPct(share)} foram cancelados pela clínica (tombados).${last&&cp!==null?` Em ${mes}, ${fmtPct(cp)} dos cancelamentos foram reagendados e convertidos.`:""}`
+            : `Em ${mes}, ${cp!==null?fmtPct(cp)+" dos cancelamentos foram reagendados e convertidos":"veja a recuperação pós-cancelamento abaixo"}.`,
     body, actions,
-    kpi: c ? {tone:"bad", label:"Cancelamentos", num:fmtInt(c.total), sub:c.clinica ? `${fmtPct(share)} tombados pelas clínicas` : `${fmtInt(c.paciente)} pedidos pelo paciente`, chip:null}
+    kpi: c ? {tone:"bad", label:"Cancelamentos", num:fmtInt(c.total), sub:(c.clinica ? `${fmtPct(share)} cancelados pela clínica (tombados)` : `${fmtInt(c.paciente)} pedidos pelo paciente`) + " · período da planilha de cancelamentos", chip:null}
            : {tone:"neutral", label:"Reagendamentos convertidos", num:cp!==null?fmtPct(cp):"—", sub:`dos cancelamentos de ${mes}`, chip:null}
   };
 }
@@ -1804,6 +1867,19 @@ function infoSecMediana(){
     tc: toneColor(metaSpec ? classifyMedianaSLA(m.v, metaSpec).tier : "neutral")})));
 
   const rowsOf = a => iListTwo(a.map(c => ({spec:prettyName(c.especialidade), clinic:cleanName(c.clinica), text:fmtDias(c.dias)+" dias", tone:c.sla ? c.sla.tier : "neutral"})));
+  // um cartão por especialidade: menor tempo (benchmark) e maior tempo, sem repetir a mesma clínica dos dois lados
+  const mKeys = [...new Set(combos.map(c => c.especialidade))].filter(k => fEsp.length || infoSpecKeys().includes(k)).sort((a,b) => specSortIndex(a) - specSortIndex(b) || a.localeCompare(b));
+  const mRow = c => ({clinic:cleanName(c.clinica), text:fmtDias(c.dias) + " dias", tone:c.sla ? c.sla.tier : "neutral"});
+  const medAll = mKeys.map(k => combos.filter(c => c.especialidade === k).sort((a,b) => a.dias-b.dias));
+  const medSolo = medAll.filter(rs => rs.length < 2).map(rs => prettyName(rs[0].especialidade));
+  const medCards = medAll.filter(rs => rs.length >= 2).map(rs => { const n = rs.length;
+    return iSpecCard(prettyName(rs[0].especialidade), [
+      {label:"Benchmark (menor tempo)", rows:rs.slice(0, Math.min(INFO_SPEC_TOP, Math.ceil(n/2))).map(mRow), empty:""},
+      {label:"Maior tempo", rows:rs.slice(n - Math.min(INFO_SPEC_TOP, Math.floor(n/2))).reverse().map(mRow), empty:""}],
+      `\${n} clínicas na especialidade (todas entram: a planilha de mediana não traz volume de consultas)`); });
+  const medSpecHtml = `<div class="i-row2"><p class="i-sub">Benchmark por especialidade: clínicas com menor e maior tempo até a cirurgia<span class="i-hint">top ${INFO_SPEC_TOP} de cada lado · ${escapeHtml(tLabel)}</span></p>` +
+    (medCards.length ? iSpecGrid(medCards, 2) : `<div class="i-note">Nenhuma especialidade com 2 ou mais clínicas neste trimestre.</div>`) +
+    (medSolo.length ? `<div class="i-note">Sem cartão, por ter só 1 clínica no trimestre: ${escapeHtml(medSolo.join(", "))}.</div>` : "") + `</div>`;
   const fast = combos.slice().sort((a,b) => a.dias-b.dias).slice(0,5);
   const slow = combos.slice().sort((a,b) => b.dias-a.dias).slice(0,5);
 
@@ -1814,13 +1890,10 @@ function infoSecMediana(){
       ${med.length>1 ? `<p class="i-sub">Mediana por trimestre</p>${cols}` : ""}
     </div>
     <div>
-      ${withSla.length ? `<p class="i-sub">Clínicas por especialidade, frente à meta de dias<span class="i-hint">${escapeHtml(tLabel)}</span></p>${iStack([{v:okc.length,color:IC.ok,label:"Dentro da meta"},{v:mid.length,color:IC.warn,label:"Intermediário"},{v:crit.length,color:IC.bad,label:"Crítico"}])}${semMeta?`<div class="i-note">${semMeta} ${plural(semMeta,"combinação","combinações")} sem meta definida (especialidades terciárias).</div>`:""}` : ""}
-      <div class="i-g" style="grid-template-columns:1fr 1fr;margin-top:${withSla.length?20:0}px;gap:20px">
-        <div><p class="i-sub">Benchmark: menor tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(fast)}</div>
-        <div><p class="i-sub">Maior tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(slow)}</div>
-      </div>
+      ${withSla.length ? `<p class="i-sub">Clínicas por especialidade, frente à meta de dias<span class="i-hint">${escapeHtml(tLabel)}</span></p>${iStack([{v:okc.length,color:IC.ok,label:"Dentro da meta"},{v:mid.length,color:IC.warn,label:"Acima da meta"},{v:crit.length,color:IC.bad,label:"Crítico"}])}<div class="i-note"><b>Meta:</b> até ${SLA_PADRAO_MEDIANA.metaMax} dias entre a consulta e a 1ª cirurgia (Blefaroplastia: até ${SLA_BLEFAROPLASTIA_MEDIANA.metaMax}). <b>Crítico:</b> ${SLA_PADRAO_MEDIANA.criticoMin} dias ou mais (Blefaroplastia: ${SLA_BLEFAROPLASTIA_MEDIANA.criticoMin} ou mais). Entre os dois, acima da meta.</div>${semMeta?`<div class="i-note">${semMeta} ${plural(semMeta,"combinação","combinações")} sem meta definida (especialidades terciárias).</div>`:""}` : ""}
+      
     </div>
-  </div>`;
+  </div>${medSpecHtml}`;
 
   const actions = [];
   const relM = prev && prev.v ? (mb-prev.v)/prev.v*100 : 0, sevV = varSev(relM);   // piora relativa da mediana geral (5/10/15%)
@@ -1839,13 +1912,14 @@ function infoSecMediana(){
     curto:["CX avalia se elas pesam no resultado da clínica; se pesarem, tratá-las como as primárias."],
     medio:["Acompanhar a mediana delas no próximo trimestre."]});
   if (mid.length) actions.push({theme:"Mediana cirúrgica", owner:"CX", sev:0, impact:mid.length,
-    title:"Acompanhar as combinações em nível intermediário",
+    title:"Acompanhar as combinações acima da meta de dias",
     why:`${mid.length} ${plural(mid.length,"combinação","combinações")} acima da meta de dias, ainda não críticas, em ${escapeHtml(tLabel)}.`,
     curto:["CX acompanha essas combinações para não virarem críticas."],
     medio:["Se alguma se tornar crítica, tratá-la como as combinações críticas."]});
 
   return {
     title:"Tempo entre a consulta e a cirurgia (mediana cirúrgica)",
+    when:`Período: ${tLabel} (trimestre mais recente da planilha)`,
     take:`Em geral, o paciente espera ${fmtDias(mb)} dias entre a consulta e a 1ª cirurgia (${tLabel})${withSla.length?`; ${okc.length} de ${withSla.length} combinações estão dentro da meta`:""}.${filtered ? " Filtro aplicado — " + filtTxt + "." : ""}`,
     body, actions,
     kpi:{tone:"neutral", label: filtered ? "Mediana geral das especialidades do filtro" : "Mediana geral das especialidades", num:fmtDias(mb), unit:"dias",
@@ -1862,6 +1936,7 @@ function infoSecIndicacoes(){
   const cir = iSeries(indCirurgiasRows);
   if (!tri && !camp && !cir.length) return null;
 
+  const triSpan = tri ? (l => l.length > 1 ? `${iMonth(l[0])} a ${iMonth(l[l.length-1])}` : iMonth(l[0]))(tri.cur.labels) : "";
   const d = tri && tri.prev ? tri.cur.p - tri.prev.p : null;
   const dTone = d===null || Math.abs(d)<=0.05 ? "neutral" : (d>0 ? "good" : "bad");
   const dTxt = d===null ? "" : `<b style="color:${toneColor(dTone)}">${fmtPP(d)}</b> vs. ${fmtPct(tri.prev.p)} nos 3 meses anteriores`;
@@ -1908,7 +1983,10 @@ function infoSecIndicacoes(){
     medio:["CS passa a preencher a campanha no momento do agendamento."],
     cs:"Preencher o campo Campanha em todo agendamento."});
   const relC = cirD !== null && cir.length > 1 && cir[cir.length-2].p ? (cir[cir.length-2].p - cirLast.p)/cir[cir.length-2].p*100 : 0;
-  if (varSev(relC) > 0) actions.push({theme:"Indicações", owner:"CX", sev:varSev(relC), impact:relC,
+  // queda de um mês só conta no máximo como atenção; só sobe de gravidade se o mês anterior também caiu
+  const relCPrev = cir.length > 2 && cir[cir.length-3].p ? (cir[cir.length-3].p - cir[cir.length-2].p)/cir[cir.length-3].p*100 : 0;
+  const sevC = Math.min(varSev(relC), relCPrev >= VAR_ATENCAO ? 3 : 1);
+  if (varSev(relC) > 0) actions.push({theme:"Indicações", owner:"CX", sev:sevC, impact:relC,
     title:"Acompanhar a queda da indicação nas 1ªs cirurgias",
     why:`Indicação nas 1ªs cirurgias em ${escapeHtml(iMonth(cirLast.m))}: ${fmtPct(cirLast.p)} (${cB(fmtPP(cirD),"bad")}; ${cB(fmtRel(-relC),"bad")} em termos relativos).`,
     curto:["CX confere no mês seguinte se a queda se repete."],
@@ -1916,10 +1994,12 @@ function infoSecIndicacoes(){
 
   return {
     title:"Indicações e campanhas - de onde os pacientes conheceram a Central",
+    when: tri ? `Período: ${triSpan} (últimos 3 meses da planilha)${camp ? " · origem dos pacientes: período da planilha de comparecimento" : ""}`
+              : (camp ? "Período: o da planilha de comparecimento" : (cirLast ? `Período: ${iMonth(cirLast.m)}` : "")),
     take: tri ? `Em média, ${fmtPct(tri.cur.p)} das consultas dos últimos 3 meses vieram de indicação${d!==null?` (${d>0.05?"mais":(d<-0.05?"menos":"igual")} que nos 3 meses anteriores)`:""}.`
               : (camp ? "Veja de onde vieram os pacientes que compareceram." : "Evolução da indicação nas 1ªs cirurgias."),
     body, actions,
-    kpi: tri ? {tone:"neutral", label:"Indicação", num:fmtPct(tri.cur.p), sub:"das consultas, média dos últimos 3 meses", chip:d!==null && Math.abs(d)>0.05 ? `${fmtPP(d)} vs. 3 meses antes` : null, chipTone:dTone}
+    kpi: tri ? {tone:"neutral", label:"Indicação", num:fmtPct(tri.cur.p), sub:`das consultas, média dos últimos 3 meses (${triSpan})`, chip:d!==null && Math.abs(d)>0.05 ? `${fmtPP(d)} vs. 3 meses antes` : null, chipTone:dTone}
              : (cirLast ? {tone:"neutral", label:"Indicação em 1ªs cirurgias", num:fmtPct(cirLast.p), sub:iMonth(cirLast.m), chip:null}
              : {tone:"neutral", label:"Indicação", num:fmtPct(indShare), sub:"dos comparecimentos do período", chip:null})
   };
@@ -1927,13 +2007,21 @@ function infoSecIndicacoes(){
 
 /* ---- semáforo: destaques / atenção / negativos (as mesmas frases do slide de síntese) ---- */
 function infoSemaforo(){
-  const TAGS = ["Visão geral","Por clínica","Mediana","Indicações"];
+  const TAGS = ["Comparecimento","Comparecimento por clínica","Tempo até a cirurgia","Indicações"];   // temas do relatório (não nomes de abas)
+  const SEM_MAX = 6;
+  // até SEM_MAX itens por coluna, em rodízio entre os temas: nenhum tema some porque os primeiros ocuparam as vagas
+  const pick = arr => {
+    const by = new Map(); arr.forEach(x => { if (!by.has(x.ti)) by.set(x.ti, []); by.get(x.ti).push(x); });
+    const out = [], groups = [...by.values()];
+    for (let r = 0; out.length < SEM_MAX && groups.some(a => a.length > r); r++) for (const a of groups){ if (a[r] && out.length < SEM_MAX) out.push(a[r]); }
+    return out.sort((a,b) => a.ti-b.ti || a.o-b.o);
+  };
   const LIST_RE = /^(Benchmark de comparecimento por clínica e especialidade|Menores comparecimentos|Mais próximas de 60%|Benchmark de tempo até a cirurgia \(menos dias\)|Maior tempo até a cirurgia):/;   // rankings: já aparecem nos gráficos
   const cols = {g:[], w:[], b:[]}, notes = [];
   SUMMARY_THEMES.forEach((t,i) => {
     if (!t.has()) return;
     const r = safeSec(() => t.fn()); if (!r) return;
-    ["g","w","b"].forEach(k => r[k].filter(s => !LIST_RE.test(s)).forEach(s => cols[k].push({tag:TAGS[i], s, note:(r.notes||{})[s]})));
+    ["g","w","b"].forEach(k => r[k].filter(s => !LIST_RE.test(s)).forEach(s => cols[k].push({tag:(r.tags||{})[s] || TAGS[i], ti:i, o:cols[k].length, s, note:(r.notes||{})[s]})));
   });
   // frases que falam de "N combinações" ganham um asterisco; quais são vai na nota de rodapé
   const item = x => {
@@ -1942,11 +2030,12 @@ function infoSemaforo(){
     return `<div class="i-sem-it"><span class="i-tag">${x.tag}</span>${iRich(x.s)}${mark}</div>`;
   };
   const col = (k, title, tone) => `<div class="i-sem-c t-${tone}"><div class="i-sem-h">${title}</div>` +
-    (cols[k].length ? cols[k].slice(0,5).map(item).join("") : '<div class="i-sem-none">Nada a registrar.</div>') + `</div>`;
+    (cols[k].length ? pick(cols[k]).map(item).join("") : '<div class="i-sem-none">Nada a registrar.</div>') + `</div>`;
   const grid = `<div class="i-sem">${col("g","Pontos positivos","good")}${col("w","Pontos de atenção","warn")}${col("b","Pontos negativos","bad")}</div>`;
   const MAXN = 8;   // itens listados em cada nota (o resto vira "e mais N"); notas longas empurravam o semáforo para outra página
   const fn = notes.length ? `<div class="i-fn">${notes.map(x => `<p><b>*${x.n}</b> ${escapeHtml(x.title)}: ${escapeHtml(x.items.slice(0,MAXN).join("; "))}${x.items.length>MAXN ? ` e mais ${x.items.length-MAXN}` : ""}.</p>`).join("")}</div>` : "";
-  return grid + fn;
+  const gloss = `<div class="i-note"><b>Para ler este relatório:</b> p.p. = pontos percentuais (diferença entre dois percentuais). Mediana = tempo típico: metade dos pacientes espera menos e metade espera mais. Tombado = consulta cancelada a pedido da clínica. Com desfecho = consulta em que o paciente compareceu ou faltou (as que aguardam retorno ficam fora do %). Especialidades primárias = ${escapeHtml(DEFAULT_RANKING_SPECS.map(prettyName).join(", "))}.</div>`;
+  return grid + fn + gloss;
 }
 
 function infoMissingText(){
@@ -1968,7 +2057,7 @@ function renderInfoSpecFilter(show){
   const keys = especialidadeData ? [...especialidadeData.keys()] : [...CLINICA_BY_SPEC.keys()];
   const extras = keys.filter(s => !DEFAULT_RANKING_SPECS.includes(s)).sort();
   el.classList.toggle("hidden", !show || !extras.length);
-  el.innerHTML = extras.length ? `<span class="filter-hint" style="margin-right:6px"><b>Incluir outras especialidades</b> no gráfico por especialidade e nas listas top 5:</span>` +
+  el.innerHTML = extras.length ? `<span class="filter-hint" style="margin-right:6px"><b>Incluir outras especialidades</b> no gráfico por especialidade e nos rankings por especialidade:</span>` +
     extras.map(s => `<button type="button" class="spec-toggle${especialidadeExtraSelected.has(s)?" active":""}" onclick="toggleInfoSpec(${escapeHtml(JSON.stringify(s))})">${escapeHtml(prettyName(s))}</button>`).join("") : "";
 }
 function toggleInfoSpec(s){   // mesmo estado do ranking da Visão geral: marcar aqui marca lá também
@@ -2003,7 +2092,11 @@ function comparecimentoPeriodo(){
 
 /* ---- seção "O que fazer agora": 5 ações principais (cartão completo) + 5 secundárias (compactas) ---- */
 function infoActionsHtml(all, num){
-  const sorted = all.slice().sort((a,b) => b.sev-a.sev || b.impact-a.impact);
+  // gravidade primeiro; na mesma gravidade, o tema (o "impacto" de cada tema tem unidade própria e não se compara entre temas);
+  // dentro do tema, o maior impacto
+  const THEME_ORDER = ["Comparecimento","Mediana cirúrgica","Cancelamentos","Indicações"];
+  const tOrd = a => { const i = THEME_ORDER.indexOf(a.theme); return i < 0 ? THEME_ORDER.length : i; };
+  const sorted = all.slice().sort((a,b) => b.sev-a.sev || tOrd(a)-tOrd(b) || b.impact-a.impact);
   const main = sorted.slice(0,5), sec = sorted.slice(5,10);
   const pills = a => `<span class="i-pill">${a.theme}</span><span class="i-pill o">${a.owner}</span><span class="i-sev">${SEV_LABEL[a.sev]}</span>`;
   const mainHtml = main.map((a,i) => `<div class="i-ac t-${SEV_CLASS[a.sev]}"><div class="i-ac-bar"></div><div class="i-ac-b">
@@ -2021,7 +2114,7 @@ function infoActionsHtml(all, num){
     <div class="i-take">${all.length ? "As cinco ações principais e as secundárias, da maior para a menor prioridade. O CX investiga o que já aconteceu e sinaliza ao CS o perfil de pacientes e a qualidade de agendamento que estão chegando de cada praça." : "Sem ações pendentes neste período."}</div>` +
     (all.length ? `<div class="i-acs">${mainHtml}</div>` + (sec.length ? `<p class="i-sub" style="margin:22px 0 10px">Ações secundárias<span class="i-hint">menor prioridade</span></p><div class="i-acs2">${secHtml}</div>` : "")
                 : `<div class="i-li t-good"><span>Nenhuma ação identificada. Manter o acompanhamento mensal.</span></div>`) +
-    `<div class="i-note" style="margin-top:14px">Gravidade: comparecimento pelas faixas de 70% e 60%; mediana e indicação pela piora relativa ao período anterior (a partir de ${VAR_ATENCAO}% atenção, ${VAR_RUIM}% ruim, acima de ${VAR_CRITICA}% crítica); tombamento acima de ${TOMBAMENTO_MAX}% por clínica (tombados ÷ cancelamentos da clínica). Entre ações de mesma gravidade, vem primeiro a de maior impacto.</div></section>`;
+    `<div class="i-note" style="margin-top:14px">Gravidade: comparecimento pelas faixas de 70% e 60%; mediana e indicação pela piora relativa ao período anterior (a partir de ${VAR_ATENCAO}% atenção, ${VAR_RUIM}% ruim, acima de ${VAR_CRITICA}% crítica); tombamento acima de ${TOMBAMENTO_MAX}% por clínica (tombados ÷ cancelamentos da clínica). Queda de um único mês na indicação em cirurgias conta no máximo como atenção. Entre ações de mesma gravidade, a ordem é comparecimento, tempo até a cirurgia, cancelamentos e indicações; dentro do tema, vem primeiro a de maior impacto.</div></section>`;
 }
 
 function renderInfographic(){
@@ -2040,7 +2133,7 @@ function renderInfographic(){
     `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n"${k.numColor?` style="color:${k.numColor}"`:""}>${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.extra||""}${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
   const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo. "Benchmark" é a referência do período: quem teve o maior comparecimento (só entra quem tem ${HIGH_VOLUME_MIN} ou mais consultas) ou o menor tempo até a cirurgia. "Combinação" é uma clínica em uma especialidade (ex.: HOC · Catarata).</div>${infoSemaforo()}</section>`;
   const secHtml = secs.map((s,i) =>
-    `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}</div>${s.body}</section>`).join("");
+    `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}${s.when ? `<span class="i-when">${escapeHtml(s.when)}</span>` : ""}</div>${s.body}</section>`).join("");
 
   const actHtml = infoActionsHtml(secs.flatMap(s => s.actions), secs.length + 2);
 
@@ -2050,7 +2143,7 @@ function renderInfographic(){
        ${per ? `<div class="i-per">${per.de === per.ate ? "Consultas em " + per.de : "Consultas de " + per.de + " a " + per.ate} · data da consulta</div>` : ""}
        <div class="i-lead">Um retrato rápido da jornada do paciente: quem vem às consultas, quem cancela, quanto tempo leva até a cirurgia e de onde os pacientes vêm.</div></div>` +
     kpiHtml + semHtml + secHtml + actHtml +
-    `<div class="i-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Alto volume: ${HIGH_VOLUME_MIN} ou mais consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span><span style="white-space:nowrap">cdv · ${today}</span></div>`;
+    `<div class="i-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Rankings de comparecimento: só quem tem ${HIGH_VOLUME_MIN}+ consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span><span style="white-space:nowrap">cdv · ${today}</span></div>`;
   fitInfographic();
 }
 // escala o infográfico (largura fixa) para caber na tela; no download volta a 100%
@@ -2079,10 +2172,12 @@ function infoUnits(root, maxH, fine){   // fine = true: toda seção pode quebra
   [...root.children].forEach(c => {
     const iv = rel(c);
     if (!(c.classList.contains("i-sec") && (fine || iv.bottom - iv.top > maxH))){ out.push(iv); return; }   // cabe numa página: não se divide
-    [...c.children].forEach(x => {
-      if (x.classList.contains("i-acs") || x.classList.contains("i-acs2")) [...x.children].forEach(y => out.push(rel(y)));
+    const push = x => {   // listas de cartões e o bloco .i-row2 se dividem entre seus itens (um cartão nunca é cortado)
+      if (x.classList.contains("i-acs") || x.classList.contains("i-acs2") || x.classList.contains("i-sp")) [...x.children].forEach(y => out.push(rel(y)));
+      else if (x.classList.contains("i-row2")) [...x.children].forEach(push);
       else out.push({...rel(x), glue:x.classList.contains("i-sec-h") || x.classList.contains("i-take") || x.classList.contains("i-sub")});
-    });
+    };
+    [...c.children].forEach(push);
   });
   const merged = [];   // título/subtítulo ("glue") nunca fica sozinho no fim da página: cola no item seguinte
   for (let i = 0; i < out.length; i++){ let u = out[i]; while (u.glue && i + 1 < out.length){ i++; u = {top:u.top, bottom:out[i].bottom, glue:out[i].glue}; } merged.push(u); }
@@ -2121,7 +2216,7 @@ function infoPlanPages(root){
   return {pages, forced};
 }
 // confere, pela posição, que nenhum elemento gráfico atravessa uma quebra de página
-const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
+const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-spc,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
 function infoVerifyPlan(root, plan){
   const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, bad = [];
   const breaks = plan.pages.slice(0,-1).map(p => p.e);
@@ -2705,6 +2800,7 @@ const TIERS = [
 ];
 const KNOWN_SPECS = new Set(TIERS.flatMap(t => t.specs));
 const HIGH_VOLUME_MIN = 10; // "alto volume" = 10 ou mais consultas (compareceram + faltaram + aguardando retorno)
+const HIGH_VOLUME_FALLBACK = 5; // reserva: nos cartões por especialidade em que NENHUMA clínica chega a HIGH_VOLUME_MIN, o corte cai para 5
 
 function pct(a,f){ return a>0 ? ((a-f)/a)*100 : 0; }
 function prettyName(spec){ return PRETTY[spec] || (spec.charAt(0)+spec.slice(1).toLowerCase()); }
@@ -3076,6 +3172,7 @@ function applyCancelRows(rows, fileName){
     let total=0, clinica=0, paciente=0;
     const byMotivo = new Map();
     const byEspClinica = new Map(); // especialidade -> Map(clinica -> qtd)
+    const byEspClinicaTomb = new Map(); // especialidade -> Map(clinica -> qtd cancelada a pedido da clínica)
     const byClinica = new Map();    // clinica -> {total, tombados} — base da regra "tombamento acima de 3% por clínica"
     for (const r of rows){
       const qtd = toNum(r.qtd) || 1;
@@ -3096,9 +3193,13 @@ function applyCancelRows(rows, fileName){
         if (!byEspClinica.has(esp)) byEspClinica.set(esp, new Map());
         const m = byEspClinica.get(esp);
         m.set(cli, (m.get(cli)||0) + qtd);
+        if (motivo.includes("solicitacao da clinica")){
+          if (!byEspClinicaTomb.has(esp)) byEspClinicaTomb.set(esp, new Map());
+          const tm = byEspClinicaTomb.get(esp); tm.set(cli, (tm.get(cli)||0) + qtd);
+        }
       }
     }
-    cancelamentoData = {total, clinica, paciente, byMotivo, byEspClinica, byClinica};
+    cancelamentoData = {total, clinica, paciente, byMotivo, byEspClinica, byEspClinicaTomb, byClinica};
     setUploadStatus("statusCancelamentos","ok",`"${f.name}" carregado · ${fmtInt(total)} cancelamentos`);
     showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(total)} cancelamentos no período &middot; ${fmtInt(paciente)} pelo paciente &middot; ${fmtInt(clinica)} pela clínica.`);
     renderKpis();
