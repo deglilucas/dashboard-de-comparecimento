@@ -848,8 +848,10 @@ body.export-all .chart-wrap{height:240px !important}
       </div>
     </div>
     <div class="info-bar no-print" style="margin-top:-6px">
-      <div class="info-txt"><b>Guardar este período para comparar depois.</b> O arquivo de dados (JSON) é lido pela aba Comparar períodos; a tabela do Excel é opcional, só para conferir. Ambos saem sempre com os números completos, sem filtros de tela.</div>
+      <div class="info-txt"><b>Guardar este período.</b> O arquivo de dados (JSON) serve para a aba Comparar períodos e para <b>recarregar este relatório depois</b>, sem subir planilha por planilha. A tabela do Excel é opcional, só para conferir. Ambos saem sempre com os números completos, sem filtros de tela.</div>
       <div class="info-actions">
+        <input type="file" id="fileSnapLoad" accept=".json,application/json" hidden>
+        <button class="btn-upload" id="infoLoadBtn" type="button" onclick="document.getElementById('fileSnapLoad').click()">Recarregar período salvo (JSON)</button>
         <button class="btn-upload" id="infoJsonBtn" type="button" onclick="saveSnapshot('json')" disabled>Salvar dados do período (JSON)</button>
         <button class="btn-upload" id="infoXlsBtn" type="button" onclick="saveSnapshot('xlsx')" disabled>Tabela do período (Excel)</button>
       </div>
@@ -857,7 +859,7 @@ body.export-all .chart-wrap{height:240px !important}
     <div id="infoSpecFilter" class="filter-bar no-print hidden" style="margin:0 0 14px"></div>
     <div id="infoEmpty" class="empty-state">
       <div class="empty-title">Ainda não há dados para a síntese</div>
-      <div class="empty-sub">Carregue as planilhas nas outras abas (no final de cada uma). O infográfico monta sozinho cada bloco que tiver dado.</div>
+      <div class="empty-sub">Carregue as planilhas nas outras abas (no final de cada uma). O infográfico monta sozinho cada bloco que tiver dado. Já salvou este período antes? Use <b>Recarregar período salvo (JSON)</b> aqui em cima.</div>
     </div>
     <div id="infoStage" class="info-stage hidden"><div id="infoRoot" class="infog"></div></div>
   </div>
@@ -2172,7 +2174,56 @@ function buildSnapshot(labelOverride){
     s.indicacao = {media3m:tri ? tri.cur.p : null, media3mAnterior:tri && tri.prev ? tri.prev.p : null,
       serie:iSeries(indConsultasRows).map(x => ({mes:x.m, pct:x.p})), cirurgias:iSeries(indCirurgiasRows).map(x => ({mes:x.m, pct:x.p}))};
   }
+  // linhas das planilhas (só as colunas que o painel usa: nada de paciente), para "Recarregar período salvo"
+  s.bruto = {
+    comparecimento: packRows(COMPARECIMENTO_ROWS), cancelamentos: packRows(CANCEL_ROWS), recuperacao: packRows(recuperacaoRows),
+    indConsultas: packRows(indConsultasRows), indCirurgias: packRows(indCirurgiasRows), mediana: packRows(MEDIANA_RECORDS.length ? MEDIANA_RECORDS : null)
+  };
   return s;
+}
+// linhas [{a,b}, ...] <-> {cols:["a","b"], rows:[[..],[..]]} (arquivo menor). Célula ausente fica null e volta ausente.
+function packRows(rows){
+  if (!rows || !rows.length) return null;
+  const cols = [...new Set(rows.flatMap(r => Object.keys(r)))];
+  return {cols, rows:rows.map(r => cols.map(c => { const v = r[c]; return v === undefined ? null : (v instanceof Date ? v.toISOString() : v); }))};
+}
+function unpackRows(p){
+  if (!p || !Array.isArray(p.cols) || !Array.isArray(p.rows)) return null;
+  return p.rows.map(a => { const o = {}; p.cols.forEach((c,i) => { if (a[i] !== null && a[i] !== undefined) o[c] = a[i]; }); return o; });
+}
+/* ---- recarregar um período salvo: refaz o painel inteiro a partir do JSON, sem subir planilha por planilha ----
+   Passa as linhas guardadas em s.bruto pelas MESMAS funções das planilhas (apply...), então os números saem iguais.
+   Planilha que o arquivo não tem e que já estava carregada na tela continua como estava (e o aviso diz isso). */
+document.getElementById("fileSnapLoad").addEventListener("change", async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) await restoreSnapshotFile(f); });
+async function restoreSnapshotFile(file){
+  let s; try { s = JSON.parse(await file.text()); } catch(err){ showBanner("error", `"${escapeHtml(file.name)}" não é um JSON válido.`); return; }
+  const why = cmpValidate(s); if (why){ showBanner("error", `"${escapeHtml(file.name)}": ${escapeHtml(why)}`); return; }
+  const b = s.bruto, src = b ? {comparecimento:unpackRows(b.comparecimento), cancelamentos:unpackRows(b.cancelamentos), recuperacao:unpackRows(b.recuperacao),
+    indConsultas:unpackRows(b.indConsultas), indCirurgias:unpackRows(b.indCirurgias), mediana:unpackRows(b.mediana)} : null;
+  if (!src || !Object.values(src).some(Boolean)){
+    showBanner("error", `"${escapeHtml(file.name)}" foi salvo por uma versão anterior do painel e só tem os totais (serve para a aba Comparar períodos, mas não para recarregar). Carregue as planilhas desse período mais uma vez e salve de novo.`);
+    return;
+  }
+  const loadedNow = {comparecimento: !!(comparecimentoData || CLINICA_RECORDS.length), cancelamentos: !!cancelamentoData, recuperacao: !!(recuperacaoRows && recuperacaoRows.length),
+    indConsultas: !!indConsultasRows, indCirurgias: !!indCirurgiasRows, mediana: MEDIANA_RECORDS.length > 0};
+  if (Object.values(loadedNow).some(Boolean) && !window.confirm(`Recarregar o período ${s.rotulo}? Os dados que estão na tela serão substituídos pelos do arquivo.`)) return;
+  const NOMES = {comparecimento:"comparecimento", cancelamentos:"cancelamentos por motivo", recuperacao:"recuperação pós-cancelamento", mediana:"mediana cirúrgica", indConsultas:"indicação em consultas", indCirurgias:"indicação em cirurgias"};
+  const nome = `período salvo ${s.rotulo}`, ok = [], falhou = [];
+  const run = (k, fn) => { if (!src[k]) return; try { fn(src[k]); ok.push(NOMES[k]); } catch(err){ console.error(err); falhou.push(NOMES[k]); } };
+  run("comparecimento", r => applyComparecimentoRows(r, nome));
+  run("cancelamentos", r => applyCancelRows(r, nome));
+  run("recuperacao", r => applyRecuperacaoRows(r, nome));
+  run("indConsultas", r => TEMPORAL_APPLY.fileIndConsultas(r, nome));
+  run("indCirurgias", r => TEMPORAL_APPLY.fileIndCirurgias(r, nome));
+  run("mediana", r => onMedianaLoaded(r, nome));
+  // especialidades extras que estavam marcadas quando o período foi salvo (os filtros da Mediana voltam sem seleção)
+  const extras = ((s.anotacoes || {}).especialidadesExtras || []).filter(x => typeof x === "string");
+  if (src.comparecimento && extras.length){ especialidadeExtraSelected = new Set(extras); renderEspecialidadeRanking(); }
+  renderInfographic(); updateExportAvailability();
+  const ficou = Object.keys(NOMES).filter(k => !src[k] && loadedNow[k]).map(k => NOMES[k]);
+  showBanner(falhou.length ? "error" : "info", `Período <b>${escapeHtml(s.rotulo)}</b> recarregado de "${escapeHtml(file.name)}": ${escapeHtml(ok.join(", ") || "nada")}.` +
+    (falhou.length ? ` Não foi possível recarregar: ${escapeHtml(falhou.join(", "))}.` : "") +
+    (ficou.length ? ` <b>Atenção:</b> o arquivo não tem ${escapeHtml(ficou.join(", "))}; ${ficou.length > 1 ? "esses dados continuam" : "esse dado continua"} com o que já estava na tela e pode ser de outro período.` : ""));
 }
 // tabela longa (uma linha por número) para conferir no Excel
 function snapshotAoa(s){
@@ -2209,8 +2260,11 @@ function saveSnapshot(kind){
   const s = buildSnapshot(label);
   const stamp = s.periodo ? `${s.periodo.de}_${s.periodo.ate}` : label.replace(/[^\w-]+/g, "-");
   if (kind === "json"){
-    saveBlob(new Blob([JSON.stringify(s, null, 1)], {type:"application/json"}), `relatorio-cx-${stamp}.json`);
-    showBanner("info", `Dados do período <b>${escapeHtml(s.rotulo)}</b> salvos. Para comparar, carregue este arquivo na aba <b>Comparar períodos</b>.`);
+    // totais legíveis (indentados); as linhas das planilhas vão compactas no fim, numa linha só
+    const {bruto, ...resumo} = s;
+    const txt = JSON.stringify(resumo, null, 1).replace(/\n}$/, () => `,\n "bruto": ${JSON.stringify(bruto)}\n}`);
+    saveBlob(new Blob([txt], {type:"application/json"}), `relatorio-cx-${stamp}.json`);
+    showBanner("info", `Dados do período <b>${escapeHtml(s.rotulo)}</b> salvos. Para comparar, carregue este arquivo na aba <b>Comparar períodos</b>; para refazer este relatório sem subir as planilhas, use <b>Recarregar período salvo</b> na Síntese.`);
   } else {
     if (typeof XLSX === "undefined"){ showBanner("error", "Biblioteca do Excel indisponível (precisa de internet na primeira carga)."); return; }
     const wb = XLSX.utils.book_new();
@@ -2246,7 +2300,7 @@ async function cmpAddFiles(files){
     if (CMP.length >= CMP_MAX){ msgs.push(`Limite de ${CMP_MAX} períodos: "${f.name}" ficou de fora.`); continue; }
     let s; try { s = JSON.parse(await f.text()); } catch(err){ msgs.push(`"${f.name}" não é um JSON válido.`); continue; }
     const why = cmpValidate(s); if (why){ msgs.push(`"${f.name}": ${why}`); continue; }
-    s.__file = f.name;
+    s.__file = f.name; delete s.bruto;   // a comparação só usa os totais
     const dup = CMP.find(x => x.geradoEm === s.geradoEm || (s.periodo && x.periodo && s.periodo.de === x.periodo.de && s.periodo.ate === x.periodo.ate) || (!s.periodo && !x.periodo && x.rotulo === s.rotulo));
     if (dup){ msgs.push(`"${f.name}" repete o período de "${dup.__file}" (${dup.rotulo}) e não foi adicionado.`); continue; }
     CMP.push(s);
@@ -2461,7 +2515,16 @@ function handleComparecimentoFile(file){
   setComparecimentoUploadStatus("pending",`Lendo "${file.name}"...`);
   readSpreadsheet(file, function(json){
     const lookup = buildLookup(HEADER_ALIASES_COMPARECIMENTO);
-    const canonRows = json.map(r => canonicalizeRow(r, lookup));
+    applyComparecimentoRows(json.map(r => canonicalizeRow(r, lookup)), file.name);
+  }, function(msg){
+    setComparecimentoUploadStatus("err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
+}
+// recebe as linhas já canonicalizadas: vindas da planilha ou de um período salvo (restoreSnapshot)
+function applyComparecimentoRows(canonRows, fileName){
+  const file = {name:fileName};
+  {
     COMPARECIMENTO_ROWS = canonRows;
 
     const summaryParts = [];
@@ -2512,10 +2575,7 @@ function handleComparecimentoFile(file){
     setComparecimentoUploadStatus("ok",`"${file.name}" carregado · ${fmtInt(canonRows.length)} linhas`);
     showBanner("info", `<b>${escapeHtml(file.name)}</b> carregado &middot; ${fmtInt(canonRows.length)} linha(s) &middot; ${summaryParts.join(" &middot; ")}.`);
     updateExportAvailability();
-  }, function(msg){
-    setComparecimentoUploadStatus("err","Erro ao ler a planilha.");
-    showBanner("error", msg);
-  });
+  }
 }
 
 /* =========================================================================
@@ -2904,6 +2964,17 @@ document.getElementById("fileCancelamentos").addEventListener("change", function
       showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem uma coluna de motivo de cancelamento reconhecível.`);
       return;
     }
+    applyCancelRows(rows, f.name);
+  }, function(msg){
+    setUploadStatus("statusCancelamentos","err","Erro ao ler a planilha.");
+    showBanner("error", msg);
+  });
+});
+let CANCEL_ROWS = null;   // linhas canonicalizadas da planilha de cancelamentos (guardadas para "Salvar dados do período")
+function applyCancelRows(rows, fileName){
+  const f = {name:fileName};
+  {
+    CANCEL_ROWS = rows;
     let total=0, clinica=0, paciente=0;
     const byMotivo = new Map();
     const byEspClinica = new Map(); // especialidade -> Map(clinica -> qtd)
@@ -2936,11 +3007,8 @@ document.getElementById("fileCancelamentos").addEventListener("change", function
     renderCancelamentoMotivo();
     renderCancelamentoRanking();
     updateExportAvailability();
-  }, function(msg){
-    setUploadStatus("statusCancelamentos","err","Erro ao ler a planilha.");
-    showBanner("error", msg);
-  });
-});
+  }
+}
 
 document.getElementById("fileRecuperacao").addEventListener("change", function(e){
   const f = e.target.files && e.target.files[0];
@@ -2955,16 +3023,20 @@ document.getElementById("fileRecuperacao").addEventListener("change", function(e
       showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem as colunas esperadas (Data, Total de Cancelamentos, ...).`);
       return;
     }
-    recuperacaoRows = rows;
-    setUploadStatus("statusRecuperacao","ok",`"${f.name}" carregado · ${rows.length} meses`);
-    showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
-    renderRecuperacao();
-    updateExportAvailability();
+    applyRecuperacaoRows(rows, f.name);
   }, function(msg){
     setUploadStatus("statusRecuperacao","err","Erro ao ler a planilha.");
     showBanner("error", msg);
   });
 });
+
+function applyRecuperacaoRows(rows, fileName){
+  recuperacaoRows = rows;
+  setUploadStatus("statusRecuperacao","ok",`"${fileName}" carregado · ${rows.length} meses`);
+  showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
+  renderRecuperacao();
+  updateExportAvailability();
+}
 
 function renderKpis(){
   const grid = document.getElementById("kpiGrid");
@@ -3291,7 +3363,15 @@ function aggregateCampanha(canonRows){
   return {map, totalComp, totalRows: rows.length};
 }
 
+const TEMPORAL_APPLY = {};   // inputId -> (rows, fileName): aplica linhas já canonicalizadas (planilha ou período salvo)
 function makeTemporalHandler(inputId, statusId, aliasMap, storeSetter, onDone){
+  TEMPORAL_APPLY[inputId] = (rows, fileName) => {
+    storeSetter(rows);
+    setUploadStatus(statusId,"ok",`"${fileName}" carregado · ${rows.length} meses`);
+    showBanner("info", `<b>${escapeHtml(fileName)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
+    onDone();
+    updateExportAvailability();
+  };
   document.getElementById(inputId).addEventListener("change", function(e){
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
@@ -3305,11 +3385,7 @@ function makeTemporalHandler(inputId, statusId, aliasMap, storeSetter, onDone){
         showBanner("error", `A planilha "${escapeHtml(f.name)}" não tem as colunas esperadas (mês, % indicação, indicações).`);
         return;
       }
-      storeSetter(rows);
-      setUploadStatus(statusId,"ok",`"${f.name}" carregado · ${rows.length} meses`);
-      showBanner("info", `<b>${escapeHtml(f.name)}</b> carregado &middot; ${fmtInt(rows.length)} mês(es) de histórico.`);
-      onDone();
-      updateExportAvailability();
+      TEMPORAL_APPLY[inputId](rows, f.name);
     }, function(msg){
       setUploadStatus(statusId,"err","Erro ao ler a planilha.");
       showBanner("error", msg);
