@@ -3,31 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel de CX — cdv</title>
+<title>Painel de comparecimento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --bg:#f5f8fa;
+  --bg:#f4f6f8;
   --surface:#ffffff;
-  --surface-2:#f1f4f8;
-  --ink:#0f2b46;
-  --sub:#5b6b7b;
-  --muted:#8b98a6;
-  --line:#e3e8ee;
-  --accent:#1c6dd0;
-  --accent-bg:#e8f1fb;
-  --good:#2e7d5b;
-  --good-bg:#e7f4ec;
-  --warn:#b7791f;
-  --warn-bg:#fbf3e2;
-  --bad:#c0392b;
-  --bad-bg:#fbebe9;
-  --radius:14px;
+  --surface-2:#f4f6f8;
+  --ink:#203b5a;
+  --sub:#4c5663;
+  --muted:#67727f;
+  --line:#e8ecf1;
+  --accent:#3874af;
+  --accent-bg:#eff5fa;
+  --good:#17734F;
+  --good-bg:#dcf2e8;
+  --warn:#8F5400;
+  --warn-bg:#fcefd4;
+  --bad:#B5301F;
+  --bad-bg:#fbe3df;
+  --radius:16px;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -36,7 +36,7 @@
     --surface-2:#0c1826;
     --ink:#edf2f7;
     --sub:#9aacbe;
-    --muted:#63758a;
+    --muted:#8294a8;
     --line:#22334a;
     --accent:#5b9eef;
     --accent-bg:rgba(91,158,239,0.14);
@@ -67,6 +67,7 @@ a{color:var(--accent)}
 .tab-btn{font-size:14px;font-weight:600;color:var(--sub);padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);white-space:nowrap;cursor:pointer;font-family:inherit}
 .tab-btn:hover{background:var(--surface-2)}
 .tab-btn.active{background:var(--accent);color:#fff;border-color:transparent}
+@media (prefers-color-scheme: dark){.btn-export{color:#0a1420}}
 
 /* ---- Referências: botão no topo + painel lateral com todas as planilhas ---- */
 .ref-legacy{display:none !important}
@@ -308,10 +309,10 @@ h1{font-size:29px;font-weight:650;margin:10px 0 4px;text-wrap:balance}
 .tbl-collapsed{display:none}
 .export-skip{display:none !important}
 /* ---- síntese (slide final do relatório) ---- */
-/* Visual do slide de síntese: navy #203B5A, azul #3874AF, ciano #00A4D0, neutros frios, cartões 16px com sombra navy-alpha, fonte Figtree. */
-.export-summary{display:none;--cdv-navy:#203B5A;--cdv-blue:#3874AF;--cdv-cyan:#00A4D0;--cdv-body:#333C47;--cdv-muted:#67727F;--cdv-border:#E8ECF1;
-  --cdv-ok:#1E8A5F;--cdv-ok-bg:#DCF2E8;--cdv-warn:#C77A08;--cdv-warn-bg:#FCEFD4;--cdv-bad:#C63B2A;--cdv-bad-bg:#FBE3DF;
-  font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--cdv-body)}
+/* Visual do slide de síntese: navy #203B5A, azul #2F6296, ciano #00A4D0, neutros frios, cartões 16px com sombra navy-alpha, fonte Figtree. */
+.export-summary{display:none;--sl-navy:#203B5A;--sl-blue:#2F6296;--sl-cyan:#00A4D0;--sl-body:#333C47;--sl-muted:#596979;--sl-border:#E8ECF1;
+  --sl-ok:#17734F;--sl-ok-bg:#DCF2E8;--sl-warn:#8F5400;--sl-warn-bg:#FCEFD4;--sl-bad:#B5301F;--sl-bad-bg:#FBE3DF;
+  font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--sl-body)}
 body.export-all .export-summary{display:block}
 body.export-only-summary .topbar{display:none}
 .sum-head{display:flex;justify-content:space-between;align-items:center;gap:16px;background:linear-gradient(135deg,#3874AF 0%,#00A4D0 100%);color:#fff;border-radius:20px;padding:10px 24px}
@@ -319,16 +320,16 @@ body.export-only-summary .topbar{display:none}
 .sum-title{font-size:26px;font-weight:700;line-height:1.1;letter-spacing:-.02em;text-align:right}
 .sum-date{font-size:13px;opacity:.9;text-align:right;margin-top:3px}
 .sum-grid{display:grid;gap:10px;margin-top:10px}
-.sum-col{border:1px solid var(--cdv-border);border-radius:16px;background:#fff;box-shadow:0 2px 6px rgba(32,59,90,.08);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.sum-col-t{font-size:16px;font-weight:700;color:var(--cdv-navy);letter-spacing:-.01em}
+.sum-col{border:1px solid var(--sl-border);border-radius:16px;background:#fff;box-shadow:0 2px 6px rgba(32,59,90,.08);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sum-col-t{font-size:16px;font-weight:700;color:var(--sl-navy);letter-spacing:-.01em}
 .sum-blk{border-radius:12px;padding:6px 10px 7px}
-.sum-blk.good{background:var(--cdv-ok-bg)} .sum-blk.warn{background:var(--cdv-warn-bg)} .sum-blk.bad{background:var(--cdv-bad-bg)}
+.sum-blk.good{background:var(--sl-ok-bg)} .sum-blk.warn{background:var(--sl-warn-bg)} .sum-blk.bad{background:var(--sl-bad-bg)}
 .sum-blk-h{font-size:13px;font-weight:700;margin-bottom:3px}
-.sum-blk.good .sum-blk-h{color:var(--cdv-ok)} .sum-blk.warn .sum-blk-h{color:var(--cdv-warn)} .sum-blk.bad .sum-blk-h{color:var(--cdv-bad)}
+.sum-blk.good .sum-blk-h{color:var(--sl-ok)} .sum-blk.warn .sum-blk-h{color:var(--sl-warn)} .sum-blk.bad .sum-blk-h{color:var(--sl-bad)}
 .sum-blk ul{margin:0;padding-left:16px}
-.sum-blk li{font-size:11.5px;line-height:1.3;color:var(--cdv-body);margin-top:2px}
-.sum-none{font-size:12px;color:var(--cdv-muted)}
-.sum-foot{margin-top:8px;font-size:11px;color:#fff;background:var(--cdv-navy);border-radius:12px;padding:8px 16px;display:flex;justify-content:space-between;gap:16px}
+.sum-blk li{font-size:11.5px;line-height:1.3;color:var(--sl-body);margin-top:2px}
+.sum-none{font-size:12px;color:var(--sl-muted)}
+.sum-foot{margin-top:8px;font-size:11px;color:#fff;background:var(--sl-navy);border-radius:12px;padding:8px 16px;display:flex;justify-content:space-between;gap:16px}
 .sum-foot b{font-weight:700}
 @media print{
   body.export-all .export-summary{break-before:page;break-inside:avoid}
@@ -367,7 +368,7 @@ body.export-only-summary .topbar{display:none}
 .cmp-det summary{cursor:pointer;font-weight:650;font-size:14.5px;margin:14px 0 8px;color:var(--accent)}
 
 /* ---- aba Síntese: infográfico ----
-   Visual próprio (paleta cdv do slide de síntese), igual no modo claro e escuro: o que se vê na
+   Visual próprio (paleta do slide de síntese), igual no modo claro e escuro: o que se vê na
    tela é o que sai no PNG/PDF. Largura fixa de 1120px; na tela é escalado para caber (fitInfographic)
    e na hora de baixar volta a 100%. Só formas em SVG + texto em HTML (o html2canvas não carrega
    fonte dentro de SVG). Sem emoji, sentence case, laranja só para CTA. */
@@ -377,8 +378,8 @@ body.on-sintese .toolbar{display:none}
 .info-missing{display:block;margin-top:3px;color:var(--sub);font-size:13.5px}
 .info-actions{display:flex;gap:10px;flex-wrap:wrap}
 .info-stage{overflow:hidden;border-radius:24px}
-.infog{--c-navy:#203B5A;--c-blue:#3874AF;--c-cyan:#00A4D0;--c-body:#333C47;--c-muted:#67727F;--c-line:#E8ECF1;--c-page:#EAF0F6;
-  --c-ok:#1E8A5F;--c-ok-bg:#DCF2E8;--c-warn:#C77A08;--c-warn-bg:#FCEFD4;--c-bad:#C63B2A;--c-bad-bg:#FBE3DF;--c-neu-bg:#DDEAF6;
+.infog{--c-navy:#203B5A;--c-blue:#2F6296;--c-cyan:#00A4D0;--c-body:#333C47;--c-muted:#596979;--c-line:#E8ECF1;--c-page:#EAF0F6;
+  --c-ok:#17734F;--c-ok-bg:#DCF2E8;--c-warn:#8F5400;--c-warn-bg:#FCEFD4;--c-bad:#B5301F;--c-bad-bg:#FBE3DF;--c-neu-bg:#DDEAF6;
   width:1120px;transform-origin:0 0;background:var(--c-page);color:var(--c-body);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   font-size:15px;line-height:1.35;padding:24px;display:flex;flex-direction:column;gap:18px}
 .infog *{box-sizing:border-box}
@@ -388,30 +389,30 @@ body.on-sintese .toolbar{display:none}
 .infog .t-media{--tc:var(--c-warn);--tb:var(--c-warn-bg)} .infog .t-baixa{--tc:#4A6A8A;--tb:var(--c-neu-bg)}
 .i-acs{display:flex;flex-direction:column;gap:12px}
 .i-ac{display:flex;border:1px solid var(--c-line);border-radius:16px;overflow:hidden;background:#fff}
-.i-ac-bar{flex:0 0 8px;background:var(--tc)}
+.i-ac-bar{display:none}
 .i-ac-b{flex:1;min-width:0;padding:14px 18px 14px}
 .i-ac-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .i-ac-n{width:28px;height:28px;border-radius:50%;background:var(--tb);color:var(--tc);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .i-ac-n.sm{width:24px;height:24px;font-size:13px}
-.i-pill{padding:2px 10px;border-radius:99px;background:var(--c-neu-bg);color:var(--c-navy);font-size:12.5px;font-weight:700}
+.i-pill{padding:2px 10px;border-radius:99px;background:var(--c-neu-bg);color:var(--c-navy);font-size:14px;font-weight:700}
 .i-pill.o{background:#fff;border:1px solid var(--c-line);color:var(--c-body)}
-.i-sev{margin-left:auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:13px;font-weight:700}
+.i-sev{margin-left:auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:14px;font-weight:700}
 .i-ac-t{font-size:18.5px;font-weight:700;color:var(--c-navy);line-height:1.25;margin:9px 0 3px}
 .i-ac-t.sm{font-size:16px;margin:7px 0 2px}
 .i-ac-w{font-size:14.5px;line-height:1.45;color:var(--c-body)}
 .i-ac-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
 .i-st{background:#F2F6FA;border-radius:12px;padding:9px 13px 10px;font-size:14px;line-height:1.4}
-.i-st b{display:block;font-size:12.5px;color:var(--c-navy);margin-bottom:2px}
-.i-ac-cs{margin-top:9px;font-size:13.5px;line-height:1.4;color:var(--c-muted)}
+.i-st b{display:block;font-size:14px;color:var(--c-navy);margin-bottom:2px}
+.i-ac-cs{margin-top:9px;font-size:14px;line-height:1.4;color:var(--c-muted)}
 .i-ac-cs b{color:var(--c-navy)}
 .i-acs2{display:flex;flex-direction:column;gap:9px}
-.i-ac2{border-left:6px solid var(--tc);border-radius:12px;background:#F6F8FB;padding:10px 16px 11px}
-.i-ac2-next{margin-top:5px;font-size:13.5px;line-height:1.4;color:var(--c-body)}
+.i-ac2{border:1px solid var(--c-line);border-radius:16px;background:#fff;padding:10px 16px 11px}
+.i-ac2-next{margin-top:5px;font-size:14px;line-height:1.4;color:var(--c-body)}
 .i-ac2-next b{color:var(--c-navy)}
 .i-head{background:linear-gradient(135deg,#3874AF 0%,#00A4D0 100%);border-radius:24px;color:#fff;padding:26px 32px 26px}
-.i-head-top{display:flex;justify-content:space-between;align-items:center}
+.i-head-top{display:flex;justify-content:flex-start;align-items:center}
 .i-brand{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
-.i-date{font-size:14px;opacity:.92}
+.i-date{font-size:14px;background:rgba(32,59,90,.42);padding:4px 14px;border-radius:99px}
 .i-title{font-size:46px;font-weight:700;letter-spacing:-.025em;line-height:1.05;margin-top:16px}
 .i-lead{font-size:17px;max-width:840px;margin-top:8px;opacity:.96}
 .i-kpis{display:grid;gap:14px}
@@ -419,8 +420,8 @@ body.on-sintese .toolbar{display:none}
 .i-kpi-l{font-size:15px;font-weight:700;color:var(--c-navy)}
 .i-kpi-n{font-size:52px;font-weight:700;color:var(--tc);letter-spacing:-.03em;line-height:1.05;margin-top:6px}
 .i-kpi-n small{font-size:20px;font-weight:700;letter-spacing:0;margin-left:4px}
-.i-kpi-s{font-size:13.5px;color:var(--c-body);margin-top:2px}
-.i-chip{display:inline-block;align-self:flex-start;margin-top:10px;padding:3px 11px;border-radius:99px;background:#fff;color:var(--tc);font-size:13px;font-weight:700}
+.i-kpi-s{font-size:14px;color:var(--c-body);margin-top:2px}
+.i-chip{display:inline-block;align-self:flex-start;margin-top:10px;padding:3px 11px;border-radius:99px;background:#fff;color:var(--tc);font-size:14px;font-weight:700}
 .i-sec{background:#fff;border-radius:24px;padding:24px 26px 26px;box-shadow:0 2px 8px rgba(32,59,90,.08)}
 .i-sec-h{display:flex;align-items:center;gap:14px}
 .i-num{width:38px;height:38px;border-radius:50%;background:var(--c-navy);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -431,19 +432,20 @@ body.on-sintese .toolbar{display:none}
 .i-spc{border:1px solid var(--c-line);border-radius:14px;padding:12px 14px 10px;background:#fff}
 .i-spc-t{font-size:16.5px;font-weight:700;color:var(--c-navy);margin-bottom:6px}
 .i-spc-g{display:grid;gap:16px}
-.i-spc-l{font-size:12.5px;font-weight:700;color:var(--c-muted);margin-bottom:3px}
+.i-spc-l{font-size:14px;font-weight:700;color:var(--c-muted);margin-bottom:3px}
 .i-spr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14.5px;padding:4px 0;border-top:1px solid var(--c-line)}
 .i-spr span{min-width:0;color:var(--c-body);font-weight:600;line-height:1.25}
 .i-spr b{color:var(--tc);white-space:nowrap}
-.i-spc-s{font-size:13px;color:var(--c-muted);margin:-3px 0 8px;line-height:1.35}
-.i-spc-f{font-size:12.5px;color:var(--c-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--c-line);line-height:1.4}
-.i-spr small{font-weight:600;color:var(--c-muted);font-size:12px;margin-left:5px}
-.i-spc-n{font-size:13px;color:var(--c-muted);padding:4px 0;border-top:1px solid var(--c-line)}
+.i-spc-s{font-size:14px;color:var(--c-muted);margin:-3px 0 8px;line-height:1.35}
+.i-spc-f{font-size:14px;color:var(--c-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--c-line);line-height:1.4}
+.i-spr small{font-weight:600;color:var(--c-muted);font-size:14px;margin-left:5px}
+.i-spc-n{font-size:14px;color:var(--c-muted);padding:4px 0;border-top:1px solid var(--c-line)}
 .i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
-.i-when{display:block;margin-top:6px;font-size:13.5px;font-weight:600;color:var(--c-navy)}
-.i-hint{font-size:12.5px;font-weight:400;color:var(--c-muted);margin-left:4px}
-.i-note{font-size:13px;color:var(--c-muted);margin-top:8px;line-height:1.4}
+.i-when{display:block;margin-top:6px;font-size:14px;font-weight:600;color:var(--c-navy)}
+.i-hint{font-size:14px;font-weight:400;color:var(--c-muted);margin-left:4px}
+.i-note{font-size:14px;color:var(--c-muted);margin-top:8px;line-height:1.4}
+.i-legend{margin:-4px 4px 0;color:var(--c-body)}
 .infog .i-ac-steps > *,.infog .i-g > *,.infog .i-sem > *,.infog .i-kpis > *,.infog .i-trio > *,.infog .i-brow > *{min-width:0}   /* sem isto uma coluna 1fr não encolhe e o conteúdo vaza da página */
 .i-brow{display:grid;grid-template-columns:260px 1fr 62px;align-items:center;gap:10px;margin-bottom:10px}
 .i-bl{font-size:14px;line-height:1.2;color:var(--c-body)}
@@ -453,17 +455,17 @@ body.on-sintese .toolbar{display:none}
 .i-bv{font-size:15px;font-weight:700;text-align:right}
 .i-stack{display:flex;height:36px;border-radius:12px;overflow:hidden;gap:2px}
 .i-stack div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14.5px;min-width:0}
-.i-leg{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:9px;font-size:13px}
+.i-leg{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:9px;font-size:14px}
 .i-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
 .i-hero{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
 .i-donut{position:relative;flex:0 0 auto}
 .i-donut-c{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .i-dn{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1}
-.i-dl{font-size:13px;color:var(--c-muted);margin-top:3px}
+.i-dl{font-size:14px;color:var(--c-muted);margin-top:3px}
 .i-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 .i-trio div{border-radius:14px;background:var(--tb);padding:9px 4px}
 .i-trio b{display:block;font-size:22px;color:var(--tc);line-height:1.1}
-.i-trio span{font-size:12.5px;color:var(--c-body)}
+.i-trio span{font-size:14px;color:var(--c-body)}
 .i-li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--tb);margin-bottom:7px}
 .i-li span{font-size:14px;line-height:1.25;min-width:0}
 .i-li b{color:var(--tc);font-size:15px;white-space:nowrap}
@@ -472,7 +474,7 @@ body.on-sintese .toolbar{display:none}
 .i-li2 strong{display:block;font-size:16.5px;font-weight:700;color:var(--c-navy);line-height:1.2}
 .i-li2 span{display:block;font-size:15px;font-weight:600;color:var(--c-body);line-height:1.25;margin-top:1px}
 .i-li2 b{color:var(--tc);font-size:16px;white-space:nowrap}
-.i-fn{margin-top:14px;padding-top:12px;border-top:1px solid var(--c-line);font-size:11.5px;line-height:1.5;color:var(--c-muted)}
+.i-fn{margin-top:14px;padding-top:12px;border-top:1px solid var(--c-line);font-size:14px;line-height:1.5;color:var(--c-body)}
 .i-fn p{margin:0 0 5px}
 .i-fn b{color:var(--c-navy)}
 .i-sup{font-size:.72em;font-weight:700;vertical-align:super;line-height:0;margin-left:2px;color:var(--c-navy)}
@@ -480,24 +482,24 @@ body.on-sintese .toolbar{display:none}
 .i-cols{display:flex;align-items:flex-end;gap:10px;height:158px}
 .i-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
 .i-col i{display:block;width:100%;max-width:48px;border-radius:9px 9px 4px 4px}
-.i-cv{font-size:13px;font-weight:700;color:var(--c-navy);white-space:nowrap}
-.i-cl{font-size:12px;color:var(--c-muted);white-space:nowrap}
+.i-cv{font-size:14px;font-weight:700;color:var(--c-navy);white-space:nowrap}
+.i-cl{font-size:14px;color:var(--c-muted);white-space:nowrap}
 .i-mini{display:flex;align-items:center;gap:22px}
 .i-mini-it{display:flex;align-items:center;gap:12px}
-.i-mini-t{font-size:13.5px;line-height:1.35}
+.i-mini-t{font-size:14px;line-height:1.35}
 .i-mini-t b{display:block;font-size:15px;color:var(--c-navy)}
 .i-sem{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .i-sem-c{border-radius:22px;background:var(--tb);padding:18px 18px 12px}
 .i-sem-h{font-size:20px;font-weight:700;color:var(--tc);margin-bottom:11px}
 .i-sem-it{background:#fff;border-radius:13px;padding:9px 13px 10px;margin-bottom:8px;font-size:14px;line-height:1.4}
-.i-tag{display:block;font-size:12px;font-weight:700;color:var(--tc);margin-bottom:1px}
+.i-tag{display:block;font-size:14px;font-weight:700;color:var(--tc);margin-bottom:1px}
 .i-sem-none{font-size:14px;color:var(--c-muted);padding:4px 2px 10px}
 .i-act{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--c-line)}
 .i-act.first{border-top:none;padding-top:4px}
 .i-act-n{width:32px;height:32px;border-radius:50%;background:var(--tb);color:var(--tc);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .i-act-t{font-size:16px;line-height:1.45;flex:1}
-.i-prio{align-self:flex-start;flex:0 0 auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:13px;font-weight:700;white-space:nowrap}
-.i-foot{background:var(--c-navy);color:#fff;border-radius:16px;padding:13px 22px;font-size:12.5px;line-height:1.45;display:flex;justify-content:space-between;gap:24px}
+.i-prio{align-self:flex-start;flex:0 0 auto;padding:3px 12px;border-radius:99px;background:var(--tb);color:var(--tc);font-size:14px;font-weight:700;white-space:nowrap}
+.i-foot{background:var(--c-navy);color:#fff;border-radius:16px;padding:13px 22px;font-size:14px;line-height:1.45;display:flex;justify-content:space-between;gap:24px}
 
 /* ---- recolher/expandir listas de especialidade ---- */
 .collapse-all-bar{display:flex;gap:14px;margin:14px 0 4px}
@@ -525,6 +527,8 @@ body.on-sintese .toolbar{display:none}
 /* mobile só na tela: sem "screen", a largura útil de uma página A4 na impressão
    (~700px) ativava o layout de celular no PDF e escondia colunas das tabelas */
 @media screen and (max-width:760px){
+  .topnav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ref-btn{margin-left:0}
   .hero{grid-template-columns:1fr}
   .rk-row{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:10px 12px}
   .rk-line{display:flex;align-items:flex-start;gap:8px}
@@ -535,7 +539,7 @@ body.on-sintese .toolbar{display:none}
   .pct-val{min-width:52px}
   .topbar{flex-direction:column}
   .btn-upload,.btn-export{flex:1;justify-content:center}
-  .mediana-table{font-size:13px}
+  .mediana-table{font-size:14px}
 }
 
 /* ---- impressão / PDF ----
@@ -544,9 +548,9 @@ body.on-sintese .toolbar{display:none}
 @page{size:338.67mm 190.5mm;margin:9mm}
 @media print{
   :root{
-    --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f8; --ink:#0f2b46; --sub:#5b6b7b; --muted:#8b98a6;
+    --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f8; --ink:#0f2b46; --sub:#5b6b7b; --muted:#5f6e7e;
     --line:#d7dde4; --accent:#1c6dd0; --accent-bg:#e8f1fb;
-    --good:#2e7d5b; --good-bg:#e7f4ec; --warn:#b7791f; --warn-bg:#fbf3e2; --bad:#c0392b; --bad-bg:#fbebe9;
+    --good:#2e7d5b; --good-bg:#e7f4ec; --warn:#9A5B00; --warn-bg:#fbf3e2; --bad:#c0392b; --bad-bg:#fbebe9;
   }
   /* sem isto o navegador descarta fundos ao imprimir: barras, células de heatmap e faixas coloridas sumiam */
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -560,7 +564,7 @@ body.on-sintese .toolbar{display:none}
   .sec-divider{break-after:avoid;break-inside:avoid;margin-top:26px}
   .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
   .kpi-grid .hero-card{padding:16px 16px 14px}
-  .mini-table{font-size:13px;margin-top:12px}
+  .mini-table{font-size:14px;margin-top:12px}
   .mini-table th,.mini-table td{padding:6px 10px}
   /* cenários ▲▼ numa linha só dentro das tabelas: linhas mais baixas cabem mais por página */
   .mini-table td .var-mini{display:inline;margin:0 0 0 10px}
@@ -572,7 +576,7 @@ body.on-sintese .toolbar{display:none}
   thead{display:table-header-group}
   .chart-wrap{break-inside:avoid}
   .heat-scroll{overflow:visible;border-radius:0}
-  .heat-table{min-width:0;font-size:11.5px}
+  .heat-table{min-width:0;font-size:14px}
   .heat-table th,.heat-table td{padding:6px 5px;white-space:normal}
   .heat-table thead th,.heat-table tbody th{position:static}
   .mediana-table th,.mediana-table td{padding:7px 12px}
@@ -599,6 +603,52 @@ body.on-sintese .toolbar{display:none}
    tem NA TELA; se a altura só mudasse na impressão, o canvas ficaria maior que o contêiner e
    invadiria a tabela abaixo. Assim o tamanho é aplicado antes de redesenhar os gráficos. */
 body.export-all .chart-wrap{height:240px !important}
+
+/* =========================================================================
+   PADRÃO VISUAL (paleta, fonte, abas, botões, cartões, foco)
+   Marca: navy #203B5A · azul #3874AF · ciano #00A4D0 · laranja #F9623E (só na aba ativa) · neutros frios.
+   Fonte Figtree · botões e abas em pílula/sublinhado · cartões 16px com borda #E8ECF1 e sombra azulada ·
+   foco em anel ciano · sem emoji e sem ícones em Unicode · sem cartão com faixa colorida na lateral.
+   Estado "status" (verde/amarelo/vermelho): um passo mais escuros onde viram texto
+   (#1E8A5F, #C77A08 e #C63B2A ficam abaixo de 4,5:1 sobre branco).
+   ========================================================================= */
+:root{
+  --blue-900:#203B5A; --blue-800:#274E77; --blue-700:#2F6296; --blue-600:#3874AF; --blue-100:#DCE8F3; --blue-050:#EFF5FA;
+  --cyan-400:#00A4D0; --cyan-600:#0086AB; --orange-600:#F9623E;
+  --shadow-sm:0 2px 6px rgba(32,59,90,.08); --shadow-md:0 6px 18px rgba(32,59,90,.10); --focus-ring:0 0 0 3px rgba(0,164,208,.38);
+  --font-sans:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+body{font-family:var(--font-sans);font-size:16px;line-height:1.6;color:#333C47}
+h1,h2,h3,h4{font-family:var(--font-sans);color:var(--ink);font-weight:700;letter-spacing:-.01em}
+h1{font-size:30px;font-weight:700}
+/* abas: texto em negrito azul com o sublinhado laranja de 3px (único uso do laranja que não é botão de conversão) */
+.topnav{gap:2px;padding:8px 0 0;border-bottom:1px solid var(--line)}
+.tab-btn{font-size:15px;font-weight:600;color:var(--sub);padding:10px 16px 9px;border:none;border-bottom:3px solid transparent;border-radius:0;background:none;transition:color .14s cubic-bezier(.2,.6,.2,1),background-color .14s cubic-bezier(.2,.6,.2,1)}
+.tab-btn:hover{color:var(--accent);background:var(--blue-050)}
+.tab-btn.active{color:var(--blue-700);font-weight:700;background:none;border-bottom-color:var(--orange-600)}
+/* botões: pílula; azul cheio = ação principal, contorno azul de 2px = secundária; escurece um passo no hover, 0,98 ao apertar */
+.btn-upload,.btn-export{border-radius:999px;font-weight:700;transition:background-color .14s cubic-bezier(.2,.6,.2,1),box-shadow .14s cubic-bezier(.2,.6,.2,1),transform .14s cubic-bezier(.2,.6,.2,1),border-color .14s}
+.btn-upload{padding:9px 19px;background:#fff;color:var(--accent);border:2px solid var(--accent)}
+.btn-upload:hover{background:var(--blue-050)}
+.btn-export{padding:11px 21px;background:var(--accent);color:#fff;box-shadow:var(--shadow-sm);filter:none}
+.btn-export:hover{background:var(--blue-700);box-shadow:var(--shadow-md);filter:none}
+.btn-export:active{background:var(--blue-800);filter:none}
+.btn-upload:active,.btn-export:active{transform:scale(.98)}
+.btn-upload:disabled,.btn-export:disabled{background:var(--surface-2);color:#8a95a3;border-color:transparent;box-shadow:none;cursor:not-allowed;transform:none;opacity:1}
+.ref-btn{border:2px solid var(--accent);border-radius:999px;padding:8px 16px;background:#fff;color:var(--accent);font-weight:700}
+.ref-btn:hover{background:var(--blue-050);filter:none}
+.ref-count{background:var(--blue-050)}
+.spec-toggle{border-radius:999px}
+.spec-toggle.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* cartões: 16px, borda de 1px e sombra azulada; os coloridos (verde/amarelo/vermelho) ficam sem sombra */
+.hero-card,.upload-card,.chart-card,.esp-card{border-radius:16px;box-shadow:var(--shadow-sm)}
+.hero-card.status-good,.hero-card.status-warn,.hero-card.status-bad{box-shadow:none}
+.i-sec{border-radius:24px}
+.ref-panel{box-shadow:0 14px 34px rgba(32,59,90,.13)}
+.ref-item{border-radius:16px;box-shadow:var(--shadow-sm)}
+/* foco: anel ciano do design system + contorno fino para continuar visível em qualquer fundo */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.ms-btn:focus-visible{outline:2px solid var(--cyan-600);outline-offset:2px;box-shadow:var(--focus-ring)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -619,27 +669,26 @@ body.export-all .chart-wrap{height:240px !important}
 
   <div class="topbar">
     <div>
-      <div class="brand"><span class="dot"></span><span class="brand-name"><b>cdv</b></span></div>
       <h1 id="pageTitle">Visão Geral &amp; Cancelamentos</h1>
       <div class="subtitle" id="pageSubtitle">Comparecimento, faltas, aguardando retorno, cancelamentos e recuperação pós-cancelamento</div>
     </div>
     <div class="toolbar no-print">
-      <button class="btn-upload" id="exportBtn" type="button" onclick="exportPdf()" disabled title="Exporta só a aba que está aberta">
+      <button class="btn-upload" id="exportBtn" type="button" onclick="exportPdf()" disabled title="Imprime só a aba que está aberta (no diálogo, escolha Salvar como PDF)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
-        Exportar esta aba
+        Esta aba em PDF
       </button>
-      <button class="btn-upload" id="exportSummaryBtn" type="button" onclick="exportSummaryPdf()" disabled title="Só o slide de síntese: destaques, pontos de atenção e pontos negativos de cada tema">
+      <button class="btn-upload" id="exportSummaryBtn" type="button" onclick="exportSummaryPdf()" disabled title="Um slide 16:9 só com a síntese: destaques, pontos de atenção e pontos negativos (no diálogo, escolha Salvar como PDF)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
-        Exportar só a síntese
+        Slide da síntese (16:9)
       </button>
-      <button class="btn-export" id="exportAllBtn" type="button" onclick="exportAllPdf()" disabled title="Todas as abas com dados, uma seção por página, em formato de apresentação (16:9)">
+      <button class="btn-export" id="exportAllBtn" type="button" onclick="exportAllPdf()" disabled title="Todas as abas com dados, uma seção por página, em formato de apresentação 16:9 (no diálogo, escolha Salvar como PDF)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
-        Exportar relatório completo
+        Apresentação completa (16:9)
       </button>
     </div>
   </div>
 
-  <div id="uploadBanner" class="banner no-print" style="display:none"></div>
+  <div id="uploadBanner" class="banner no-print" style="display:none" role="status" aria-live="polite"></div>
 
   <!-- REFERÊNCIAS: um lugar só para carregar todas as planilhas (os inputs de arquivo continuam nas abas, escondidos) -->
   <div id="refOverlay" class="ref-overlay no-print hidden" onclick="closeRefs()"></div>
@@ -648,6 +697,7 @@ body.export-all .chart-wrap{height:240px !important}
       <div><div class="ref-title" id="refTitle">Referências</div><div class="ref-sub">As planilhas que alimentam o painel. Carregue cada uma no seu lugar; dá para trocar a qualquer momento.</div></div>
       <button type="button" class="ref-close" onclick="closeRefs()" aria-label="Fechar Referências">&times;</button>
     </div>
+    <div id="refMsg" class="banner no-print" style="display:none;margin:12px 22px 0" role="status" aria-live="polite"></div>
     <div class="ref-list" id="refList"></div>
     <div class="ref-foot">
       <div class="ref-foot-t"><b>Já salvou este período antes?</b> Recarregue o arquivo de dados (JSON) e todas as planilhas voltam de uma vez.</div>
@@ -801,7 +851,7 @@ body.export-all .chart-wrap{height:240px !important}
         <div class="sec-title">Mediana geral por trimestre</div>
         <div class="sec-sub">Mediana dos valores carregados em cada trimestre</div>
       </div>
-      <div class="chart-card"><div class="chart-wrap" style="height:300px"><canvas id="overallCanvas"></canvas></div></div>
+      <div class="chart-card"><div class="chart-wrap" style="height:300px"><canvas id="overallCanvas" role="img" aria-label="Gráfico da mediana de dias entre a consulta e a 1ª cirurgia, por trimestre"></canvas></div></div>
 
       <div class="sec-divider">
         <div class="sec-title">Detalhamento por especialidade</div>
@@ -899,11 +949,11 @@ body.export-all .chart-wrap{height:240px !important}
       <div class="info-actions">
         <button class="btn-upload" id="infoPngBtn" type="button" onclick="downloadInfographic('png')" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
-          Baixar PNG
+          Relatório A4 em PNG
         </button>
         <button class="btn-export" id="infoPdfBtn" type="button" onclick="downloadInfographic('pdf')" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
-          Baixar PDF
+          Relatório A4 em PDF
         </button>
       </div>
     </div>
@@ -990,7 +1040,7 @@ function toPctValue(v){
   return s.includes("%") ? toNum(s) : toNum(s)*100;
 }
 function fmtInt(n){ return Math.round(n).toLocaleString("pt-BR"); }
-function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR"); }
+function fmtDias(n){ return (Math.round(n*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}); }
 function fmtPct(p){ return p.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%"; }
 function statusOf(p){ return p>=70 ? "good" : (p>=60 ? "warn" : "bad"); }
 
@@ -1045,7 +1095,7 @@ function createMultiSelect(rootId, allLabel, onChange){
   const root = document.getElementById(rootId);
   root.classList.add("ms");
   root.innerHTML =
-    `<button type="button" class="ms-btn" aria-haspopup="listbox" aria-expanded="false"><span class="ms-text"></span><span class="ms-caret">&#9662;</span></button>` +
+    `<button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false"><span class="ms-text"></span><span class="ms-caret">&#9662;</span></button>` +
     `<div class="ms-panel hidden"><input type="search" class="ms-search" placeholder="Buscar..." aria-label="Buscar opção">` +
     `<div class="ms-actions"><span></span><button type="button" class="ms-clear">Limpar seleção</button></div><div class="ms-list"></div></div>`;
   const btn = root.querySelector(".ms-btn"), panel = root.querySelector(".ms-panel");
@@ -1176,8 +1226,16 @@ function readSpreadsheet(file, onRows, onError){
 function showBanner(kind, html){
   const el = document.getElementById("uploadBanner");
   el.className = "banner no-print " + kind;
+  el.setAttribute("role", kind === "error" ? "alert" : "status");
   el.innerHTML = html;
   el.style.display = "";
+  // com o menu Referências aberto o aviso do topo fica atrás dele: a mesma mensagem aparece dentro do menu
+  const panel = document.getElementById("refPanel"), rm = document.getElementById("refMsg");
+  if (panel && rm){
+    const open = !panel.classList.contains("hidden");
+    rm.className = "banner no-print " + kind; rm.innerHTML = html; rm.style.display = open ? "" : "none";
+    if (!open) el.scrollIntoView({block:"nearest", behavior:"smooth"});   // fora do menu: leva o aviso para a vista
+  }
 }
 /* ---- REFERÊNCIAS: painel único de planilhas. Cada item aciona o input de arquivo que já existia na aba
    (escondido) e mostra o mesmo status que setUploadStatus() escreve nos cartões antigos. ---- */
@@ -1196,7 +1254,7 @@ function renderRefs(){
   list.innerHTML = REF_SLOTS.map((r,i) => {
     const st = refState[r.key] || {kind:"pending", text:"Nenhuma planilha carregada"};
     return `<div class="ref-item ${st.kind}">
-      <div><div class="ref-item-t"><span class="ref-n">${st.kind==="ok" ? "&#10003;" : i+1}</span>${escapeHtml(r.title)}</div>
+      <div><div class="ref-item-t"><span class="ref-n">${st.kind==="ok" ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' : i+1}</span>${escapeHtml(r.title)}</div>
         <div class="ref-item-d">${escapeHtml(r.desc)}</div><div class="ref-item-f">Alimenta: ${escapeHtml(r.feeds)}</div></div>
       <button class="btn-upload" type="button" onclick="document.getElementById('${r.input}').click()">${st.kind==="ok" ? "Trocar" : "Carregar"}</button>
       <div class="ref-item-s ${st.kind}"><span class="dot-ind"></span>${escapeHtml(st.text)}</div></div>`;
@@ -1205,7 +1263,7 @@ function renderRefs(){
   c.textContent = `${n}/${REF_SLOTS.length}`; c.classList.toggle("done", n === REF_SLOTS.length);
 }
 function openRefs(){
-  renderRefs();
+  renderRefs(); document.getElementById("refMsg").style.display = "none";
   document.getElementById("refOverlay").classList.remove("hidden");
   document.getElementById("refPanel").classList.remove("hidden");
   document.querySelector("#refPanel .ref-close").focus();
@@ -1252,6 +1310,7 @@ function switchTab(tab){
   document.getElementById("navMediana").classList.toggle("active", tab === "mediana");
   document.getElementById("navSintese").classList.toggle("active", tab === "sintese");
   document.body.classList.toggle("on-sintese", tab === "sintese");   // esconde os botões de PDF do topo: a aba tem os próprios
+  ["navVisaoGeral","navComparecimento","navMediana","navIndicacoes","navSintese","navComparar"].forEach(id => { const b = document.getElementById(id); if (b.classList.contains("active")) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   document.getElementById("pageTitle").textContent = TAB_META[tab].title;
   document.getElementById("pageSubtitle").textContent = TAB_META[tab].subtitle;
   if (tab === "sintese") renderInfographic();
@@ -1425,7 +1484,7 @@ function summaryIndicacoes(){
   }
   const serie = (rows, nome) => {
     if (!rows || rows.length < 1) return;
-    const vals = rows.map(r=>({m:String(r.mes), p:toPctValue(r.pct)}));
+    const vals = rows.map(r=>({m:iMonth(String(r.mes)), p:toPctValue(r.pct)}));
     const last = vals[vals.length-1];
     if (vals.length < 2){ o.w.push(`${nome}: ${fmtPct(last.p)} em ${last.m}`); return; }
     const prev = vals[vals.length-2], d = last.p - prev.p;
@@ -1453,7 +1512,7 @@ function buildSummaryHtml(){
     return `<div class="sum-col"><div class="sum-col-t">${escapeHtml(t.title)}</div>` +
       blk("Destaques","good",r.g) + blk("Pontos de atenção","warn",r.w) + blk("Pontos negativos","bad",r.b) + `</div>`;
   });
-  return `<div class="sum-head"><div class="sum-brand">cdv</div>
+  return `<div class="sum-head"><div class="sum-brand">Painel de CX</div>
       <div><div class="sum-title">Síntese do período</div>
       <div class="sum-date">Painel de CX · gerado em ${new Date().toLocaleDateString("pt-BR")}</div></div></div>
     <div class="sum-grid" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.join("")}</div>
@@ -1532,7 +1591,7 @@ window.addEventListener("afterprint", endExportAll);
    HTML (texto), para o PNG/PDF sair idêntico ao que está na tela.
    ========================================================================= */
 const INFO_W = 1120;
-const IC = {navy:"#203B5A", blue:"#3874AF", cyan:"#00A4D0", ok:"#1E8A5F", warn:"#C77A08", bad:"#C63B2A", track:"#E8ECF1", soft:"#A9C3DE"};
+const IC = {navy:"#203B5A", blue:"#2F6296", cyan:"#00A4D0", ok:"#17734F", warn:"#8F5400", bad:"#B5301F", track:"#E8ECF1", soft:"#A9C3DE"};
 IC.badSoft = "#E39A91";   // tom claro da paleta negativa (cancelamentos pelo paciente)
 /* faixas de cor da recuperação pós-cancelamento (definidas pelo usuário em 2026-11):
    reagendados e convertidos: <50% vermelho · 50–69,9% laranja · ≥70% verde
@@ -1902,7 +1961,7 @@ function infoSecMediana(){
   const varTxt = prev ? ` A mediana geral foi de ${fmtDias(prev.v)} para ${fmtDias(mb)} dias (${cB(fmtRel(relM), relM > 0 ? "bad" : "good")}).` : "";
   if (critP.length || sevV > 0) actions.push({theme:"Mediana cirúrgica", owner:"CX e CS", sev:Math.max(critP.length ? 2 : 0, sevV), impact:critP.length + Math.max(0, relM),
     title: critP.length ? "Reduzir o tempo até a cirurgia nas combinações críticas" : "Entender por que a mediana até a cirurgia subiu",
-    why:(critP.length ? `${critP.length} ${plural(critP.length,"combinação crítica","combinações críticas")} nas especialidades primárias em ${escapeHtml(tLabel)}; com maior tempo: ${slowTxt(critP)}.` : "") + varTxt + " Paciente esperando para operar e receita represada para a clínica e para a CDV.",
+    why:(critP.length ? `${critP.length} ${plural(critP.length,"combinação crítica","combinações críticas")} nas especialidades primárias em ${escapeHtml(tLabel)}; com maior tempo: ${slowTxt(critP)}.` : "") + varTxt + " Paciente esperando para operar e receita represada para a clínica e para a operação.",
     curto:["CX contata as clínicas dessas combinações e localiza o gargalo (agenda cirúrgica, exames, aprovação)."],
     medio:["Acompanhar a mediana de cada uma no próximo trimestre e priorizar vagas cirúrgicas nas críticas."],
     cs:"Alinhar com o paciente, no agendamento, a expectativa de prazo até a cirurgia nessas praças."});
@@ -1960,7 +2019,7 @@ function infoSecIndicacoes(){
     cirHtml = `<div class="i-li t-${cirD===null||Math.abs(cirD)<=0.05?"neutral":(cirD>0?"good":"bad")}" style="margin-top:16px"><span>Indicação nas 1ªs cirurgias · ${escapeHtml(iMonth(cirLast.m))}</span><b>${fmtPct(cirLast.p)}${cirD!==null?` (${fmtPP(cirD)})`:""}</b></div>`;
   }
 
-  const cols = serie.length>1 ? `<p class="i-sub">Indicação em consultas, mês a mês</p>` + iCols(serie.map((s,i) => ({label:iMonth(s.m), v:s.p, text:fmtPct(s.p).replace(",0%","%"), color:i===serie.length-1?IC.blue:IC.soft}))) : "";
+  const cols = serie.length>1 ? `<p class="i-sub">Indicação em consultas, mês a mês</p>` + iCols(serie.map((s,i) => ({label:iMonth(s.m), v:s.p, text:fmtPct(s.p), color:i===serie.length-1?IC.blue:IC.soft}))) : "";
   const hero = tri ? `<div class="i-hero">${iPctDonut(tri.cur.p, IC.blue, 170, 22, `<div class="i-dn" style="font-size:38px;color:${IC.blue}">${fmtPct(tri.cur.p)}</div><div class="i-dl">últimos 3 meses</div>`)}<div class="i-note" style="margin:0">${dTxt || "Sem 3 meses anteriores para comparar."}</div></div>` : "";
   const cells = [];
   if (hero) cells.push({w:"250px", h:hero});
@@ -1979,7 +2038,7 @@ function infoSecIndicacoes(){
   if (niShare > 0) actions.push({theme:"Indicações", owner:"CX e CS", sev:niShare >= 10 ? 2 : 0, impact:niShare,
     title:"Tabular a origem dos pacientes que estão em branco",
     why:`${cB(fmtPct(niShare), niShare >= 10 ? "bad" : "warn")} dos comparecimentos estão sem campanha ("Não informado"): não dá para saber de onde vieram.`,
-    curto:["CX tabula no Farol a origem desses pacientes."],
+    curto:["CX tabula no sistema de agendamento a origem desses pacientes."],
     medio:["CS passa a preencher a campanha no momento do agendamento."],
     cs:"Preencher o campo Campanha em todo agendamento."});
   const relC = cirD !== null && cir.length > 1 && cir[cir.length-2].p ? (cir[cir.length-2].p - cirLast.p)/cir[cir.length-2].p*100 : 0;
@@ -1993,7 +2052,7 @@ function infoSecIndicacoes(){
     medio:["Se a queda se repetir, tratar junto com a ação de indicação em consultas."]});
 
   return {
-    title:"Indicações e campanhas - de onde os pacientes conheceram a Central",
+    title:"Indicações e campanhas - de onde os pacientes vieram",
     when: tri ? `Período: ${triSpan} (últimos 3 meses da planilha)${camp ? " · origem dos pacientes: período da planilha de comparecimento" : ""}`
               : (camp ? "Período: o da planilha de comparecimento" : (cirLast ? `Período: ${iMonth(cirLast.m)}` : "")),
     take: tri ? `Em média, ${fmtPct(tri.cur.p)} das consultas dos últimos 3 meses vieram de indicação${d!==null?` (${d>0.05?"mais":(d<-0.05?"menos":"igual")} que nos 3 meses anteriores)`:""}.`
@@ -2110,7 +2169,7 @@ function infoActionsHtml(all, num){
       <div class="i-ac-t sm">${escapeHtml(a.title)}</div>
       <div class="i-ac-w">${a.why}</div>
       <div class="i-ac2-next"><b>Próximo passo:</b> ${a.curto.map(escapeHtml).join(" ")}</div></div>`).join("");
-  return `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${num}</div><div class="i-sec-t">Tomadas de ações</div></div>
+  return `<section class="i-sec i-sec-act"><div class="i-sec-h"><div class="i-num">${num}</div><div class="i-sec-t">Tomadas de ações</div></div>
     <div class="i-take">${all.length ? "As cinco ações principais e as secundárias, da maior para a menor prioridade. O CX investiga o que já aconteceu e sinaliza ao CS o perfil de pacientes e a qualidade de agendamento que estão chegando de cada praça." : "Sem ações pendentes neste período."}</div>` +
     (all.length ? `<div class="i-acs">${mainHtml}</div>` + (sec.length ? `<p class="i-sub" style="margin:22px 0 10px">Ações secundárias<span class="i-hint">menor prioridade</span></p><div class="i-acs2">${secHtml}</div>` : "")
                 : `<div class="i-li t-good"><span>Nenhuma ação identificada. Manter o acompanhamento mensal.</span></div>`) +
@@ -2131,19 +2190,19 @@ function renderInfographic(){
   const kpis = secs.map(s => s.kpi).filter(Boolean);
   const kpiHtml = `<div class="i-kpis" style="grid-template-columns:repeat(4,1fr)">` + kpis.map(k =>
     `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n"${k.numColor?` style="color:${k.numColor}"`:""}>${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.extra||""}${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
-  const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo. "Benchmark" é a referência do período: quem teve o maior comparecimento (só entra quem tem ${HIGH_VOLUME_MIN} ou mais consultas) ou o menor tempo até a cirurgia. "Combinação" é uma clínica em uma especialidade (ex.: HOC · Catarata).</div>${infoSemaforo()}</section>`;
+  const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo. "Benchmark" é a referência do período: quem teve o maior comparecimento (só entra quem tem ${HIGH_VOLUME_MIN} ou mais consultas) ou o menor tempo até a cirurgia. "Combinação" é uma clínica em uma especialidade (ex.: Clínica A · Catarata).</div>${infoSemaforo()}</section>`;
   const secHtml = secs.map((s,i) =>
     `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}${s.when ? `<span class="i-when">${escapeHtml(s.when)}</span>` : ""}</div>${s.body}</section>`).join("");
 
   const actHtml = infoActionsHtml(secs.flatMap(s => s.actions), secs.length + 2);
 
   root.innerHTML =
-    `<div class="i-head"><div class="i-head-top"><div class="i-brand">cdv</div><div class="i-date">Painel de CX · gerado em ${today}</div></div>
+    `<div class="i-head"><div class="i-head-top"><div class="i-date">Painel de CX · gerado em ${today}</div></div>
        <div class="i-title">Relatório de comparecimento</div>
        ${per ? `<div class="i-per">${per.de === per.ate ? "Consultas em " + per.de : "Consultas de " + per.de + " a " + per.ate} · data da consulta</div>` : ""}
        <div class="i-lead">Um retrato rápido da jornada do paciente: quem vem às consultas, quem cancela, quanto tempo leva até a cirurgia e de onde os pacientes vêm.</div></div>` +
-    kpiHtml + semHtml + secHtml + actHtml +
-    `<div class="i-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Rankings de comparecimento: só quem tem ${HIGH_VOLUME_MIN}+ consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span><span style="white-space:nowrap">cdv · ${today}</span></div>`;
+    kpiHtml + `<div class="i-note i-legend"><b>Como ler as cores:</b> verde = comparecimento de 70% ou mais, ou tempo até a cirurgia dentro da meta · amarelo = 60% a 69%, ou acima da meta de dias · vermelho = abaixo de 60%, ou tempo crítico. Rankings de comparecimento: só clínicas com ${HIGH_VOLUME_MIN}+ consultas.</div>` + semHtml + secHtml + actHtml +
+    `<div class="i-foot"><span>Comparecimento: verde a partir de 70%, amarelo de 60% a 69%, vermelho abaixo de 60%. Rankings de comparecimento: só quem tem ${HIGH_VOLUME_MIN}+ consultas. Mediana avaliada no trimestre mais recente, contra a meta de dias de cada especialidade.</span><span style="white-space:nowrap">${today}</span></div>`;
   fitInfographic();
 }
 // escala o infográfico (largura fixa) para caber na tela; no download volta a 100%
@@ -2194,8 +2253,17 @@ function infoPlanPages(root){
     }
     return y;
   };
+  // "Tomadas de ações" abre uma página nova (se a página anterior já tem conteúdo suficiente para isso valer a pena)
+  const actEl = root.querySelector(".i-sec-act");
+  let actY = null;
+  if (actEl){
+    const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, top = (actEl.getBoundingClientRect().top - rr.top) / k;
+    actY = top - 9;   // meio do vão de 18px entre as seções
+  }
   for (;;){
     const i = pages.length, limit = start + pdfRoom(i), room = pdfRoom(i);
+    if (total <= limit + 1 && !(actY !== null && actY > start + room * 0.25 && actY < total - 1)){ pages.push({s:start, e:total}); break; }
+    if (actY !== null && actY > start + room * 0.25 && actY <= limit){ pages.push({s:start, e:actY}); start = actY; actY = null; continue; }
     if (total <= limit + 1){ pages.push({s:start, e:total}); break; }
     let y = findBreak(coarse, limit);
     if (y - start < room * 0.65) y = Math.max(y, findBreak(fine, limit));   // página ficaria vazia demais: permite quebrar entre blocos internos da seção
@@ -2237,9 +2305,9 @@ function infoPageCanvases(canvas, plan){
     ctx.fillStyle = "#EAF0F6"; ctx.fillRect(0, 0, pc.width, H);
     const sy = Math.round(p.s * sc), sh = Math.min(Math.round((p.e - p.s) * sc), canvas.height - sy);
     ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, i ? PDF_TOP * sc : 0, canvas.width, sh);
-    ctx.fillStyle = "#67727F"; ctx.font = `600 ${13*sc}px Figtree, "Segoe UI", sans-serif`; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#596979"; ctx.font = `600 ${13*sc}px Figtree, "Segoe UI", sans-serif`; ctx.textBaseline = "middle";
     const y = H - 20*sc;
-    ctx.textAlign = "left";  ctx.fillText("cdv · Relatório de comparecimento", 24*sc, y);
+    ctx.textAlign = "left";  ctx.fillText("Relatório de comparecimento", 24*sc, y);
     ctx.textAlign = "right"; ctx.fillText(`página ${i+1} de ${n}`, canvas.width - 24*sc, y);
     return pc;
   });
@@ -2259,6 +2327,7 @@ async function downloadInfographic(kind){
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const plan = kind === "pdf" ? infoPlanPages(root) : null;   // medir ANTES de capturar, com o infográfico na tela como está
+    const words = kind === "pdf" ? infoTextWords(root) : null;
     const canvas = await html2canvas(root, {
       scale:2, backgroundColor:"#EAF0F6", useCORS:true, logging:false, windowWidth:Math.max(window.innerWidth, INFO_W+40),
       onclone: doc => {   // no clone, tira a escala da tela para capturar em 100%
@@ -2279,6 +2348,7 @@ async function downloadInfographic(kind){
         if (i) pdf.addPage([PDF_PAGE_W, PDF_PAGE_H], "p");
         pdf.addImage(pc.toDataURL("image/png"), "PNG", 0, 0, PDF_PAGE_W, PDF_PAGE_H, undefined, "FAST");
       });
+      try { infoAddTextLayer(pdf, words, plan); } catch(txtErr){ console.warn("PDF sem camada de texto:", txtErr); }   // a camada de texto nunca impede o download
       pdf.save(name + ".pdf");
     }
   } catch(err){
@@ -2288,6 +2358,50 @@ async function downloadInfographic(kind){
     btns.forEach((b,i) => { b.innerHTML = old[i]; });
     updateExportAvailability();
   }
+}
+/* ---- camada de texto invisível no PDF: as páginas são imagens, então cada palavra é repetida por cima, no mesmo lugar,
+   em texto invisível. Assim dá para selecionar, copiar e procurar (Ctrl+F) nomes de clínicas e números, e leitores de tela leem. ---- */
+function infoTextWords(root){
+  const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, out = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: n => /\S/.test(n.nodeValue) && !/^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT});
+  const range = document.createRange();
+  for (let n; (n = walker.nextNode());){
+    const re = /\S+/g; let m;
+    while ((m = re.exec(n.nodeValue))){
+      range.setStart(n, m.index); range.setEnd(n, m.index + m[0].length);
+      const r = range.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) continue;
+      out.push({t:m[0], x:(r.left - rr.left) / k, y:(r.top - rr.top) / k, w:r.width / k, h:r.height / k});
+    }
+  }
+  return out;
+}
+// caracteres fora do Latin-1 não existem na fonte padrão do PDF: troca por equivalentes simples
+const pdfSafe = t => t.replace(/[−–—]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/…/g, "...").replace(/[^\u0020-\u00ff]/g, "?");
+// junta as palavras em linhas (mesma altura, uma ao lado da outra, sem salto de coluna), para gravar o texto com espaços de verdade
+function infoTextLines(words){
+  const lines = []; let cur = null;
+  words.forEach(w => {
+    const prev = cur && cur.words[cur.words.length - 1];
+    const same = prev && Math.abs((w.y + w.h / 2) - (prev.y + prev.h / 2)) < Math.min(w.h, prev.h) * 0.5 && w.x >= prev.x + prev.w - 1 && w.x - (prev.x + prev.w) < Math.max(prev.h, w.h) * 1.2;
+    if (same){ cur.words.push(w); }
+    else { cur = {words:[w]}; lines.push(cur); }
+  });
+  return lines.map(l => { const f = l.words[0], z = l.words[l.words.length - 1];
+    return {t:l.words.map(w => w.t).join(" "), x:f.x, y:Math.min(...l.words.map(w => w.y)), w:(z.x + z.w) - f.x, h:Math.max(...l.words.map(w => w.h))}; });
+}
+function infoAddTextLayer(pdf, words, plan){
+  const lines = infoTextLines(words);
+  plan.pages.forEach((p, i) => {
+    pdf.setPage(i + 1);
+    const dy = (i ? PDF_TOP : 0) - p.s;
+    lines.forEach(w => {
+      const mid = w.y + w.h / 2; if (mid < p.s || mid >= p.e) return;
+      const t = pdfSafe(w.t), size = Math.max(4, w.h * 0.78);
+      pdf.setFontSize(size);
+      const natural = pdf.getTextWidth(t), extra = t.length > 1 ? (w.w - natural) / (t.length - 1) : 0;
+      pdf.text(t, w.x, w.y + dy + w.h * 0.8, {renderingMode:"invisible", charSpace:Math.abs(extra) < 4 ? extra : 0});
+    });
+  });
 }
 function saveBlob(blob, filename){
   const url = URL.createObjectURL(blob), a = document.createElement("a");
@@ -2302,7 +2416,8 @@ function saveBlob(blob, filename){
    vem da "Data da consulta" da planilha (não do nome do arquivo); a aba Comparar
    períodos lê estes arquivos. Mudou o formato? Aumentar SNAP_SCHEMA e tratar na leitura.
    ========================================================================= */
-const SNAP_APP = "cdv-painel-cx", SNAP_SCHEMA = 1;
+const SNAP_APP = "painel-cx", SNAP_SCHEMA = 1;
+const snapAppOk = app => /^(?:[a-z]+-)?painel-cx$/.test(String(app));   // aceita também os arquivos salvos antes, com prefixo
 const isoDay = ms => new Date(ms).toISOString().slice(0,10);
 function snapPeriodLabel(lo, hi){
   const a = new Date(lo), b = new Date(hi);
@@ -2481,7 +2596,7 @@ let CMP = [], cmpMsgs = [], cmpClinSort = null, cmpClinAll = false;
 document.getElementById("fileCmp").addEventListener("change", async e => { const fs = [...e.target.files]; e.target.value = ""; await cmpAddFiles(fs); });
 
 function cmpValidate(s){
-  if (!s || typeof s !== "object" || s.app !== SNAP_APP) return "não é um arquivo de dados salvo por este painel.";
+  if (!s || typeof s !== "object" || !snapAppOk(s.app)) return "não é um arquivo de dados salvo por este painel.";
   if (s.schema !== SNAP_SCHEMA) return `formato versão ${s.schema}; este painel lê a versão ${SNAP_SCHEMA}. Salve de novo pelo painel atual.`;
   if (!s.rotulo || !s.fontes) return "arquivo incompleto.";
   return null;
@@ -3347,7 +3462,7 @@ function renderCancelamentoMotivo(){
   }
   const entries = [...cancelamentoData.byMotivo.entries()].sort((a,b)=>b[1]-a[1]);
   const total = cancelamentoData.total;
-  block.innerHTML = `<div class="chart-card"><div class="chart-wrap" style="height:380px"><canvas id="cancelMotivoCanvas"></canvas></div><table class="mini-table" id="cancelMotivoTable"></table></div>`;
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap" style="height:380px"><canvas id="cancelMotivoCanvas" role="img" aria-label="Gráfico dos cancelamentos por motivo"></canvas></div><table class="mini-table" id="cancelMotivoTable"></table></div>`;
 
   const paletteVars = ["--accent","--bad","--warn","--good","--muted","--sub"];
   const palette = paletteVars.map(cssVar);
@@ -3459,7 +3574,7 @@ function renderTipoAgendamento(){
   faltArr.push(faltArr.reduce((s,v)=>s+v,0));
   agArr.push(agArr.reduce((s,v)=>s+v,0));
 
-  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="tipoCanvas"></canvas></div><table class="mini-table" id="tipoTable"></table></div>`;
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="tipoCanvas" role="img" aria-label="Gráfico do comparecimento por tipo de agendamento"></canvas></div><table class="mini-table" id="tipoTable"></table></div>`;
 
   const good = cssVar("--good"), bad = cssVar("--bad"), warn = cssVar("--warn"), ink = cssVar("--ink"), line = cssVar("--line");
   const ctx = document.getElementById("tipoCanvas").getContext("2d");
@@ -3684,7 +3799,7 @@ function renderCampanha(){
 
   block.innerHTML = `
     <div class="chart-card">
-      <div class="chart-wrap"><canvas id="campanhaCanvas"></canvas></div>
+      <div class="chart-wrap"><canvas id="campanhaCanvas" role="img" aria-label="Gráfico da origem dos pacientes por campanha"></canvas></div>
       ${collapsibleTableHtml("campanhaTable")}
       ${hasNaoInformado ? '<div style="margin-top:12px;font-size:13px;color:var(--bad)">⚠️ "Não informado" indica que a equipe não preencheu o campo Campanha no agendamento — vale reforçar o preenchimento.</div>' : ""}
     </div>
@@ -3722,7 +3837,7 @@ function renderCampanha(){
 function renderTemporal(rows, blockId, canvasId, tableId, chartVarSetter, chartVarGetter, qtdLabel){
   const block = document.getElementById(blockId);
   if (!rows || !rows.length) return;
-  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>${collapsibleTableHtml(tableId)}</div>`;
+  block.innerHTML = `<div class="chart-card"><div class="chart-wrap"><canvas id="${canvasId}" role="img" aria-label="Gráfico mês a mês: ${escapeHtml(qtdLabel)}"></canvas></div>${collapsibleTableHtml(tableId)}</div>`;
   const ink = cssVar("--ink"), line = cssVar("--line"), accent = cssVar("--accent"), accentBg = cssVar("--accent-bg"), sub = cssVar("--sub");
   const labels = rows.map(r=>String(r.mes));
   const pcts = rows.map(r=>toPctValue(r.pct));
