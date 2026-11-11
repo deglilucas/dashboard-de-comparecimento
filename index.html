@@ -68,6 +68,35 @@ a{color:var(--accent)}
 .tab-btn:hover{background:var(--surface-2)}
 .tab-btn.active{background:var(--accent);color:#fff;border-color:transparent}
 
+/* ---- Referências: botão no topo + painel lateral com todas as planilhas ---- */
+.ref-legacy{display:none !important}
+.ref-btn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:650;color:var(--accent);padding:8px 14px;border-radius:20px;border:1px solid var(--accent);background:var(--accent-bg);white-space:nowrap;cursor:pointer;font-family:inherit}
+.ref-btn:hover{filter:brightness(.97)}
+.ref-count{font-size:12.5px;font-weight:700;padding:1px 8px;border-radius:10px;background:var(--surface);color:var(--sub)}
+.ref-count.done{background:var(--good-bg);color:var(--good)}
+.ref-overlay{position:fixed;inset:0;background:rgba(10,20,32,.45);z-index:60}
+.ref-panel{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--bg);z-index:61;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(10,20,32,.25)}
+.ref-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:22px 22px 14px;border-bottom:1px solid var(--line)}
+.ref-title{font-size:22px;font-weight:700}
+.ref-sub{font-size:14px;color:var(--sub);margin-top:4px;line-height:1.45}
+.ref-close{font-size:26px;line-height:1;border:none;background:none;color:var(--sub);cursor:pointer;padding:2px 8px;border-radius:8px;font-family:inherit}
+.ref-close:hover{background:var(--surface-2)}
+.ref-list{flex:1;overflow:auto;padding:14px 22px;display:flex;flex-direction:column;gap:10px}
+.ref-item{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:start}
+.ref-item.ok{border-color:var(--good)}
+.ref-item.err{border-color:var(--bad)}
+.ref-item-t{font-weight:650;font-size:15.5px;display:flex;align-items:center;gap:8px}
+.ref-n{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--surface-2);color:var(--sub);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.ref-item.ok .ref-n{background:var(--good);color:#fff}
+.ref-item-d{font-size:13.5px;color:var(--sub);line-height:1.45;margin-top:4px}
+.ref-item-f{font-size:12.5px;color:var(--sub);margin-top:4px}
+.ref-item-s{grid-column:1 / -1;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--sub)}
+.ref-item-s.ok{color:var(--good)}
+.ref-item-s.err{color:var(--bad)}
+.ref-item .btn-upload{padding:8px 14px;font-size:14px}
+.ref-foot{padding:14px 22px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.ref-foot-t{font-size:13.5px;color:var(--sub);line-height:1.45}
+
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .dot{width:24px;height:24px;border-radius:50%;background:var(--accent);position:relative;flex:0 0 auto}
@@ -569,6 +598,10 @@ body.export-all .chart-wrap{height:240px !important}
     <button id="navIndicacoes" class="tab-btn" type="button" onclick="switchTab('indicacoes')">Indicações</button>
     <button id="navSintese" class="tab-btn" type="button" onclick="switchTab('sintese')">Síntese (infográfico)</button>
     <button id="navComparar" class="tab-btn" type="button" onclick="switchTab('comparar')">Comparar períodos</button>
+    <button id="refBtn" class="ref-btn" type="button" onclick="openRefs()" aria-haspopup="dialog" aria-controls="refPanel" title="Carregar as planilhas que alimentam o painel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 19h16"/></svg>
+      Referências <span class="ref-count" id="refCount">0/6</span>
+    </button>
   </nav>
 
   <div class="topbar">
@@ -595,6 +628,20 @@ body.export-all .chart-wrap{height:240px !important}
 
   <div id="uploadBanner" class="banner no-print" style="display:none"></div>
 
+  <!-- REFERÊNCIAS: um lugar só para carregar todas as planilhas (os inputs de arquivo continuam nas abas, escondidos) -->
+  <div id="refOverlay" class="ref-overlay no-print hidden" onclick="closeRefs()"></div>
+  <aside id="refPanel" class="ref-panel no-print hidden" role="dialog" aria-modal="true" aria-labelledby="refTitle">
+    <div class="ref-head">
+      <div><div class="ref-title" id="refTitle">Referências</div><div class="ref-sub">As planilhas que alimentam o painel. Carregue cada uma no seu lugar; dá para trocar a qualquer momento.</div></div>
+      <button type="button" class="ref-close" onclick="closeRefs()" aria-label="Fechar Referências">&times;</button>
+    </div>
+    <div class="ref-list" id="refList"></div>
+    <div class="ref-foot">
+      <div class="ref-foot-t"><b>Já salvou este período antes?</b> Recarregue o arquivo de dados (JSON) e todas as planilhas voltam de uma vez.</div>
+      <button class="btn-upload" type="button" onclick="document.getElementById('fileSnapLoad').click()">Recarregar período salvo (JSON)</button>
+    </div>
+  </aside>
+
   <!-- ================================================================ -->
   <!-- ABA 1: VISÃO GERAL & CANCELAMENTOS                                -->
   <!-- ================================================================ -->
@@ -602,7 +649,7 @@ body.export-all .chart-wrap{height:240px !important}
     <div class="export-tab-title">Visão Geral &amp; Cancelamentos<small>Comparecimento, faltas, aguardando confirmação, cancelamentos e recuperação pós-cancelamento</small></div>
     <div class="sec-divider" style="margin-top:8px">
       <div class="sec-title">Indicadores gerais</div>
-      <div class="sec-sub">Comparecimento (planilha carregada no final desta página) e cancelamentos do período</div>
+      <div class="sec-sub">Comparecimento (planilha carregada em Referências) e cancelamentos do período</div>
     </div>
     <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -610,39 +657,39 @@ body.export-all .chart-wrap{height:240px !important}
       <div class="sec-title">Comparecimento por tipo de agendamento</div>
       <div class="sec-sub">Novo, reconquista, reagendamento e consulta de retorno &middot; com consolidado</div>
     </div>
-    <div id="tipoAgendamentoBlock"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div></div>
+    <div id="tipoAgendamentoBlock"><div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este gráfico.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Ranking de comparecimento por especialidade</div>
       <div class="sec-sub">Catarata, Refrativa, Retina e Blefaroplastia aparecem sempre &middot; outras especialidades entram como filtro, quando existirem na planilha</div>
     </div>
     <div class="filter-bar no-print" id="especialidadeFilterChips" style="margin-top:14px"></div>
-    <div id="especialidadeRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este ranking.</div></div>
+    <div id="especialidadeRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este ranking.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Recuperação pós-cancelamento</div>
       <div class="sec-sub">Evolução mensal de cancelamentos, reagendamentos e conversões</div>
     </div>
-    <div id="recuperacaoBlock"><div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento abaixo para ver esta tabela.</div></div>
+    <div id="recuperacaoBlock"><div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento em <b>Referências</b> (botão no topo) para ver esta tabela.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Cancelamentos por motivo</div>
       <div class="sec-sub">Distribuição dos cancelamentos do período, por motivo informado na planilha de cancelamentos</div>
     </div>
-    <div id="cancelMotivoBlock"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este gráfico.</div></div>
+    <div id="cancelMotivoBlock"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo em <b>Referências</b> (botão no topo) para ver este gráfico.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Clínicas com mais cancelamentos</div>
       <div class="sec-sub">Top 5 clínicas por especialidade, no período da planilha de cancelamentos</div>
     </div>
-    <div id="cancelRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este ranking.</div></div>
+    <div id="cancelRankingBlock" style="margin-top:14px"><div class="empty-mini">Carregue a planilha de cancelamentos por motivo em <b>Referências</b> (botão no topo) para ver este ranking.</div></div>
 
     <div class="foot">Comparecimento = (comparecimentos) / (comparecimentos + faltas), aguardando e status não reconhecidos ficam fora do cálculo. A linha pequena embaixo de cada % mostra os dois cenários extremos para quem está aguardando retorno: <span class="var-up">▲</span> todos comparecendo e <span class="var-down">▼</span> todos faltando — nesses cenários o aguardando entra no denominador. Cancelado pela clínica = motivo "SOLICITAÇÃO DA CLÍNICA"; todos os demais motivos (incluindo erro de cadastro e não informado) contam como cancelado pelo paciente.</div>
 
-    <div class="sec-divider no-print">
+    <div class="sec-divider no-print ref-legacy">
       <div class="sec-title">Carregar planilhas</div>
     </div>
-    <div class="upload-grid no-print">
+    <div class="upload-grid no-print ref-legacy">
       <div class="upload-card">
         <div class="upload-card-title">Planilha de comparecimento</div>
         <div class="upload-card-sub">Exportação por atendimento (uma linha por atendimento) — alimenta esta aba, Comparecimento por clínica e Indicações.</div>
@@ -674,7 +721,7 @@ body.export-all .chart-wrap{height:240px !important}
     <div class="export-tab-title">Comparecimento por clínica<small>Consolidado por clínica e especialidade</small></div>
     <div id="emptyStateComparecimento" class="empty-state">
       <div class="empty-title">Nenhuma planilha carregada ainda</div>
-      <div class="empty-sub">Clique em <b>Carregar planilha</b> no final desta página. Funciona tanto com o relatório consolidado por clínica/especialidade quanto com a exportação bruta por atendimento (uma linha por atendimento, com data e status).</div>
+      <div class="empty-sub">Abra <b>Referências</b> (botão no topo) e carregue a planilha de comparecimento. Funciona tanto com o relatório consolidado por clínica/especialidade quanto com a exportação bruta por atendimento (uma linha por atendimento, com data e status).</div>
     </div>
 
     <div id="dashboardBodyComparecimento" class="hidden">
@@ -697,10 +744,10 @@ body.export-all .chart-wrap{height:240px !important}
       <div class="foot" id="footComparecimento"></div>
     </div>
 
-    <div class="sec-divider no-print">
+    <div class="sec-divider no-print ref-legacy">
       <div class="sec-title">Carregar planilha</div>
     </div>
-    <div class="upload-grid no-print">
+    <div class="upload-grid no-print ref-legacy">
       <div class="upload-card">
         <div class="upload-card-title">Planilha de comparecimento</div>
         <div class="upload-card-sub">Exportação por atendimento (uma linha por atendimento) — alimenta esta aba, Visão geral e Indicações.</div>
@@ -716,7 +763,7 @@ body.export-all .chart-wrap{height:240px !important}
   <!-- ================================================================ -->
   <div id="tabMediana" class="hidden">
     <div class="export-tab-title">Mediana cirúrgica<small>Dias entre a consulta e a 1ª cirurgia, por clínica/especialidade/trimestre</small></div>
-    <div id="emptyStateMediana" class="empty-mini" style="margin-top:8px">Carregue a planilha de mediana cirúrgica no final desta página para ver os gráficos.</div>
+    <div id="emptyStateMediana" class="empty-mini" style="margin-top:8px">Carregue a planilha de mediana cirúrgica em <b>Referências</b> (botão no topo) para ver os gráficos.</div>
 
     <div id="dashboardBodyMediana" class="hidden">
       <div class="filter-bar no-print">
@@ -756,10 +803,10 @@ body.export-all .chart-wrap{height:240px !important}
       <div class="foot">Mediana = valor já calculado na planilha de origem (dias entre a consulta e a realização da 1ª cirurgia). "Mediana geral" e "Destaques" recalculam a partir dos valores de todas as combinações clínica/especialidade carregadas — não são ponderados por volume. Meta de dias por especialidade definida no próprio painel (faixas de SLA no código).</div>
     </div>
 
-    <div class="sec-divider no-print">
+    <div class="sec-divider no-print ref-legacy">
       <div class="sec-title">Carregar planilha</div>
     </div>
-    <div class="upload-grid no-print">
+    <div class="upload-grid no-print ref-legacy">
       <div class="upload-card">
         <div class="upload-card-title">Planilha de mediana cirúrgica</div>
         <div class="upload-card-sub">Colunas: nome_clinica, especialidade, trimestre (ex.: "T1, 2026") e dias_consulta_1cirurgia já calculados.</div>
@@ -779,32 +826,32 @@ body.export-all .chart-wrap{height:240px !important}
       <div class="sec-title">Indicação nos últimos 3 meses</div>
       <div class="sec-sub">Média mensal de indicação em consultas nos 3 últimos meses da planilha, comparada com os 3 meses anteriores</div>
     </div>
-    <div id="indKpiBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo para ver este indicador.</div></div>
+    <div id="indKpiBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas em <b>Referências</b> (botão no topo) para ver este indicador.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Comparecimento por origem (campanha)</div>
-      <div class="sec-sub">De onde vieram os pacientes que compareceram, no período da planilha de comparecimento carregada no final desta página</div>
+      <div class="sec-sub">De onde vieram os pacientes que compareceram, no período da planilha de comparecimento carregada em Referências</div>
     </div>
-    <div id="campanhaBlock"><div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div></div>
+    <div id="campanhaBlock"><div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este gráfico.</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Evolução mensal — indicação em consultas</div>
       <div class="sec-sub">% de comparecimentos que vieram de indicação, mês a mês</div>
     </div>
-    <div id="indConsultasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo.</div></div>
+    <div id="indConsultasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em consultas em <b>Referências</b> (botão no topo).</div></div>
 
     <div class="sec-divider">
       <div class="sec-title">Evolução mensal — indicação em cirurgias</div>
       <div class="sec-sub">% de 1ªs cirurgias que vieram de indicação, mês a mês</div>
     </div>
-    <div id="indCirurgiasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em cirurgias abaixo.</div></div>
+    <div id="indCirurgiasBlock"><div class="empty-mini">Carregue a planilha de evolução de indicação em cirurgias em <b>Referências</b> (botão no topo).</div></div>
 
     <div class="foot">"Indicação" reúne as campanhas "INDICAÇÃO" e "INDICAÇÃO - CARTÃO DE DESCONTO". As duas séries de evolução mensal já vêm calculadas na planilha de origem — este painel só exibe.</div>
 
-    <div class="sec-divider no-print">
+    <div class="sec-divider no-print ref-legacy">
       <div class="sec-title">Carregar planilhas</div>
     </div>
-    <div class="upload-grid no-print">
+    <div class="upload-grid no-print ref-legacy">
       <div class="upload-card">
         <div class="upload-card-title">Planilha de comparecimento</div>
         <div class="upload-card-sub">Exportação por atendimento (uma linha por atendimento) — alimenta esta aba, Visão geral e Comparecimento por clínica.</div>
@@ -859,7 +906,7 @@ body.export-all .chart-wrap{height:240px !important}
     <div id="infoSpecFilter" class="filter-bar no-print hidden" style="margin:0 0 14px"></div>
     <div id="infoEmpty" class="empty-state">
       <div class="empty-title">Ainda não há dados para a síntese</div>
-      <div class="empty-sub">Carregue as planilhas nas outras abas (no final de cada uma). O infográfico monta sozinho cada bloco que tiver dado. Já salvou este período antes? Use <b>Recarregar período salvo (JSON)</b> aqui em cima.</div>
+      <div class="empty-sub">Abra <b>Referências</b> (botão no topo) e carregue as planilhas. O infográfico monta sozinho cada bloco que tiver dado. Já salvou este período antes? Use <b>Recarregar período salvo (JSON)</b> aqui em cima ou em Referências.</div>
     </div>
     <div id="infoStage" class="info-stage hidden"><div id="infoRoot" class="infog"></div></div>
   </div>
@@ -1111,7 +1158,49 @@ function showBanner(kind, html){
   el.innerHTML = html;
   el.style.display = "";
 }
+/* ---- REFERÊNCIAS: painel único de planilhas. Cada item aciona o input de arquivo que já existia na aba
+   (escondido) e mostra o mesmo status que setUploadStatus() escreve nos cartões antigos. ---- */
+const REF_SLOTS = [
+  {key:"comparecimento", input:"fileComparecimentoTabVisaoGeral", title:"Comparecimento", desc:"Exportação por atendimento (uma linha por consulta): clínica, especialidade, status da consulta, data da consulta, tipo de agendamento e campanha.", feeds:"Visão geral · Comparecimento por clínica · Indicações (origem)"},
+  {key:"cancelamentos", input:"fileCancelamentos", title:"Cancelamentos por motivo", desc:"Colunas: clinica, especialidade, motivo_cancelamento, Record Count.", feeds:"Visão geral"},
+  {key:"recuperacao", input:"fileRecuperacao", title:"Recuperação pós-cancelamento", desc:"Evolução mensal: total de cancelamentos, perdidos, reagendados e convertidos.", feeds:"Visão geral"},
+  {key:"mediana", input:"fileMediana", title:"Mediana cirúrgica", desc:'Colunas: nome_clinica, especialidade, trimestre (ex.: "T1, 2026") e dias_consulta_1cirurgia.', feeds:"Mediana cirúrgica"},
+  {key:"indConsultas", input:"fileIndConsultas", title:"Indicação em consultas", desc:"Série mensal: % e nº de consultas com comparecimento vindas de indicação.", feeds:"Indicações"},
+  {key:"indCirurgias", input:"fileIndCirurgias", title:"Indicação em 1ªs cirurgias", desc:"Série mensal: % e nº de 1ªs cirurgias vindas de indicação.", feeds:"Indicações"}
+];
+const REF_STATUS_KEY = {statusCancelamentos:"cancelamentos", statusRecuperacao:"recuperacao", statusMediana:"mediana", statusIndConsultas:"indConsultas", statusIndCirurgias:"indCirurgias"};
+const refState = {};   // key -> {kind:"pending"|"ok"|"err", text}
+function renderRefs(){
+  const list = document.getElementById("refList"); if (!list) return;
+  list.innerHTML = REF_SLOTS.map((r,i) => {
+    const st = refState[r.key] || {kind:"pending", text:"Nenhuma planilha carregada"};
+    return `<div class="ref-item ${st.kind}">
+      <div><div class="ref-item-t"><span class="ref-n">${st.kind==="ok" ? "&#10003;" : i+1}</span>${escapeHtml(r.title)}</div>
+        <div class="ref-item-d">${escapeHtml(r.desc)}</div><div class="ref-item-f">Alimenta: ${escapeHtml(r.feeds)}</div></div>
+      <button class="btn-upload" type="button" onclick="document.getElementById('${r.input}').click()">${st.kind==="ok" ? "Trocar" : "Carregar"}</button>
+      <div class="ref-item-s ${st.kind}"><span class="dot-ind"></span>${escapeHtml(st.text)}</div></div>`;
+  }).join("");
+  const n = REF_SLOTS.filter(r => (refState[r.key]||{}).kind === "ok").length, c = document.getElementById("refCount");
+  c.textContent = `${n}/${REF_SLOTS.length}`; c.classList.toggle("done", n === REF_SLOTS.length);
+}
+function openRefs(){
+  renderRefs();
+  document.getElementById("refOverlay").classList.remove("hidden");
+  document.getElementById("refPanel").classList.remove("hidden");
+  document.querySelector("#refPanel .ref-close").focus();
+}
+function closeRefs(){
+  if (document.getElementById("refPanel").classList.contains("hidden")) return;
+  document.getElementById("refOverlay").classList.add("hidden");
+  document.getElementById("refPanel").classList.add("hidden");
+  document.getElementById("refBtn").focus();
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeRefs(); });
+renderRefs();
+
 function setUploadStatus(id, kind, text){
+  const refKey = id.startsWith("statusComparecimentoTab") ? "comparecimento" : REF_STATUS_KEY[id];
+  if (refKey){ refState[refKey] = {kind, text}; renderRefs(); }
   const el = document.getElementById(id);
   el.className = (id.startsWith("statusComparecimentoTab") ? "global-upload-status " : "upload-status ") + kind;
   el.innerHTML = `<span class="dot-ind"></span>${escapeHtml(text)}`;
@@ -2922,7 +3011,7 @@ function renderEspecialidadeRanking(){
   const block = document.getElementById("especialidadeRankingBlock");
   const chips = document.getElementById("especialidadeFilterChips");
   if (!especialidadeData || !especialidadeData.size){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este ranking.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este ranking.</div>';
     chips.innerHTML = "";
     return;
   }
@@ -3053,7 +3142,7 @@ function renderKpis(){
       <div class="hero-lbl">% Comparecimento</div>
       <div class="hero-num ${hasComp?"":"dim"}">${hasComp?fmtPct(pComp):"—"}</div>
       ${hasComp?varLineHtml(scComp):""}
-      <div class="hero-foot">${hasComp?`${fmtInt(comparecimentoData.compareceu)} de ${fmtInt(denom)} consultas com desfecho${scComp.ag?` &middot; ${fmtInt(scComp.ag)} aguardando retorno (${fmtInt(scComp.total)} no total)`:""}`:"Carregue a planilha de comparecimento no final da página"}</div>
+      <div class="hero-foot">${hasComp?`${fmtInt(comparecimentoData.compareceu)} de ${fmtInt(denom)} consultas com desfecho${scComp.ag?` &middot; ${fmtInt(scComp.ag)} aguardando retorno (${fmtInt(scComp.total)} no total)`:""}`:"Carregue a planilha de comparecimento em Referências (botão no topo)"}</div>
     </div>
     <div class="hero-card">
       <div class="kpi-lbl">Faltas</div>
@@ -3137,7 +3226,7 @@ let cancelMotivoChart = null;
 function renderCancelamentoMotivo(){
   const block = document.getElementById("cancelMotivoBlock");
   if (!cancelamentoData || !cancelamentoData.byMotivo || !cancelamentoData.byMotivo.size){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este gráfico.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo em <b>Referências</b> (botão no topo) para ver este gráfico.</div>';
     return;
   }
   const entries = [...cancelamentoData.byMotivo.entries()].sort((a,b)=>b[1]-a[1]);
@@ -3210,7 +3299,7 @@ function cancelRankingTierSectionHtml(tier){
 function renderCancelamentoRanking(){
   const block = document.getElementById("cancelRankingBlock");
   if (!cancelamentoData || !cancelamentoData.byEspClinica || !cancelamentoData.byEspClinica.size){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo no final desta página para ver este ranking.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de cancelamentos por motivo em <b>Referências</b> (botão no topo) para ver este ranking.</div>';
     return;
   }
   // mesma ordenação primária/secundária/terciária/outras usada na aba "Comparecimento por clínica"
@@ -3235,7 +3324,7 @@ let tipoChart = null;
 function renderTipoAgendamento(){
   const block = document.getElementById("tipoAgendamentoBlock");
   if (!comparecimentoData || !comparecimentoData.byTipo.size){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este gráfico.</div>';
     return;
   }
   const ORDER = ["NOVO","RECONQUISTA","REAGENDAMENTO","CONSULTA DE RETORNO"];
@@ -3299,7 +3388,7 @@ function heatBg(hueVar, t){
 function renderRecuperacao(){
   const block = document.getElementById("recuperacaoBlock");
   if (!recuperacaoRows || !recuperacaoRows.length){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento abaixo para ver esta tabela.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de recuperação pós-cancelamento em <b>Referências</b> (botão no topo) para ver esta tabela.</div>';
     return;
   }
   const rows = recuperacaoRows;
@@ -3448,7 +3537,7 @@ function renderIndKpi(){
   const block = document.getElementById("indKpiBlock");
   const t = indicacaoTrimestres(indConsultasRows);
   if (!t){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de evolução de indicação em consultas abaixo para ver este indicador.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de evolução de indicação em consultas em <b>Referências</b> (botão no topo) para ver este indicador.</div>';
     return;
   }
   const d = t.prev ? t.cur.p - t.prev.p : null;
@@ -3469,7 +3558,7 @@ function renderIndKpi(){
 function renderCampanha(){
   const block = document.getElementById("campanhaBlock");
   if (!campanhaData || !campanhaData.map.size){
-    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento no final desta página para ver este gráfico.</div>';
+    block.innerHTML = '<div class="empty-mini">Carregue a planilha de comparecimento em <b>Referências</b> (botão no topo) para ver este gráfico.</div>';
     return;
   }
   const entries = [...campanhaData.map.entries()].sort((a,b)=>b[1]-a[1]);
