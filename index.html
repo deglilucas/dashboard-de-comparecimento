@@ -1210,8 +1210,8 @@ function summaryVisaoGeral(){
     const tipos = [...d.byTipo.entries()].map(([k,v]) => ({k, den:v.compareceu+v.faltou, p:(v.compareceu+v.faltou)>0 ? v.compareceu/(v.compareceu+v.faltou)*100 : 0})).filter(t=>t.den>=10).sort((a,b)=>b.p-a.p);
     if (tipos.length > 1){
       const best = tipos[0], worst = tipos[tipos.length-1];
-      if (best.p >= 70) o.g.push(`Benchmark em tipo de agendamento:${prettyName(best.k)} (${fmtPct(best.p)})`);
-      if (worst.p < 70) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Menor comparecimento por tipo: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
+      if (best.p >= 70) o.g.push(`Benchmark de comparecimento por tipo de agendamento: ${prettyName(best.k)} (${fmtPct(best.p)})`);
+      if (worst.p < 70) o[sumBucket(worst.p)==="b"?"b":"w"].push(`Tipo de agendamento com menor comparecimento: ${prettyName(worst.k)} (${fmtPct(worst.p)})`);
     }
   }
   if (especialidadeData){
@@ -1221,18 +1221,18 @@ function summaryVisaoGeral(){
     }).filter(r=>r.den>0 && r.tot >= HIGH_VOLUME_MIN).sort((a,b)=>b.p-a.p);   // benchmark: só com 10+ consultas
     if (rows.length > 1){
       const best = rows[0], worst = rows[rows.length-1];
-      if (best.p >= 70) o.g.push(`Benchmark em especialidade:${prettyName(best.s)} (${fmtPct(best.p)})`);
-      o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Menor comparecimento por especialidade: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
+      if (best.p >= 70) o.g.push(`Benchmark de comparecimento entre as especialidades primárias: ${prettyName(best.s)} (${fmtPct(best.p)})`);
+      o[sumBucket(worst.p)==="g"?"w":sumBucket(worst.p)].push(`Especialidade primária com menor comparecimento: ${prettyName(worst.s)} (${fmtPct(worst.p)})`);
     }
   }
   if (cancelamentoData){
     const c = cancelamentoData, top = [...c.byMotivo.entries()].sort((a,b)=>b[1]-a[1])[0];
-    if (top) o.w.push(`${fmtInt(c.total)} cancelamentos; principal motivo: ${prettyName(top[0])} (${fmtPct(top[1]/c.total*100)})`);
-    if (c.clinica) o.b.push(`${fmtInt(c.clinica)} cancelamentos tombados pela clínica (${fmtPct(c.clinica/c.total*100)})`);
+    if (top) o.w.push(`${fmtInt(c.total)} cancelamentos; principal motivo: ${prettyName(top[0])} (${fmtPct(top[1]/c.total*100)} deles)`);
+    if (c.clinica) o.b.push(`${fmtInt(c.clinica)} cancelamentos tombados pela clínica (${fmtPct(c.clinica/c.total*100)} dos cancelamentos)`);
   }
   if (recuperacaoRows && recuperacaoRows.length){
     const last = recuperacaoRows[recuperacaoRows.length-1];
-    o.w.push(`Recuperação em ${last.mes}: ${fmtPct(toPctValue(last.pct_conversao))} de conversão em reagendamentos e ${fmtPct(toPctValue(last.pct_perdidos))} de cancelamentos perdidos`);
+    o.w.push(`Recuperação pós-cancelamento em ${last.mes}: ${fmtPct(toPctValue(last.pct_conversao))} dos cancelamentos foram reagendados e convertidos e ${fmtPct(toPctValue(last.pct_perdidos))} ficaram sem novo agendamento`);
   }
   return o;
 }
@@ -1240,25 +1240,25 @@ function summaryVisaoGeral(){
    para o infográfico mostrar um asterisco na frase e a lista na nota de rodapé (o slide ignora). */
 function summaryComparecimento(){
   const o = {g:[],w:[],b:[],notes:{}};
-  const note = (txt, title, arr) => { o.notes[txt] = {title:`${title} (${scope.replace("combinações ","")})`, items:arr.map(r => `${r.label} (${fmtPct(r.p)})`)}; return txt; };
+  const note = (txt, title, arr) => { o.notes[txt] = {title:title + vol, items:arr.map(r => `${r.label} (${fmtPct(r.p)})`)}; return txt; };
   const all = CLINICA_RECORDS.filter(r=>r.a>0).map(r => ({...r, p:pct(r.a,r.f), total:r.a+(r.ag||0), label:`${cleanName(r.c)} · ${prettyName(r.e)}`}));
   let pool = all.filter(r=>r.total >= HIGH_VOLUME_MIN);
-  const scope = pool.length ? `combinações de alto volume` : "combinações clínica/especialidade";
+  const scope = "combinações de clínica e especialidade", vol = pool.length ? ` (${HIGH_VOLUME_MIN}+ consultas)` : "";
   if (!pool.length) pool = all;
   const good = pool.filter(r=>r.p>=70).sort((a,b)=>b.p-a.p || b.total-a.total);
   const warn = pool.filter(r=>r.p>=60 && r.p<70).sort((a,b)=>a.p-b.p);
   const bad = pool.filter(r=>r.p<60).sort((a,b)=>a.p-b.p || b.total-a.total);
   const list = arr => arr.slice(0,3).map(r=>`${r.label} (${fmtPct(r.p)})`).join("; ");
-  o.g.push(note(`${good.length} de ${pool.length} ${scope} com comparecimento ≥ 70%`, `Combinações com comparecimento de 70% ou mais`, good));
-  if (good.length) o.g.push(`Benchmark de comparecimento: ${list(good)}`);
-  if (warn.length) o.w.push(note(`${warn.length} ${plural(warn.length,"combinação","combinações")} entre 60% e 69%`, `Combinações entre 60% e 69%`, warn), `Mais próximas de 60%: ${list(warn)}`);
-  if (bad.length) o.b.push(note(`${bad.length} ${plural(bad.length,"combinação","combinações")} abaixo de 60%`, `Combinações abaixo de 60%`, bad), `Menores comparecimentos: ${list(bad)}`);
+  o.g.push(note(`${good.length} de ${pool.length} ${scope}${vol} com comparecimento de 70% ou mais`, `Combinações com comparecimento de 70% ou mais`, good));
+  if (good.length) o.g.push(`Benchmark de comparecimento por clínica e especialidade: ${list(good)}`);
+  if (warn.length) o.w.push(note(`${warn.length} ${plural(warn.length,"combinação","combinações")} de clínica e especialidade com comparecimento entre 60% e 69%`, `Combinações entre 60% e 69%`, warn), `Mais próximas de 60%: ${list(warn)}`);
+  if (bad.length) o.b.push(note(`${bad.length} ${plural(bad.length,"combinação","combinações")} de clínica e especialidade com comparecimento abaixo de 60%`, `Combinações abaixo de 60%`, bad), `Menores comparecimentos: ${list(bad)}`);
   const bySpec = [...CLINICA_BY_SPEC.entries()].map(([s,rows]) => ({s, st:specStats(rows)})).filter(x=>x.st.a>=HIGH_VOLUME_MIN);
   if (bySpec.length > 1){
     bySpec.sort((a,b)=>a.st.p-b.st.p);
     const w = bySpec[0], bst = bySpec[bySpec.length-1];
-    o[sumBucket(w.st.p)==="g"?"w":sumBucket(w.st.p)].push(`Especialidade com menor comparecimento: ${prettyName(w.s)} (${fmtPct(w.st.p)})`);
-    if (bst.st.p >= 70) o.g.push(`Benchmark entre especialidades:${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
+    o[sumBucket(w.st.p)==="g"?"w":sumBucket(w.st.p)].push(`Menor comparecimento entre todas as especialidades: ${prettyName(w.s)} (${fmtPct(w.st.p)})`);
+    if (bst.st.p >= 70) o.g.push(`Benchmark de comparecimento entre todas as especialidades: ${prettyName(bst.s)} (${fmtPct(bst.st.p)})`);
   }
   return o;
 }
@@ -1276,10 +1276,10 @@ function summaryMediana(){
   const mid = withSla.filter(c=>c.sla.tier==="warn");
   const crit = withSla.filter(c=>c.sla.tier==="bad").sort((a,b)=>b.dias-a.dias);
   if (withSla.length){
-    o.g.push(note(`${okc.length} de ${withSla.length} combinações dentro da meta em ${tLabel}`, `Combinações dentro da meta em ${tLabel}`, okc));
-    if (okc.length) o.g.push(`Benchmark de tempo: ${fmt(okc)}`);
-    if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} em nível intermediário (acima da meta, ainda não críticas)`, `Combinações em nível intermediário em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
-    if (crit.length) o.b.push(note(`${crit.length} ${plural(crit.length,"combinação crítica","combinações críticas")} em ${tLabel}`, `Combinações críticas em ${tLabel}`, crit), `Maior tempo: ${fmt(crit)}`);
+    o.g.push(note(`${okc.length} de ${withSla.length} combinações de clínica e especialidade dentro da meta de dias até a cirurgia em ${tLabel}`, `Combinações dentro da meta de dias até a cirurgia em ${tLabel}`, okc));
+    if (okc.length) o.g.push(`Benchmark de tempo até a cirurgia (menos dias): ${fmt(okc)}`);
+    if (mid.length) o.w.push(note(`${mid.length} ${plural(mid.length,"combinação","combinações")} de clínica e especialidade com tempo até a cirurgia intermediário (acima da meta de dias, ainda não crítico)`, `Combinações com tempo até a cirurgia intermediário em ${tLabel}`, mid.slice().sort((a,b)=>a.dias-b.dias)));
+    if (crit.length) o.b.push(note(`${crit.length} ${plural(crit.length,"combinação","combinações")} de clínica e especialidade com tempo até a cirurgia crítico em ${tLabel}`, `Combinações com tempo até a cirurgia crítico em ${tLabel}`, crit), `Maior tempo até a cirurgia: ${fmt(crit)}`);
   }
   const byT = new Map();
   recs.forEach(r => { if(!byT.has(r.tSort)) byT.set(r.tSort,{l:r.tLabel,v:[]}); byT.get(r.tSort).v.push(r.dias); });
@@ -1287,7 +1287,7 @@ function summaryMediana(){
   if (ts.length > 1){
     const a = byT.get(ts[ts.length-2]), b = byT.get(ts[ts.length-1]), ma = median(a.v), mb = median(b.v);
     const rel = ma ? (mb-ma)/ma*100 : 0;   // dias subindo = piora
-    o[varBucket(rel)].push(`Mediana geral: ${fmtDias(mb)} dias em ${b.l} (${fmtRel(rel)} vs. ${a.l}: ${fmtDias(ma)})`);
+    o[varBucket(rel)].push(`Mediana geral do tempo entre a consulta e a 1ª cirurgia: ${fmtDias(mb)} dias em ${b.l} (${fmtRel(rel)} vs. ${fmtDias(ma)} dias em ${a.l})`);
   }
   return o;
 }
@@ -1296,7 +1296,7 @@ function summaryIndicacoes(){
   const tri = indicacaoTrimestres(indConsultasRows);
   if (tri){
     const d = tri.prev ? tri.cur.p - tri.prev.p : null, rel = tri.prev && tri.prev.p ? d/tri.prev.p*100 : null;
-    const msg = `Indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)}, ${fmtRel(rel)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
+    const msg = `Consultas vindas de indicação nos últimos 3 meses: ${fmtPct(tri.cur.p)}` + (tri.prev ? ` (${fmtPP(d)}, ${fmtRel(rel)} vs. ${fmtPct(tri.prev.p)} nos 3 anteriores)` : "");
     o[rel === null ? "w" : varBucket(-rel)].push(msg);
   }
   if (campanhaData){
@@ -1319,7 +1319,7 @@ function summaryIndicacoes(){
     const low = vals.reduce((a,b)=>b.p<a.p?b:a);
     if (low !== last && low.p < last.p*0.6) o.w.push(`${nome}: menor mês foi ${low.m} (${fmtPct(low.p)})`);
   };
-  serie(indCirurgiasRows, "Indicação em 1ªs cirurgias");
+  serie(indCirurgiasRows, "1ªs cirurgias vindas de indicação");
   return o;
 }
 const SUMMARY_THEMES = [
@@ -1431,10 +1431,10 @@ const fmtDelta = (n, unit) => (n>=0?"+":"−") + Math.abs(n).toLocaleString("pt-
 function iRich(s){
   return escapeHtml(s)
     .replace(/((?:pode ficar|fica) entre )(\d[\d.,]*%)( e )(\d[\d.,]*%)/g, (m,a,lo,b,hi) => `${a}<b style="color:${IC.bad}">${lo}</b>${b}<b style="color:${IC.ok}">${hi}</b>`)
-    .replace(/(Recuperação em [^:]+: )(\d[\d.,]*%)( de conversão em reagendamentos e )(\d[\d.,]*%)/g, (m,a,cv,b,pd) =>   // faixas de REC_CONV / REC_PERD
+    .replace(/(Recuperação pós-cancelamento em [^:]+: )(\d[\d.,]*%)( dos cancelamentos foram reagendados e convertidos e )(\d[\d.,]*%)/g, (m,a,cv,b,pd) =>   // faixas de REC_CONV / REC_PERD
       `${a}<b style="color:${toneColor(recConvTone(toNum(cv)))}">${cv}</b>${b}<b style="color:${toneColor(recPerdTone(toNum(pd)))}">${pd}</b>`)
     .replace(/([+−])(\d[\d.,]* p\.p\.)/g, (m,sg,rest) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>`)
-    .replace(/(Mediana geral: [^(]*\()([+−])(\d[\d.,]*%)/g, (m,a,sg,rest) => `${a}<b style="color:${sg==="+"?IC.bad:IC.ok}">${sg}${rest}</b>`)   // mediana: mais dias = pior
+    .replace(/(Mediana geral[^(]*\()([+−])(\d[\d.,]*%)/g, (m,a,sg,rest) => `${a}<b style="color:${sg==="+"?IC.bad:IC.ok}">${sg}${rest}</b>`)   // mediana: mais dias = pior
     .replace(/([+−])(\d[\d.,]*%)( vs\.)/g, (m,sg,rest,t) => `<b style="color:${sg==="+"?IC.ok:IC.bad}">${sg}${rest}</b>${t}`);   // variação relativa "(−5,5% vs. …)" (mediana: subir = ruim, ver iRichDias)
 }
 const safeSec = fn => { try { return fn(); } catch(e){ console.error("Síntese:", e); return null; } };
@@ -1529,11 +1529,11 @@ function infoSecComparecimento(){
   let row2 = "";
   if (pool.length){
     row2 = `<div class="i-row2">
-      <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?"alto volume":"todas"} · todas as especialidades</span></p>
+      <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?`com ${HIGH_VOLUME_MIN}+ consultas`:"todas"} · todas as especialidades · faixa de comparecimento</span></p>
       ${iStack([{v:good.length,color:IC.ok,label:"70% ou mais"},{v:warn.length,color:IC.warn,label:"60% a 69%"},{v:bad.length,color:IC.bad,label:"Abaixo de 60%"}])}
       <div class="i-g" style="grid-template-columns:1fr 1fr;gap:26px;margin-top:20px">
-        <div><p class="i-sub">Benchmark de comparecimento<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
-        <div><p class="i-sub">Principais pontos de atenção<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
+        <div><p class="i-sub">Benchmark: maiores comparecimentos<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topBest.length ? iListSpec(topBest) : '<div class="i-note">Nenhuma combinação com 70% ou mais.</div>'}</div>
+        <div><p class="i-sub">Menores comparecimentos (abaixo de 70%)<span class="i-hint">top 5 · primárias · mín. ${HIGH_VOLUME_MIN} consultas</span></p>${topAttn.length ? iListSpec(topAttn) : '<div class="i-note">Nenhuma combinação abaixo de 70%.</div>'}</div>
       </div>
     </div>`;
   }
@@ -1717,7 +1717,7 @@ function infoSecMediana(){
     <div>
       ${withSla.length ? `<p class="i-sub">Clínicas por especialidade, frente à meta de dias<span class="i-hint">${escapeHtml(tLabel)}</span></p>${iStack([{v:okc.length,color:IC.ok,label:"Dentro da meta"},{v:mid.length,color:IC.warn,label:"Intermediário"},{v:crit.length,color:IC.bad,label:"Crítico"}])}${semMeta?`<div class="i-note">${semMeta} ${plural(semMeta,"combinação","combinações")} sem meta definida (especialidades terciárias).</div>`:""}` : ""}
       <div class="i-g" style="grid-template-columns:1fr 1fr;margin-top:${withSla.length?20:0}px;gap:20px">
-        <div><p class="i-sub">Benchmark de tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(fast)}</div>
+        <div><p class="i-sub">Benchmark: menor tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(fast)}</div>
         <div><p class="i-sub">Maior tempo até a cirurgia<span class="i-hint">top 5</span></p>${rowsOf(slow)}</div>
       </div>
     </div>
@@ -1829,7 +1829,7 @@ function infoSecIndicacoes(){
 /* ---- semáforo: destaques / atenção / negativos (as mesmas frases do slide de síntese) ---- */
 function infoSemaforo(){
   const TAGS = ["Visão geral","Por clínica","Mediana","Indicações"];
-  const LIST_RE = /^(Benchmark de comparecimento|Menores comparecimentos|Mais próximas de 60%|Benchmark de tempo|Maior tempo):/;   // rankings: já aparecem nos gráficos
+  const LIST_RE = /^(Benchmark de comparecimento por clínica e especialidade|Menores comparecimentos|Mais próximas de 60%|Benchmark de tempo até a cirurgia \(menos dias\)|Maior tempo até a cirurgia):/;   // rankings: já aparecem nos gráficos
   const cols = {g:[], w:[], b:[]}, notes = [];
   SUMMARY_THEMES.forEach((t,i) => {
     if (!t.has()) return;
@@ -1939,7 +1939,7 @@ function renderInfographic(){
   const kpis = secs.map(s => s.kpi).filter(Boolean);
   const kpiHtml = `<div class="i-kpis" style="grid-template-columns:repeat(4,1fr)">` + kpis.map(k =>
     `<div class="i-kpi t-${k.tone}"><div class="i-kpi-l">${k.label}</div><div class="i-kpi-n"${k.numColor?` style="color:${k.numColor}"`:""}>${k.num}${k.unit?`<small>${k.unit}</small>`:""}</div><div class="i-kpi-s">${escapeHtml(k.sub)}</div>${k.extra||""}${k.chip?`<span class="i-chip" style="color:${toneColor(k.chipTone||k.tone)}">${escapeHtml(k.chip)}</span>`:""}</div>`).join("") + `</div>`;
-  const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo.</div>${infoSemaforo()}</section>`;
+  const semHtml = `<section class="i-sec"><div class="i-sec-h"><div class="i-num">1</div><div class="i-sec-t">Como estamos: pontos positivos, de atenção e negativos</div></div><div class="i-take">Resumo dos quatro temas em semáforo; os detalhes vêm logo abaixo. "Benchmark" é a referência do período: quem teve o maior comparecimento (só entra quem tem ${HIGH_VOLUME_MIN} ou mais consultas) ou o menor tempo até a cirurgia. "Combinação" é uma clínica em uma especialidade (ex.: HOC · Catarata).</div>${infoSemaforo()}</section>`;
   const secHtml = secs.map((s,i) =>
     `<section class="i-sec"><div class="i-sec-h"><div class="i-num">${i+2}</div><div class="i-sec-t">${s.title}</div></div><div class="i-take">${escapeHtml(s.take)}</div>${s.body}</section>`).join("");
 
