@@ -131,3 +131,15 @@ test("arquivo de dados do período: campos fora do formato viram listas vazias, 
   assert.equal(s.periodo, null, "período com data inválida some e o arquivo é tratado como sem datas");
   assert.match(s.geradoEm, /^\d{4}-\d{2}-\d{2}T/, "geradoEm inválido vira uma data de verdade");
 });
+
+test("rankingClinicas: 10+ consultas ranqueadas; menos de 10 vão para o consolidado por faixa", () => {
+  const rec = (c, a, f, ag) => ({c: "SP - SAO PAULO - " + c, e: "CATARATA", a, f, ag});
+  const r = j(`rankingClinicas(${JSON.stringify([rec("A", 20, 2, 0), rec("B", 10, 5, 2), rec("C", 5, 0, 0), rec("D", 6, 2, 0), rec("E", 4, 3, 0), rec("F", 0, 0, 3)])}, ["CATARATA", "RETINA"])`);
+  assert.equal(r.length, 1);                                         // especialidade sem dados não aparece
+  assert.deepEqual(r[0].H.map(x => x.clinic), ["A", "B"]);           // A 90%, B 50% (12 consultas com o aguardando)
+  assert.equal(r[0].H[1].total, 12); assert.equal(r[0].H[1].ag, 2); assert.equal(r[0].H[1].comp, 5);
+  assert.deepEqual(r[0].good.map(x => x.clinic), ["C"]);             // 100%
+  assert.deepEqual(r[0].warn.map(x => x.clinic), ["D"]);             // 66,7%
+  assert.deepEqual(r[0].bad.map(x => x.clinic), ["E"]);              // 25%
+  assert.deepEqual(r[0].sem.map(x => x.clinic), ["F"]);              // só aguardando retorno: sem % ainda
+});
