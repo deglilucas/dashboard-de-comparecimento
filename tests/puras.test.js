@@ -141,5 +141,6 @@ test("rankingClinicas: 10+ consultas ranqueadas; menos de 10 vão para o consoli
   assert.deepEqual(r[0].good.map(x => x.clinic), ["C"]);             // 100%
   assert.deepEqual(r[0].warn.map(x => x.clinic), ["D"]);             // 66,7%
   assert.deepEqual(r[0].bad.map(x => x.clinic), ["E"]);              // 25%
+  assert.deepEqual([r[0].tot.comp, r[0].tot.falt, r[0].tot.ag, r[0].tot.total], [33, 12, 5, 50]);   // consolidado da especialidade soma todas as clínicas
   assert.deepEqual(r[0].sem.map(x => x.clinic), ["F"]);              // só aguardando retorno: sem % ainda
 });
