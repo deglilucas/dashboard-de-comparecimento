@@ -1765,7 +1765,7 @@ function infoSecComparecimento(){
     .map(([c,o]) => ({name:cleanName(c), p:pct(o.a,o.f), f:o.f, excess:o.f-(1 - META_COMP_BOM/100)*o.a, shareF:totF>0 ? o.f/totF*100 : 0, gain:totA>0 ? (o.f-(1 - META_COMP_BOM/100)*o.a)/totA*100 : 0,
       spec:([...o.specs].sort((x,y) => y[1]-x[1])[0] || [""])[0]})).filter(x => x.p < META_COMP_BOM && x.excess > 0).sort((a,b) => b.excess-a.excess);
   if (drag.length && (tone !== "good" || drag[0].p < META_COMP_ATENCAO)){
-    const top = drag.slice(0,3);
+    const top = drag.slice(0,5);
     actions.push({theme:"Comparecimento", owner:"CX e CS", sev:Math.max(tone==="bad" ? 2 : (tone==="warn" ? 1 : 0), drag[0].p < META_COMP_ATENCAO ? 2 : 1),   // vale a faixa pior: a geral ou a da clínica que mais pesa
       impact:top.reduce((s,x) => s+x.excess, 0),
       title:"Reduzir as faltas nas clínicas que mais puxam o comparecimento para baixo",
@@ -1775,9 +1775,9 @@ function infoSecComparecimento(){
       cs:"Observar o perfil dos leads e a qualidade dos agendamentos (dados completos, interesse confirmado) das praças dessas clínicas."});
   }
   if (warn.length) actions.push({theme:"Comparecimento", owner:"CX", sev:1, impact:warn.length,
-    title:"Acompanhar as combinações entre 60% e 69%",
-    why:`${warn.length} ${plural(warn.length,"combinação","combinações")} de clínica e especialidade na faixa de atenção; a mais próxima de 60%: <b>${escapeHtml(warn[0].label)}</b> (${cB(fmtPct(warn[0].p),"warn")}).`,
-    curto:["CX acompanha essas combinações toda semana para evitar que caiam abaixo de 60%."],
+    title:"Acompanhar as clínicas entre 60% e 69%",
+    why:`${new Set(warn.map(r => r.clinic)).size} ${plural(new Set(warn.map(r => r.clinic)).size,"clínica","clínicas")} entre 60% e 69% de comparecimento: ` + warn.slice(0,5).map(r => `<b>${escapeHtml(r.label)}</b> (${cB(fmtPct(r.p),"warn")}; ${fmtInt(r.f)} ${plural(r.f,"falta","faltas")} em ${fmtInt(r.a)})`).join("; ") + (warn.length > 5 ? ` e mais ${warn.length-5}` : "") + ".",
+    curto:["CX acompanha essas clínicas toda semana para evitar que caiam abaixo de 60%."],
     medio:["Se alguma ficar abaixo de 60%, tratá-la como as clínicas da ação de faltas."]});
   if (sc.ag) actions.push({theme:"Comparecimento", owner:"CX", sev:0, impact:sc.ag,
     title:"Fechar o desfecho das consultas aguardando retorno",
@@ -1856,8 +1856,8 @@ function infoSecCancelamentos(){
         <span><i class="i-dot" style="background:${IC.badSoft}"></i>Pelo paciente: <b>${fmtInt(c.paciente)}</b> (${fmtPct(sh(c.paciente))})</span>
         <span><i class="i-dot" style="background:${IC.bad}"></i>Cancelados pela clínica (tombados): <b>${fmtInt(c.clinica)}</b> (${fmtPct(sh(c.clinica))})</span>
       </div></div>`;
-    const top4 = motivoTop.slice(0,4), mx = Math.max(...top4.map(m => m[1]), 1);
-    motivos = `<p class="i-sub">Principais motivos<span class="i-hint">% do total de cancelamentos</span></p>` +
+    const top4 = motivoTop, mx = Math.max(...top4.map(m => m[1]), 1);   // todos os motivos, mesmo os que pesam pouco
+    motivos = `<p class="i-sub">Motivos de cancelamento<span class="i-hint">todos os motivos · % do total de cancelamentos</span></p>` +
       top4.map(([k,v]) => iBar(prettyName(k), v/mx*100, fmtPct(sh(v)), IC.bad)).join("");
   }
   let recup = "";
@@ -1875,7 +1875,7 @@ function infoSecCancelamentos(){
   if (c && c.byEspClinica && c.byEspClinica.size){
     const cards = infoSpecKeys().filter(k => c.byEspClinica.has(k)).map(k => {
       const m = c.byEspClinica.get(k), tm = (c.byEspClinicaTomb && c.byEspClinicaTomb.get(k)) || new Map(), tot = [...m.values()].reduce((a,b) => a+b, 0);
-      const rows = [...m].sort((a,b) => b[1]-a[1]).slice(0,INFO_SPEC_TOP).map(([cli,q]) => ({clinic:cleanName(cli), text:fmtInt(q) + (tm.get(cli) ? ` · ${fmtInt(tm.get(cli))} pela clínica` : ""), tone:"neutral"}));
+      const rows = [...m].sort((a,b) => b[1]-a[1]).slice(0,INFO_SPEC_TOP).map(([cli,q]) => ({clinic:cleanName(cli), text:fmtInt(q) + (tm.get(cli) ? ` · ${fmtInt(tm.get(cli))} pela clínica` : ""), tone:"bad"}));
       return iSpecCard(`${prettyName(k)} · ${fmtInt(tot)} ${plural(tot,"cancelamento","cancelamentos")}`, [{label:"Clínicas com mais cancelamentos", rows, empty:""}], `top ${rows.length} de ${m.size} ${plural(m.size,"clínica","clínicas")} com cancelamento`); });
     if (cards.length) cancSpecHtml = `<div class="i-row2"><p class="i-sub">Onde há mais cancelamentos, por especialidade<span class="i-hint">top ${INFO_SPEC_TOP} clínicas · quantidade de cancelamentos · "pela clínica" = tombados</span></p>${iSpecGrid(cards, 3)}</div>`;
   }
@@ -1886,32 +1886,42 @@ function infoSecCancelamentos(){
   if (c && c.byClinica){   // tombamento: até 3% por clínica é o aceitável; acima disso, ligar para a gestão das agendas dos médicos
     const over = [...c.byClinica].filter(([,v]) => v.total >= TOMBAMENTO_MIN_CANC && v.tombados/v.total*100 > TOMBAMENTO_MAX)
       .map(([k,v]) => ({name:cleanName(k), pc:v.tombados/v.total*100, tomb:v.tombados, total:v.total})).sort((a,b) => b.pc-a.pc || b.tomb-a.tomb);
-    if (over.length) actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:2, impact:over.reduce((s,x) => s+x.tomb, 0),
+    if (over.length) actions.push({theme:"Cancelamentos", owner:"CX", sev:2, impact:over.reduce((s,x) => s+x.tomb, 0),
       title:`Reduzir o tombamento de agenda nas clínicas acima de ${TOMBAMENTO_MAX}%`,
       why:`${over.length} ${plural(over.length,"clínica","clínicas")} acima do limite de ${TOMBAMENTO_MAX}% (tombados ÷ cancelamentos da clínica): ` +
         over.slice(0,3).map(x => `<b>${escapeHtml(x.name)}</b> (${cl(x.pc,"bad")}; ${fmtInt(x.tomb)} de ${fmtInt(x.total)})`).join("; ") + (over.length > 3 ? ` e mais ${over.length-3}` : "") + ".",
       curto:["CX liga para a gestão das agendas dos médicos dessas clínicas e entende o que motivou os tombamentos."],
-      medio:["Combinar antecedência mínima para bloqueio de agenda e acompanhar o % de cada clínica no mês seguinte."],
-      cs:"Antes de oferecer horário, confirmar que a agenda do médico dessa praça está liberada."});
+      medio:["Combinar antecedência mínima para bloqueio de agenda e acompanhar o % de cada clínica no mês seguinte."]});
+  }
+  if (c && c.byClinica && c.total > 0){   // clínicas com maior volume: quanto do total de cancelamentos cada uma concentra
+    const topC = [...c.byClinica].map(([k,v]) => {
+      const sp = c.byEspClinica ? [...c.byEspClinica].map(([e,m]) => [e, m.get(k)||0]).sort((x,y) => y[1]-x[1])[0] : null;
+      return {name:cleanName(k), total:v.total, tomb:v.tombados, share:v.total/c.total*100, spec:sp && sp[1] > 0 ? prettyName(sp[0]) : ""};
+    }).sort((a,b) => b.total-a.total || b.tomb-a.tomb).slice(0,5);
+    const cum = topC.reduce((t,x) => t + x.share, 0);
+    if (topC.length && topC[0].total > 0) actions.push({theme:"Cancelamentos", owner:"CX", sev:1, impact:topC.reduce((t,x) => t + x.total, 0),
+      title:"Investigar as clínicas que concentram os cancelamentos",
+      why:`As ${topC.length} clínicas com mais cancelamentos somam <b>${fmtInt(topC.reduce((t,x) => t + x.total, 0))}</b> dos ${fmtInt(c.total)} do período (${cB(fmtPct(cum),"warn")}): ` +
+        topC.map(x => `<b>${escapeHtml(x.name)}</b> (${fmtInt(x.total)}, ${fmtPct(x.share)} do total${x.tomb ? `; ${fmtInt(x.tomb)} pela clínica` : ""}${x.spec ? `; mais em ${escapeHtml(x.spec)}` : ""})`).join("; ") + ".",
+      curto:[`CX levanta com ${topC.slice(0,3).map(x => x.name).join(", ")} os principais motivos dos cancelamentos e o que pode ser evitado.`],
+      medio:["Acompanhar o volume de cancelamentos dessas clínicas no mês seguinte; a planilha não traz o total de agendamentos, então o volume maior pode refletir clínicas maiores."]});
   }
   if (c && motivoTop[0]){
     const [mk, mv] = motivoTop[0], semMotivo = normKey(mk) === CHAVE_NAO_INFORMADO;
-    actions.push({theme:"Cancelamentos", owner:"CX e CS", sev:1, impact:mv,
+    actions.push({theme:"Cancelamentos", owner:"CX", sev:1, impact:mv,
       title: semMotivo ? "Tabular o motivo dos cancelamentos que estão sem motivo" : `Atacar o principal motivo de cancelamento: ${prettyName(mk)}`,
       why:`${escapeHtml(prettyName(mk))} responde por ${cB(fmtPct(mv/c.total*100),"warn")} dos ${fmtInt(c.total)} cancelamentos do período.`,
       curto:[semMotivo ? "CX tabula o motivo desses cancelamentos para saber o que realmente acontece." : "CX investiga nos casos recentes o que está por trás desse motivo."],
-      medio:["Definir com o CS o que dá para evitar antes de o paciente cancelar."],
-      cs: semMotivo ? "Registrar o motivo no momento do cancelamento." : "Reforçar com o paciente a data e o interesse no momento do agendamento."});
+      medio:["Definir o que dá para evitar antes de o paciente cancelar."]});
   }
   if (last && (cp !== null || pp !== null)){
     const tc = cp !== null ? recConvTone(cp) : "good", tp = pp !== null ? recPerdTone(pp) : "good";
     const sev = (tc==="bad" || tp==="bad") ? 2 : ((tc==="warn" || tp==="warn") ? 1 : -1);
-    if (sev >= 0) actions.push({theme:"Cancelamentos", owner:"CX e CS", sev, impact:toNum(last.perdidos) || 0,
+    if (sev >= 0) actions.push({theme:"Cancelamentos", owner:"CX", sev, impact:toNum(last.perdidos) || 0,
       title:"Recuperar os cancelamentos que ficaram sem novo agendamento",
       why:`Em ${escapeHtml(mes)}: ${cp !== null ? `${cl(cp,tc)} dos cancelamentos foram reagendados e convertidos` : ""}${cp !== null && pp !== null ? " e " : ""}${pp !== null ? `${cl(pp,tp)} foram perdidos` : ""}.`,
       curto:["CX reabordar os pacientes cujo cancelamento não gerou novo agendamento no mês."],
-      medio:["Rever a abordagem de reconquista e acompanhar a conversão no mês seguinte."],
-      cs:"Oferecer o reagendamento já no momento do cancelamento."});
+      medio:["Rever a abordagem de reconquista e acompanhar a conversão no mês seguinte."]});
   }
 
   const share = c && c.total>0 ? c.clinica/c.total*100 : 0;
