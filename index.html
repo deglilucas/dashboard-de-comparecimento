@@ -440,24 +440,35 @@ body.on-sintese .toolbar{display:none}
 .i-spc-f{font-size:14px;color:var(--c-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--c-line);line-height:1.4}
 .i-spr small{font-weight:600;color:var(--c-muted);font-size:14px;margin-left:5px}
 .i-spc-n{font-size:14px;color:var(--c-muted);padding:4px 0;border-top:1px solid var(--c-line)}
-.i-rk{margin-top:22px}
+.i-rk{margin-top:26px}
 .i-rk:first-of-type{margin-top:6px}
 .i-rkleg{display:block;margin:5px 0 0}
 .i-rkleg span{margin-right:14px;white-space:nowrap}
-.i-rkr{padding:7px 0 9px;border-top:1px solid var(--c-line)}
+.i-rkt{margin:10px 0 12px}
+.i-rkt-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px;font-size:14.5px;font-weight:700;color:var(--c-navy)}
+.i-rkt-h span{font-weight:600;font-size:14px;color:var(--c-muted)}
+.i-rkt-h b{font-size:20px;margin-right:6px}
+.i-rkt .i-stack{height:34px}
+.i-rkbtn{display:inline-block;margin:2px 0 4px;padding:8px 16px;border:2px solid var(--c-blue);border-radius:99px;background:var(--c-blue);color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.i-rkbtn:hover{background:var(--c-navy);border-color:var(--c-navy)}
+.i-rkx{display:none}
+.i-rk.open .i-rkx,.i-all-open .i-rkx{display:block}
+.i-all-open .i-rkbtn{display:none}
+.i-rkr{padding:8px 0 10px;border-top:1px solid var(--c-line)}
 .i-rkh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}
 .i-rkn{font-size:15.5px;font-weight:700;color:var(--c-navy);line-height:1.25;min-width:0}
-.i-rkm{font-size:14px;color:var(--c-muted);white-space:nowrap}
-.i-rkm b{font-size:16px;margin-right:6px}
+.i-rkm{font-size:14px;color:var(--c-muted);text-align:right}
+.i-rkm b{font-size:16px;margin-right:4px}
 .i-rkb{height:24px;border-radius:8px}
 .i-rkb div{font-size:13px}
-.i-rkc{margin-top:8px;padding:11px 14px 12px;border:1px dashed var(--c-line);border-radius:14px}
-.i-rkc-t{font-size:14.5px;font-weight:700;color:var(--c-navy);margin-bottom:8px}
-.i-rkc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.i-rkc-g>div{background:var(--tb);border-radius:10px;padding:8px 10px;min-width:0}
-.i-rkc-g b{display:block;color:var(--tc);font-size:14px;line-height:1.25}
-.i-rkc-g b em{font-style:normal;font-size:20px;margin-right:6px}
-.i-rkc-g p{margin:4px 0 0;font-size:13.5px;line-height:1.35;color:var(--c-body)}
+.i-rkc{margin-top:12px;padding:12px 16px 8px;border:1px dashed var(--c-line);border-radius:14px}
+.i-rkc-t{font-size:14.5px;font-weight:700;color:var(--c-navy);margin-bottom:6px}
+.i-rkc-g{margin-top:8px}
+.i-rkc-g b{display:block;color:var(--tc);font-size:14.5px;line-height:1.25}
+.i-rkc-g b em{font-style:normal;font-size:18px;margin-right:6px}
+.i-rkc-g ul{margin:3px 0 8px;padding-left:22px}
+.i-rkc-g li{font-size:14px;line-height:1.45;color:var(--c-body)}
+.i-rkc-g li span{color:var(--c-muted)}
 .i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
 .i-when{display:block;margin-top:6px;font-size:14px;font-weight:600;color:var(--c-navy)}
@@ -1800,13 +1811,15 @@ function infoSecComparecimento(){
 // Pura (testável): records = CLINICA_RECORDS (a = compareceram + faltaram, f = faltaram, ag = aguardando retorno); keys = especialidades, na ordem de exibição.
 function rankingClinicas(records, keys){
   const nome = (a,b) => a.clinic.localeCompare(b.clinic, "pt-BR");
-  const rows = records.filter(r => r.a + (r.ag||0) > 0).map(r => ({clinic:cleanName(r.c), e:r.e, comp:r.a - r.f, falt:r.f, ag:r.ag||0, total:r.a + (r.ag||0), p:r.a > 0 ? pct(r.a, r.f) : null}));
+  const rows = records.filter(r => r.a + (r.ag||0) > 0).map(r => ({clinic:cleanName(r.c), e:r.e, comp:r.a - r.f, falt:r.f, ag:r.ag||0, a:r.a, total:r.a + (r.ag||0), p:r.a > 0 ? pct(r.a, r.f) : null}));
   return keys.filter(k => rows.some(r => r.e === k)).map(k => {
     const A = rows.filter(r => r.e === k);
     const H = A.filter(r => r.total >= HIGH_VOLUME_MIN).sort((a,b) => (b.p ?? -1) - (a.p ?? -1) || b.total - a.total || nome(a,b));
     const L = A.filter(r => r.total < HIGH_VOLUME_MIN);
     const byP = f => L.filter(r => r.p !== null && f(r.p)).sort((a,b) => b.p - a.p || b.total - a.total || nome(a,b));
-    return {k, H, L, good:byP(p => p >= META_COMP_BOM), warn:byP(p => p >= META_COMP_ATENCAO && p < META_COMP_BOM), bad:byP(p => p < META_COMP_ATENCAO),
+    const sum = key => A.reduce((t,r) => t + r[key], 0), tot = {comp:sum("comp"), falt:sum("falt"), ag:sum("ag"), a:sum("a"), total:sum("total")};   // consolidado da especialidade (todas as clínicas)
+    tot.p = tot.a > 0 ? pct(tot.a, tot.falt) : null;
+    return {k, H, L, tot, good:byP(p => p >= META_COMP_BOM), warn:byP(p => p >= META_COMP_ATENCAO && p < META_COMP_BOM), bad:byP(p => p < META_COMP_ATENCAO),
       sem:L.filter(r => r.p === null).sort((a,b) => b.total - a.total || nome(a,b))};
   });
 }
@@ -1817,21 +1830,26 @@ function infoSecRankings(){
   const SEGS = [["Compareceram", IC.ok], ["Faltaram", IC.bad], ["Aguardando retorno", IC.warn]];
   const leg = `<span class="i-hint i-rkleg">${SEGS.map(([l,c]) => `<span><i class="i-dot" style="background:${c}"></i>${l}</span>`).join("")}</span>`;
   const bar = r => `<div class="i-stack i-rkb">${[[r.comp, IC.ok], [r.falt, IC.bad], [r.ag, IC.warn]].filter(x => x[0] > 0).map(([v,c]) => `<div style="flex:${v};background:${c}">${fmtInt(v)}</div>`).join("")}</div>`;
-  const row = (r, i) => `<div class="i-rkr"><div class="i-rkh"><span class="i-rkn">${i+1}. ${escapeHtml(r.clinic)}</span><span class="i-rkm">${r.p === null ? "sem desfecho ainda · " : `<b style="color:${toneColor(statusOf(r.p))}">${fmtPct(r.p)}</b>`}${fmtInt(r.total)} ${plural(r.total,"consulta","consultas")}</span></div>${bar(r)}</div>`;
-  const list = rs => rs.map(r => `${escapeHtml(r.clinic)} ${r.p === null ? "" : fmtPct(r.p) + " "}(${fmtInt(r.total)})`).join("; ");
-  const col = (tone, label, rs) => `<div class="t-${tone}"><b><em>${rs.length}</em>${label}</b>${rs.length ? `<p>${list(rs)}</p>` : ""}</div>`;
+  // "94,4% (17 de 18 compareceram) · 19 consultas": % com o número ao lado e o total de consultas (inclui aguardando retorno)
+  const meta = r => (r.p === null ? "sem desfecho ainda" : `<b style="color:${toneColor(statusOf(r.p))}">${fmtPct(r.p)}</b> (${fmtInt(r.comp)} de ${fmtInt(r.a)} compareceram)`) + ` · ${fmtInt(r.total)} ${plural(r.total,"consulta","consultas")}`;
+  const row = (r, i) => `<div class="i-rkr"><div class="i-rkh"><span class="i-rkn">${i+1}. ${escapeHtml(r.clinic)}</span><span class="i-rkm">${meta(r)}</span></div>${bar(r)}</div>`;
+  const li = r => `<li><b>${escapeHtml(r.clinic)}</b>: ${meta(r)}</li>`;
+  const col = (tone, label, rs) => `<div class="t-${tone}"><b><em>${rs.length}</em>${label}</b>${rs.length ? `<ul>${rs.map(li).join("")}</ul>` : ""}</div>`;
   const body = groups.map(g => {
-    const cons = g.L.length ? `<div class="i-rkc"><div class="i-rkc-t">Clínicas com menos de ${HIGH_VOLUME_MIN} consultas: ${g.L.length}</div><div class="i-rkc-g">` +
-      col("good", "Desempenho positivo (70% ou mais)", g.good) + col("warn", "Ponto de atenção (60% a 69%)", g.warn) + col("bad", "Desempenho negativo (abaixo de 60%)", g.bad) + `</div>` +
-      (g.sem.length ? `<div class="i-note">Sem consulta com desfecho ainda (só aguardando retorno): ${list(g.sem)}.</div>` : "") + `</div>` : "";
     const n = g.H.length + g.L.length;
+    const cons = g.L.length ? `<div class="i-rkc"><div class="i-rkc-t">Clínicas com menos de ${HIGH_VOLUME_MIN} consultas: ${g.L.length}</div><div class="i-rkc-g">` +
+      col("good", "Desempenho positivo (70% ou mais)", g.good) + col("warn", "Ponto de atenção (60% a 69%)", g.warn) + col("bad", "Desempenho negativo (abaixo de 60%)", g.bad) +
+      (g.sem.length ? `<div class="t-neutral"><b><em>${g.sem.length}</em>Sem consulta com desfecho ainda (só aguardando retorno)</b><ul>${g.sem.map(li).join("")}</ul></div>` : "") + `</div></div>` : "";
+    const t = g.tot;
     return `<div class="i-rk"><p class="i-sub">${escapeHtml(prettyName(g.k))}<span class="i-hint">${g.H.length} de ${n} ${plural(n,"clínica","clínicas")} com ${HIGH_VOLUME_MIN}+ consultas · do maior para o menor comparecimento</span>${leg}</p>` +
-      (g.H.length ? g.H.map(row).join("") : `<div class="i-note">Nenhuma clínica com ${HIGH_VOLUME_MIN}+ consultas nesta especialidade.</div>`) + cons + `</div>`;
+      `<div class="i-rkt"><div class="i-rkt-h"><div>${t.p === null ? "" : `<b style="color:${toneColor(statusOf(t.p))}">${fmtPct(t.p)}</b>`}Consolidado da especialidade</div><span>${t.p === null ? "" : `${fmtInt(t.comp)} de ${fmtInt(t.a)} compareceram · `}${fmtInt(t.total)} consultas em ${n} ${plural(n,"clínica","clínicas")}</span></div>${bar(t)}</div>` +
+      `<button type="button" class="i-rkbtn" aria-expanded="false" data-n=" (${n})" onclick="toggleInfoRk(this)">▸ Ver clínicas (${n})</button>` +
+      `<div class="i-rkx">` + (g.H.length ? g.H.map(row).join("") : `<div class="i-note">Nenhuma clínica com ${HIGH_VOLUME_MIN}+ consultas nesta especialidade.</div>`) + cons + `</div></div>`;
   }).join("");
   const nH = groups.reduce((t,g) => t + g.H.length, 0), nL = groups.reduce((t,g) => t + g.L.length, 0);
   return {
     title:"Rankings de comparecimento por clínica",
-    take:`Todas as clínicas com ${HIGH_VOLUME_MIN}+ consultas (${nH} ${plural(nH,"combinação","combinações")} de clínica e especialidade), uma especialidade por vez, do maior para o menor comparecimento. A barra mostra quantas consultas compareceram, faltaram e aguardam retorno. As ${nL} com menos de ${HIGH_VOLUME_MIN} consultas ficam no consolidado ao final de cada especialidade, pelas faixas de 70% e 60%. O % considera só consultas com desfecho.`,
+    take:`Uma especialidade por vez: a barra consolidada mostra o total e o botão "Ver clínicas" abre a lista, do maior para o menor comparecimento (${nH} ${plural(nH,"combinação","combinações")} de clínica e especialidade com ${HIGH_VOLUME_MIN}+ consultas). As ${nL} com menos de ${HIGH_VOLUME_MIN} consultas ficam num consolidado ao fim de cada lista, pelas faixas de 70% e 60%. O % considera só consultas com desfecho; "consultas" inclui as que aguardam retorno. No PDF e no PNG as listas saem abertas.`,
     body, actions:[]
   };
 }
@@ -2251,6 +2269,12 @@ function renderInfographic(){
   fitInfographic();
 }
 // escala o infográfico (largura fixa) para caber na tela; no download volta a 100%
+function toggleInfoRk(btn){   // abre/fecha a lista de clínicas de uma especialidade
+  const box = btn.closest(".i-rk"), open = box.classList.toggle("open");
+  btn.setAttribute("aria-expanded", String(open));
+  btn.textContent = (open ? "▾ Ocultar clínicas" : "▸ Ver clínicas") + btn.dataset.n;
+  fitInfographic();
+}
 function fitInfographic(){
   const stage = document.getElementById("infoStage"), root = document.getElementById("infoRoot");
   if (stage.classList.contains("hidden")) return;
@@ -2278,7 +2302,7 @@ function infoUnits(root, maxH, fine){   // fine = true: toda seção pode quebra
     if (!(c.classList.contains("i-sec") && (fine || iv.bottom - iv.top > maxH))){ out.push(iv); return; }   // cabe numa página: não se divide
     const push = x => {   // listas de cartões e o bloco .i-row2 se dividem entre seus itens (um cartão nunca é cortado)
       if (x.classList.contains("i-acs") || x.classList.contains("i-acs2") || x.classList.contains("i-sp")) [...x.children].forEach(y => out.push(rel(y)));
-      else if (x.classList.contains("i-row2") || x.classList.contains("i-rk")) [...x.children].forEach(push);   // .i-rk = uma especialidade do ranking: título, uma linha por clínica, consolidado
+      else if (x.classList.contains("i-row2") || x.classList.contains("i-rk") || x.classList.contains("i-rkx")) [...x.children].forEach(push);   // .i-rk = uma especialidade do ranking: título, uma linha por clínica, consolidado
       else out.push({...rel(x), glue:x.classList.contains("i-sec-h") || x.classList.contains("i-take") || x.classList.contains("i-sub")});
     };
     [...c.children].forEach(push);
@@ -2329,7 +2353,7 @@ function infoPlanPages(root){
   return {pages, forced};
 }
 // confere, pela posição, que nenhum elemento gráfico atravessa uma quebra de página
-const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-spc,.i-rkr,.i-rkc,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
+const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-spc,.i-rkr,.i-rkc,.i-rkt,.i-rkbtn,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
 function infoVerifyPlan(root, plan){
   const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, bad = [];
   const breaks = plan.pages.slice(0,-1).map(p => p.e);
@@ -2371,6 +2395,7 @@ async function downloadInfographic(kind){
   btns[kind==="png"?0:1].textContent = "Gerando...";
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    root.classList.add("i-all-open");   // listas de clínicas recolhidas na tela entram abertas no arquivo
     const plan = kind === "pdf" ? infoPlanPages(root) : null;   // medir ANTES de capturar, com o infográfico na tela como está
     const words = kind === "pdf" ? infoTextWords(root) : null;
     const canvas = await html2canvas(root, {
@@ -2400,6 +2425,7 @@ async function downloadInfographic(kind){
     console.error(err);
     showBanner("error", "Não foi possível gerar o arquivo: " + escapeHtml(err.message || String(err)));
   } finally {
+    root.classList.remove("i-all-open");
     btns.forEach((b,i) => { b.innerHTML = old[i]; });
     updateExportAvailability();
   }
