@@ -463,12 +463,14 @@ body.on-sintese .toolbar{display:none}
 .i-rkb div{font-size:13px}
 .i-rkc{margin-top:12px;padding:12px 16px 8px;border:1px dashed var(--c-line);border-radius:14px}
 .i-rkc-t{font-size:14.5px;font-weight:700;color:var(--c-navy);margin-bottom:6px}
-.i-rkc-g{margin-top:8px}
-.i-rkc-g b{display:block;color:var(--tc);font-size:14.5px;line-height:1.25}
-.i-rkc-g b em{font-style:normal;font-size:18px;margin-right:6px}
-.i-rkc-g ul{margin:3px 0 8px;padding-left:22px}
-.i-rkc-g li{font-size:14px;line-height:1.45;color:var(--c-body)}
-.i-rkc-g li span{color:var(--c-muted)}
+.i-rkc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:8px;align-items:start}
+.i-rkc-g>div{background:var(--tb,#F1F4F8);border-radius:12px;padding:10px 14px 8px;min-width:0}
+.i-rkc-h{display:block;color:var(--tc,var(--c-body));font-size:14.5px;line-height:1.25}
+.i-rkc-h em{font-style:normal;font-size:20px;margin-right:6px}
+.i-rkc-g ul{margin:8px 0 4px;padding-left:20px}
+.i-rkc-g li{font-size:14px;line-height:1.35;color:var(--c-body);margin-bottom:8px}
+.i-rkc-g li>b{font-size:14px;font-weight:700}
+.i-rkc-g li>span{display:block;color:var(--c-muted);font-size:13.5px}
 .i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
 .i-when{display:block;margin-top:6px;font-size:14px;font-weight:600;color:var(--c-navy)}
@@ -1833,13 +1835,13 @@ function infoSecRankings(){
   // "94,4% (17 de 18 compareceram) · 19 consultas": % com o número ao lado e o total de consultas (inclui aguardando retorno)
   const meta = r => (r.p === null ? "sem desfecho ainda" : `<b style="color:${toneColor(statusOf(r.p))}">${fmtPct(r.p)}</b> (${fmtInt(r.comp)} de ${fmtInt(r.a)} compareceram)`) + ` · ${fmtInt(r.total)} ${plural(r.total,"consulta","consultas")}`;
   const row = (r, i) => `<div class="i-rkr"><div class="i-rkh"><span class="i-rkn">${i+1}. ${escapeHtml(r.clinic)}</span><span class="i-rkm">${meta(r)}</span></div>${bar(r)}</div>`;
-  const li = r => `<li><b>${escapeHtml(r.clinic)}</b>: ${meta(r)}</li>`;
-  const col = (tone, label, rs) => `<div class="t-${tone}"><b><em>${rs.length}</em>${label}</b>${rs.length ? `<ul>${rs.map(li).join("")}</ul>` : ""}</div>`;
+  const li = r => `<li><b>${escapeHtml(r.clinic)}</b>${r.p === null ? "" : ` - <b class="i-rkp" style="color:${toneColor(statusOf(r.p))}">${fmtPct(r.p)}</b>`}<span>${r.a > 0 ? `${fmtInt(r.a)} ${plural(r.a,"consulta","consultas")}` : ""}${r.a > 0 && r.ag ? " - " : ""}${r.ag ? `${fmtInt(r.ag)} aguardando` : ""}</span></li>`;   // "NOME - 70%" e, embaixo, "7 consultas - 1 aguardando"
+  const col = (tone, label, rs) => `<div class="t-${tone}"><b class="i-rkc-h"><em>${rs.length}</em>${label}</b>${rs.length ? `<ul>${rs.map(li).join("")}</ul>` : ""}</div>`;
   const body = groups.map(g => {
     const n = g.H.length + g.L.length;
     const cons = g.L.length ? `<div class="i-rkc"><div class="i-rkc-t">Clínicas com menos de ${HIGH_VOLUME_MIN} consultas: ${g.L.length}</div><div class="i-rkc-g">` +
       col("good", "Desempenho positivo (70% ou mais)", g.good) + col("warn", "Ponto de atenção (60% a 69%)", g.warn) + col("bad", "Desempenho negativo (abaixo de 60%)", g.bad) +
-      (g.sem.length ? `<div class="t-neutral"><b><em>${g.sem.length}</em>Sem consulta com desfecho ainda (só aguardando retorno)</b><ul>${g.sem.map(li).join("")}</ul></div>` : "") + `</div></div>` : "";
+      (g.sem.length ? `<div class="t-neutral"><b class="i-rkc-h"><em>${g.sem.length}</em>Sem consulta com desfecho ainda (só aguardando retorno)</b><ul>${g.sem.map(li).join("")}</ul></div>` : "") + `</div></div>` : "";
     const t = g.tot;
     return `<div class="i-rk"><p class="i-sub">${escapeHtml(prettyName(g.k))}<span class="i-hint">${g.H.length} de ${n} ${plural(n,"clínica","clínicas")} com ${HIGH_VOLUME_MIN}+ consultas · do maior para o menor comparecimento</span>${leg}</p>` +
       `<div class="i-rkt"><div class="i-rkt-h"><div>${t.p === null ? "" : `<b style="color:${toneColor(statusOf(t.p))}">${fmtPct(t.p)}</b>`}Consolidado da especialidade</div><span>${t.p === null ? "" : `${fmtInt(t.comp)} de ${fmtInt(t.a)} compareceram · `}${fmtInt(t.total)} consultas em ${n} ${plural(n,"clínica","clínicas")}</span></div>${bar(t)}</div>` +
