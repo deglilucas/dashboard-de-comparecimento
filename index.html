@@ -1416,7 +1416,25 @@ function faixasClinicaEspecialidade(pool){
   };
 }
 const sumBucket = p => ({good:"g", warn:"w", bad:"b"})[statusOf(p)];
-const cleanName = c => parseClinic(c).nome;
+/* Nome da clínica para exibir. Unidades diferentes podem ter o mesmo nome em cidades diferentes (ex.: HOSP, HOLHOS, INSTITUTO VER):
+   quando isso acontece nos dados carregados, o nome ganha a cidade e o estado entre parênteses, para não confundir na apresentação. */
+let _repetidosFonte = null, _repetidos = new Set();
+function nomesRepetidos(){
+  const fontes = [CLINICA_RECORDS, cancelamentoData && cancelamentoData.byClinica, MEDIANA_RECORDS];
+  if (_repetidosFonte && fontes.every((f,i) => f === _repetidosFonte[i])) return _repetidos;
+  const completos = new Map();   // nome (sem UF e cidade) -> conjunto de nomes completos
+  const add = c => { if (c == null || !String(c).trim()) return; const p = parseClinic(String(c)); if (!p.cidade) return; const k = p.nome.trim().toUpperCase(); if (!completos.has(k)) completos.set(k, new Set()); completos.get(k).add(String(c).trim().toUpperCase()); };
+  (CLINICA_RECORDS || []).forEach(r => add(r.c));
+  if (cancelamentoData && cancelamentoData.byClinica) for (const k of cancelamentoData.byClinica.keys()) add(k);
+  (MEDIANA_RECORDS || []).forEach(r => add(r.clinica));
+  _repetidos = new Set([...completos].filter(([,v]) => v.size > 1).map(([k]) => k));
+  _repetidosFonte = fontes;
+  return _repetidos;
+}
+function cleanName(c){
+  const p = parseClinic(c);
+  return p.cidade && nomesRepetidos().has(p.nome.trim().toUpperCase()) ? `${p.nome} (${p.cidade}${p.uf ? "/" + p.uf : ""})` : p.nome;
+}
 
 function summaryVisaoGeral(){
   const canc = t => { (o.tags = o.tags || {})[t] = "Cancelamentos"; return t; };

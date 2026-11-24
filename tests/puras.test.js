@@ -144,3 +144,11 @@ test("rankingClinicas: 10+ consultas ranqueadas; menos de 10 vão para o consoli
   assert.deepEqual([r[0].tot.comp, r[0].tot.falt, r[0].tot.ag, r[0].tot.total], [33, 12, 5, 50]);   // consolidado da especialidade soma todas as clínicas
   assert.deepEqual(r[0].sem.map(x => x.clinic), ["F"]);              // só aguardando retorno: sem % ainda
 });
+
+test("cleanName: nome repetido em cidades diferentes ganha cidade/UF; nome único fica limpo", () => {
+  avaliar(`CLINICA_RECORDS=[{c:"SP - SAO PAULO - HOSP",e:"CATARATA",a:1,f:0,ag:0},{c:"RJ - NITEROI - HOSP",e:"CATARATA",a:1,f:0,ag:0},{c:"SP - SAO PAULO - CCO",e:"CATARATA",a:1,f:0,ag:0}]`);
+  assert.equal(avaliar('cleanName("SP - SAO PAULO - HOSP")'), "HOSP (SAO PAULO/SP)");
+  assert.equal(avaliar('cleanName("RJ - NITEROI - HOSP")'), "HOSP (NITEROI/RJ)");
+  assert.equal(avaliar('cleanName("SP - SAO PAULO - CCO")'), "CCO");
+  avaliar(`CLINICA_RECORDS=[]`);
+});
