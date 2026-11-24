@@ -440,6 +440,24 @@ body.on-sintese .toolbar{display:none}
 .i-spc-f{font-size:14px;color:var(--c-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--c-line);line-height:1.4}
 .i-spr small{font-weight:600;color:var(--c-muted);font-size:14px;margin-left:5px}
 .i-spc-n{font-size:14px;color:var(--c-muted);padding:4px 0;border-top:1px solid var(--c-line)}
+.i-rk{margin-top:22px}
+.i-rk:first-of-type{margin-top:6px}
+.i-rkleg{display:block;margin:5px 0 0}
+.i-rkleg span{margin-right:14px;white-space:nowrap}
+.i-rkr{padding:7px 0 9px;border-top:1px solid var(--c-line)}
+.i-rkh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}
+.i-rkn{font-size:15.5px;font-weight:700;color:var(--c-navy);line-height:1.25;min-width:0}
+.i-rkm{font-size:14px;color:var(--c-muted);white-space:nowrap}
+.i-rkm b{font-size:16px;margin-right:6px}
+.i-rkb{height:24px;border-radius:8px}
+.i-rkb div{font-size:13px}
+.i-rkc{margin-top:8px;padding:11px 14px 12px;border:1px dashed var(--c-line);border-radius:14px}
+.i-rkc-t{font-size:14.5px;font-weight:700;color:var(--c-navy);margin-bottom:8px}
+.i-rkc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.i-rkc-g>div{background:var(--tb);border-radius:10px;padding:8px 10px;min-width:0}
+.i-rkc-g b{display:block;color:var(--tc);font-size:14px;line-height:1.25}
+.i-rkc-g b em{font-style:normal;font-size:20px;margin-right:6px}
+.i-rkc-g p{margin:4px 0 0;font-size:13.5px;line-height:1.35;color:var(--c-body)}
 .i-row2{margin-top:22px;padding-top:20px;border-top:1px solid var(--c-line)}
 .i-sub{font-size:14.5px;font-weight:700;color:var(--c-navy);margin:0 0 11px}
 .i-when{display:block;margin-top:6px;font-size:14px;font-weight:600;color:var(--c-navy)}
@@ -1714,45 +1732,12 @@ function infoSecComparecimento(){
   const hv = pool.length > 0; if (!hv) pool = all;
   const {good, warn, bad} = faixasClinicaEspecialidade(pool);
 
-  // listas "top 5": só as especialidades primárias (+ as extras marcadas no filtro), alto volume quando existir
-  const allowed = new Set(specKeys);
-  const restr = all.filter(r => allowed.has(r.e));
-  const poolL = restr.filter(r => r.total >= HIGH_VOLUME_MIN);   // só combinações com 10+ consultas entram no ranking
-  const topBest = poolL.filter(r => r.p >= META_COMP_BOM).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,5);
-  const topAttn = poolL.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,5);
-  // um cartão por especialidade: maiores (70% ou mais) e menores (abaixo de 70%), só clínicas com 10+ consultas
-  const bySpecL = new Map(); poolL.forEach(r => { if (!bySpecL.has(r.e)) bySpecL.set(r.e, []); bySpecL.get(r.e).push(r); });
-  const cRow = r => ({clinic:r.clinic, text:fmtPct(r.p) + `<small>${r.total} ${plural(r.total,"consulta","consultas")}</small>`, tone:statusOf(r.p)});
-  const sumK = (arr, k) => arr.reduce((t, r) => t + r[k], 0);
-  // corte de volume POR ESPECIALIDADE: 10+ consultas; só se nenhuma clínica da especialidade chega a 10, usa 5+ (HIGH_VOLUME_FALLBACK)
-  const compInfo = specKeys.filter(k => restr.some(r => r.e === k)).map(k => {
-    const A = restr.filter(r => r.e === k);
-    const min = A.some(r => r.total >= HIGH_VOLUME_MIN) ? HIGH_VOLUME_MIN : (A.some(r => r.total >= HIGH_VOLUME_FALLBACK) ? HIGH_VOLUME_FALLBACK : HIGH_VOLUME_MIN);
-    return {k, A, min, fallback:min < HIGH_VOLUME_MIN, H:A.filter(r => r.total >= min), L:A.filter(r => r.total < min)};
-  });
-  const compCards = compInfo.map(({k, A, min, fallback, H, L}) => {
-    const cov = sumK(A, "a") > 0 ? Math.round(sumK(H, "a") / sumK(A, "a") * 100) : 0;
-    const lowBad = L.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total);
-    const foot = lowBad.length ? `<b>Fora do ranking (menos de ${min} consultas), abaixo de 70%:</b> ${lowBad.slice(0,4).map(r => `${escapeHtml(r.clinic)} ${fmtPct(r.p)} (${r.total})`).join("; ")}${lowBad.length > 4 ? ` e mais ${lowBad.length - 4}` : ""}.` : "";
-    return iSpecCard(prettyName(k), [
-      {label:"Benchmark (maiores)", rows:H.filter(r => r.p >= META_COMP_BOM).sort((a,b) => b.p-a.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? "Nenhuma clínica com 70% ou mais." : `Nenhuma clínica com ${min}+ consultas.`},
-      {label:"Menores (abaixo de 70%)", rows:H.filter(r => r.p < META_COMP_BOM).sort((a,b) => a.p-b.p || b.total-a.total).slice(0,INFO_SPEC_TOP).map(cRow), empty:H.length ? `Nenhuma das clínicas com ${min}+ consultas está abaixo de 70%.` : `Nenhuma clínica com ${min}+ consultas.`}],
-      `${H.length} de ${A.length} ${plural(A.length,"clínica","clínicas")} com ${min}+ consultas (entram no ranking); elas somam ${cov}% das consultas com desfecho da especialidade` +
-        (fallback ? ` <b>Nenhuma clínica tem ${HIGH_VOLUME_MIN}+ consultas nesta especialidade, então o corte aqui é ${min}+.</b>` : ""), foot); });
-  // cobertura geral: o que os rankings por especialidade enxergam e o que deixam de fora
-  const inRank = compInfo.flatMap(x => x.H), fbSpecs = compInfo.filter(x => x.fallback).map(x => prettyName(x.k));
-  const covAll = sumK(restr, "a") > 0 ? Math.round(sumK(inRank, "a") / sumK(restr, "a") * 100) : 0;
-  const compSpecHtml = `<p class="i-sub" style="margin-top:22px">Benchmark por especialidade: clínicas com maior e menor comparecimento<span class="i-hint">top ${INFO_SPEC_TOP} de cada lado · clínicas com ${HIGH_VOLUME_MIN}+ consultas${fbSpecs.length ? ` (${HIGH_VOLUME_FALLBACK}+ onde nenhuma chega a ${HIGH_VOLUME_MIN})` : ""}</span></p>` +
-    `<div class="i-note"><b>O que o ranking cobre:</b> ${inRank.length} de ${restr.length} combinações de clínica e especialidade (${covAll}% das consultas com desfecho; ${sumK(inRank, "f")} das ${sumK(restr, "f")} faltas). O corte é ${HIGH_VOLUME_MIN}+ consultas por clínica${fbSpecs.length ? `; em ${escapeHtml(fbSpecs.join(", "))}, onde nenhuma clínica chega a ${HIGH_VOLUME_MIN}, é ${HIGH_VOLUME_FALLBACK}+` : ""}. As demais não entram nos rankings, mas contam no comparecimento geral. Cada cartão lista, embaixo, as que ficaram de fora com comparecimento abaixo de 70%.</div>` +
-    (compCards.length ? iSpecGrid(compCards, 2) : `<div class="i-note">Nenhuma combinação nas especialidades selecionadas.</div>`);
-  const iListSpec = rows => iListTwo(rows.map(r => ({spec:r.spec, clinic:r.clinic, text:fmtPct(r.p), tone:statusOf(r.p)})));
 
   let row2 = "";
   if (pool.length){
     row2 = `<div class="i-row2">
       <p class="i-sub">Combinações de clínica e especialidade<span class="i-hint">${hv?`com ${HIGH_VOLUME_MIN}+ consultas`:"todas"} · todas as especialidades · faixa de comparecimento</span></p>
       ${iStack([{v:good.length,color:IC.ok,label:"70% ou mais"},{v:warn.length,color:IC.warn,label:"60% a 69%"},{v:bad.length,color:IC.bad,label:"Abaixo de 60%"}])}
-      ${compSpecHtml}
     </div>`;
   }
 
@@ -1808,6 +1793,46 @@ function infoSecComparecimento(){
     kpi:{tone, label:"Comparecimento", num:fmtPct(p), sub:`${fmtInt(sc.total)} consultas · ${fmtInt(falt)} faltas` + (per => per ? ` · ${per.de} a ${per.ate}` : "")(comparecimentoPeriodo()), chip: tone==="good"?"70% ou mais":(tone==="warn"?"Entre 60% e 69%":"Abaixo de 60%"), chipTone:tone,
       // mesma leitura da Visão geral: o que acontece com o % quando os "aguardando retorno" fecharem
       extra: sc.ag ? `<div class="i-kpi-s" style="margin-top:8px;font-size:12.5px"><b>${fmtInt(sc.ag)} aguardando retorno</b><br>se todos comparecerem: <b style="color:${IC.ok}">sobe para ${fmtPct(sc.best)}</b><br>se todos faltarem: <b style="color:${IC.bad}">cai para ${fmtPct(sc.worst)}</b></div>` : ""}
+  };
+}
+
+/* ---- 1b) Rankings de comparecimento por clínica: todas as clínicas com 10+ consultas, uma especialidade por vez ---- */
+// Pura (testável): records = CLINICA_RECORDS (a = compareceram + faltaram, f = faltaram, ag = aguardando retorno); keys = especialidades, na ordem de exibição.
+function rankingClinicas(records, keys){
+  const nome = (a,b) => a.clinic.localeCompare(b.clinic, "pt-BR");
+  const rows = records.filter(r => r.a + (r.ag||0) > 0).map(r => ({clinic:cleanName(r.c), e:r.e, comp:r.a - r.f, falt:r.f, ag:r.ag||0, total:r.a + (r.ag||0), p:r.a > 0 ? pct(r.a, r.f) : null}));
+  return keys.filter(k => rows.some(r => r.e === k)).map(k => {
+    const A = rows.filter(r => r.e === k);
+    const H = A.filter(r => r.total >= HIGH_VOLUME_MIN).sort((a,b) => (b.p ?? -1) - (a.p ?? -1) || b.total - a.total || nome(a,b));
+    const L = A.filter(r => r.total < HIGH_VOLUME_MIN);
+    const byP = f => L.filter(r => r.p !== null && f(r.p)).sort((a,b) => b.p - a.p || b.total - a.total || nome(a,b));
+    return {k, H, L, good:byP(p => p >= META_COMP_BOM), warn:byP(p => p >= META_COMP_ATENCAO && p < META_COMP_BOM), bad:byP(p => p < META_COMP_ATENCAO),
+      sem:L.filter(r => r.p === null).sort((a,b) => b.total - a.total || nome(a,b))};
+  });
+}
+function infoSecRankings(){
+  if (!CLINICA_RECORDS.length) return null;
+  const groups = rankingClinicas(CLINICA_RECORDS, infoSpecKeys());
+  if (!groups.length) return null;
+  const SEGS = [["Compareceram", IC.ok], ["Faltaram", IC.bad], ["Aguardando retorno", IC.warn]];
+  const leg = `<span class="i-hint i-rkleg">${SEGS.map(([l,c]) => `<span><i class="i-dot" style="background:${c}"></i>${l}</span>`).join("")}</span>`;
+  const bar = r => `<div class="i-stack i-rkb">${[[r.comp, IC.ok], [r.falt, IC.bad], [r.ag, IC.warn]].filter(x => x[0] > 0).map(([v,c]) => `<div style="flex:${v};background:${c}">${fmtInt(v)}</div>`).join("")}</div>`;
+  const row = (r, i) => `<div class="i-rkr"><div class="i-rkh"><span class="i-rkn">${i+1}. ${escapeHtml(r.clinic)}</span><span class="i-rkm">${r.p === null ? "sem desfecho ainda · " : `<b style="color:${toneColor(statusOf(r.p))}">${fmtPct(r.p)}</b>`}${fmtInt(r.total)} ${plural(r.total,"consulta","consultas")}</span></div>${bar(r)}</div>`;
+  const list = rs => rs.map(r => `${escapeHtml(r.clinic)} ${r.p === null ? "" : fmtPct(r.p) + " "}(${fmtInt(r.total)})`).join("; ");
+  const col = (tone, label, rs) => `<div class="t-${tone}"><b><em>${rs.length}</em>${label}</b>${rs.length ? `<p>${list(rs)}</p>` : ""}</div>`;
+  const body = groups.map(g => {
+    const cons = g.L.length ? `<div class="i-rkc"><div class="i-rkc-t">Clínicas com menos de ${HIGH_VOLUME_MIN} consultas: ${g.L.length}</div><div class="i-rkc-g">` +
+      col("good", "Desempenho positivo (70% ou mais)", g.good) + col("warn", "Ponto de atenção (60% a 69%)", g.warn) + col("bad", "Desempenho negativo (abaixo de 60%)", g.bad) + `</div>` +
+      (g.sem.length ? `<div class="i-note">Sem consulta com desfecho ainda (só aguardando retorno): ${list(g.sem)}.</div>` : "") + `</div>` : "";
+    const n = g.H.length + g.L.length;
+    return `<div class="i-rk"><p class="i-sub">${escapeHtml(prettyName(g.k))}<span class="i-hint">${g.H.length} de ${n} ${plural(n,"clínica","clínicas")} com ${HIGH_VOLUME_MIN}+ consultas · do maior para o menor comparecimento</span>${leg}</p>` +
+      (g.H.length ? g.H.map(row).join("") : `<div class="i-note">Nenhuma clínica com ${HIGH_VOLUME_MIN}+ consultas nesta especialidade.</div>`) + cons + `</div>`;
+  }).join("");
+  const nH = groups.reduce((t,g) => t + g.H.length, 0), nL = groups.reduce((t,g) => t + g.L.length, 0);
+  return {
+    title:"Rankings de comparecimento por clínica",
+    take:`Todas as clínicas com ${HIGH_VOLUME_MIN}+ consultas (${nH} ${plural(nH,"combinação","combinações")} de clínica e especialidade), uma especialidade por vez, do maior para o menor comparecimento. A barra mostra quantas consultas compareceram, faltaram e aguardam retorno. As ${nL} com menos de ${HIGH_VOLUME_MIN} consultas ficam no consolidado ao final de cada especialidade, pelas faixas de 70% e 60%. O % considera só consultas com desfecho.`,
+    body, actions:[]
   };
 }
 
@@ -2188,7 +2213,7 @@ function infoActionsHtml(all, num){
 
 function renderInfographic(){
   const root = document.getElementById("infoRoot"), stage = document.getElementById("infoStage");
-  const secs = [infoSecComparecimento, infoSecCancelamentos, infoSecMediana, infoSecIndicacoes].map(safeSec).filter(Boolean);
+  const secs = [infoSecComparecimento, infoSecRankings, infoSecCancelamentos, infoSecMediana, infoSecIndicacoes].map(safeSec).filter(Boolean);
   document.getElementById("infoEmpty").classList.toggle("hidden", secs.length > 0);
   stage.classList.toggle("hidden", !secs.length);
   document.getElementById("infoMissing").textContent = infoMissingText();
@@ -2243,7 +2268,7 @@ function infoUnits(root, maxH, fine){   // fine = true: toda seção pode quebra
     if (!(c.classList.contains("i-sec") && (fine || iv.bottom - iv.top > maxH))){ out.push(iv); return; }   // cabe numa página: não se divide
     const push = x => {   // listas de cartões e o bloco .i-row2 se dividem entre seus itens (um cartão nunca é cortado)
       if (x.classList.contains("i-acs") || x.classList.contains("i-acs2") || x.classList.contains("i-sp")) [...x.children].forEach(y => out.push(rel(y)));
-      else if (x.classList.contains("i-row2")) [...x.children].forEach(push);
+      else if (x.classList.contains("i-row2") || x.classList.contains("i-rk")) [...x.children].forEach(push);   // .i-rk = uma especialidade do ranking: título, uma linha por clínica, consolidado
       else out.push({...rel(x), glue:x.classList.contains("i-sec-h") || x.classList.contains("i-take") || x.classList.contains("i-sub")});
     };
     [...c.children].forEach(push);
@@ -2294,7 +2319,7 @@ function infoPlanPages(root){
   return {pages, forced};
 }
 // confere, pela posição, que nenhum elemento gráfico atravessa uma quebra de página
-const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-spc,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
+const PDF_GRAPHIC_SEL = "svg,.i-donut,.i-stack,.i-cols,.i-brow,.i-li,.i-li2,.i-spc,.i-rkr,.i-rkc,.i-kpi,.i-sem-c,.i-sem-it,.i-ac,.i-ac2,.i-hero,.i-trio,.i-mini-it,.i-leg,.i-fn p,.i-head,.i-foot,.i-st,.i-note,.i-sec-h,.i-take";
 function infoVerifyPlan(root, plan){
   const rr = root.getBoundingClientRect(), k = rr.width / root.offsetWidth || 1, bad = [];
   const breaks = plan.pages.slice(0,-1).map(p => p.e);
@@ -2948,7 +2973,6 @@ const TIERS = [
 ];
 const KNOWN_SPECS = new Set(TIERS.flatMap(t => t.specs));
 const HIGH_VOLUME_MIN = 10; // "alto volume" = 10 ou mais consultas (compareceram + faltaram + aguardando retorno)
-const HIGH_VOLUME_FALLBACK = 5; // reserva: nos cartões por especialidade em que NENHUMA clínica chega a HIGH_VOLUME_MIN, o corte cai para 5
 
 function pct(a,f){ return a>0 ? ((a-f)/a)*100 : 0; }
 function prettyName(spec){ return PRETTY[spec] || (spec.charAt(0)+spec.slice(1).toLowerCase()); }
